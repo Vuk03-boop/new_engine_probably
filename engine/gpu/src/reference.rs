@@ -9,6 +9,10 @@
 //!
 //! Albedos are uploaded once per material registry ([`RefMaterials`], `Category::GpuMaterial`), after
 //! `light::reference::albedos` has refused anything outside [0, 1].
+//!
+//! 4A (ADR-0005 Amendment 3): emission and emitter next-event estimation, as `light::reference`.
+//! [`Reference::bind_lit`] binds an emitter table ([`RefEmitters`]); [`Reference::bind`] binds none,
+//! and [`Reference::accumulate`] then refuses settings that use emitters.
 
 use std::mem::{offset_of, size_of};
 use std::ops::Range;
@@ -20,6 +24,7 @@ use memory::Category;
 
 use crate::accel::{Accel, RegionRef};
 use crate::alloc::{Allocator, Buffer, Kind};
+use crate::emitters::{GpuEmitter, RefEmitters};
 use crate::context::{Gpu, GpuError, Result, VkCheck};
 use crate::raster::Camera;
 use crate::reflect::{self, Field, Param};
@@ -42,8 +47,15 @@ pub mod flags {
     pub const ALBEDO_ONE: u32 = 16;
     pub const RESET: u32 = 32;
     pub const PROBE_T: u32 = 64;
+    pub const EMISSION: u32 = 128;
     pub const FAULT_PDF: u32 = 256;
     pub const FAULT_NO_COS: u32 = 512;
+    pub const EMITTERS_DIRECT: u32 = 1024;
+    pub const EMITTERS_INDIRECT: u32 = 2048;
+    pub const EMITTER_AREA: u32 = 4096;
+    pub const FAULT_NO_SOLID_ANGLE: u32 = 8192;
+    pub const FAULT_DOUBLE_EMISSION: u32 = 16384;
+    pub const FAULT_NO_EMITTER_COS: u32 = 32768;
 }
 
 /// Planted faults for negative controls; all off by default.
@@ -95,6 +107,13 @@ impl Params {
             (s.albedo_one, flags::ALBEDO_ONE),
             (faults.wrong_pdf, flags::FAULT_PDF),
             (faults.no_cosine, flags::FAULT_NO_COS),
+            (s.emission, flags::EMISSION),
+            (s.emitters_direct, flags::EMITTERS_DIRECT),
+            (s.emitters_indirect, flags::EMITTERS_INDIRECT),
+            (s.emitter_area_sampling, flags::EMITTER_AREA),
+            (s.emitter_faults.no_solid_angle, flags::FAULT_NO_SOLID_ANGLE),
+            (s.emitter_faults.double_emission, flags::FAULT_DOUBLE_EMISSION),
+            (s.emitter_faults.no_emitter_cosine, flags::FAULT_NO_EMITTER_COS),
         ] {
             if on {
                 f |= bit;
@@ -136,6 +155,8 @@ pub fn host_layout() -> Vec<Param> {
         Param::Descriptor { name: "regions", binding: 1, element: vec![field!(RegionRef, quads), field!(RegionRef, tri_quad), field!(RegionRef, quad_count), field!(RegionRef, tri_count)] },
         Param::Descriptor { name: "albedo", binding: 2, element: vec![] },
         Param::Descriptor { name: "acc", binding: 3, element: vec![field!(Acc, sum), field!(Acc, sum_sq)] },
+        Param::Descriptor { name: "emitters", binding: 4, element: GpuEmitter::fields() },
+        Param::Descriptor { name: "emission", binding: 5, element: vec![] },
         Param::PushConstants {
             name: "params",
             fields: vec![
@@ -208,6 +229,8 @@ impl RefAccum {
 pub struct RefBindings {
     pool: vk::DescriptorPool,
     set: vk::DescriptorSet,
+    /// The bound emitter table's size, or `None` when [`Reference::bind`] bound placeholders.
+    emitters: Option<u32>,
 }
 
 impl RefBindings {
@@ -246,6 +269,8 @@ impl Reference {
             b(1, vk::DescriptorType::STORAGE_BUFFER),
             b(2, vk::DescriptorType::STORAGE_BUFFER),
             b(3, vk::DescriptorType::STORAGE_BUFFER),
+            b(4, vk::DescriptorType::STORAGE_BUFFER),
+            b(5, vk::DescriptorType::STORAGE_BUFFER),
         ];
         let set_layout = unsafe { dev.create_descriptor_set_layout(&vk::DescriptorSetLayoutCreateInfo::default().bindings(&bindings), None) }.vk("vkCreateDescriptorSetLayout")?;
         let pc = [vk::PushConstantRange::default().stage_flags(vk::ShaderStageFlags::COMPUTE).offset(0).size(size_of::<Params>() as u32)];
@@ -263,11 +288,27 @@ impl Reference {
         Ok(Reference { set_layout, layout, pipeline })
     }
 
+    /// Binds without emitters: the emitter slots hold the albedo buffer as a placeholder that the
+    /// shader never reads (the emitter flags must stay off; `accumulate` checks).
     pub fn bind(&self, gpu: &Gpu, accel: &Accel, materials: &RefMaterials, out: &RefAccum) -> Result<RefBindings> {
+        let alb = vk::DescriptorBufferInfo { buffer: materials.buffer.buffer, offset: 0, range: (materials.count as u64 * 16).max(16) };
+        self.bind_with(gpu, accel, materials, out, alb, alb, None)
+    }
+
+    /// Binds with the emitter table `em` (built from the same registry as `materials`).
+    pub fn bind_lit(&self, gpu: &Gpu, accel: &Accel, materials: &RefMaterials, em: &RefEmitters, out: &RefAccum) -> Result<RefBindings> {
+        assert_eq!(em.materials, materials.count, "the emitter table and the albedos come from one registry");
+        let rows = vk::DescriptorBufferInfo { buffer: em.emitters.buffer, offset: 0, range: (em.count as u64 * size_of::<GpuEmitter>() as u64).max(size_of::<GpuEmitter>() as u64) };
+        let emission = vk::DescriptorBufferInfo { buffer: em.emission.buffer, offset: 0, range: (em.materials as u64 * 16).max(16) };
+        self.bind_with(gpu, accel, materials, out, rows, emission, Some(em.count))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn bind_with(&self, gpu: &Gpu, accel: &Accel, materials: &RefMaterials, out: &RefAccum, rows: vk::DescriptorBufferInfo, emission: vk::DescriptorBufferInfo, emitters: Option<u32>) -> Result<RefBindings> {
         let dev = &gpu.device;
         let sizes = [
             vk::DescriptorPoolSize { ty: vk::DescriptorType::ACCELERATION_STRUCTURE_KHR, descriptor_count: 1 },
-            vk::DescriptorPoolSize { ty: vk::DescriptorType::STORAGE_BUFFER, descriptor_count: 3 },
+            vk::DescriptorPoolSize { ty: vk::DescriptorType::STORAGE_BUFFER, descriptor_count: 5 },
         ];
         let pool = unsafe { dev.create_descriptor_pool(&vk::DescriptorPoolCreateInfo::default().max_sets(1).pool_sizes(&sizes), None) }.vk("vkCreateDescriptorPool")?;
         let layouts = [self.set_layout];
@@ -286,13 +327,15 @@ impl Reference {
             // Exactly the albedo rows, so the shader's bounds check sees the material count.
             [vk::DescriptorBufferInfo { buffer: materials.buffer.buffer, offset: 0, range: (materials.count as u64 * 16).max(16) }],
             [vk::DescriptorBufferInfo { buffer: out.buffer.buffer, offset: 0, range: out.buffer.size }],
+            [rows],
+            [emission],
         ];
         let mut writes = vec![vk::WriteDescriptorSet::default().dst_set(set).dst_binding(0).descriptor_type(vk::DescriptorType::ACCELERATION_STRUCTURE_KHR).descriptor_count(1).push_next(&mut as_write)];
         for (k, info) in infos.iter().enumerate() {
             writes.push(vk::WriteDescriptorSet::default().dst_set(set).dst_binding(k as u32 + 1).descriptor_type(vk::DescriptorType::STORAGE_BUFFER).buffer_info(info));
         }
         unsafe { dev.update_descriptor_sets(&writes, &[]) };
-        Ok(RefBindings { pool, set })
+        Ok(RefBindings { pool, set, emitters })
     }
 
     /// Records one dispatch with `params`. Consecutive dispatches read-modify-write the accumulation:
@@ -315,6 +358,7 @@ impl Reference {
     /// as measured by host wall time per submission (a coarse figure; see `timing` for pass timing).
     #[allow(clippy::too_many_arguments)]
     pub fn accumulate(&self, gpu: &Gpu, timeline: &mut Timeline, bindings: &RefBindings, out: &RefAccum, cam: &Camera, light: &Lighting, s: &Settings, faults: RefFaults, seed: u32, frames: Range<u32>, reset_at: u32, per_submit: u32) -> Result<f64> {
+        assert!(!s.uses_emitters() || bindings.emitters.is_some(), "emitter settings need bindings from bind_lit");
         let mut sub = Submitter::new(gpu)?;
         let t = std::time::Instant::now();
         let result = (|| {
@@ -324,6 +368,7 @@ impl Reference {
                 let end = (f + per_submit.max(1)).min(frames.end);
                 for frame in f..end {
                     let mut p = Params::new(cam, light, s, faults, frame, seed);
+                    p.right[3] = f32::from_bits(bindings.emitters.unwrap_or(0));
                     if frame == reset_at {
                         p.flags |= flags::RESET;
                     }
@@ -395,4 +440,25 @@ pub fn compute_to_compute(gpu: &Gpu, cmd: vk::CommandBuffer) {
         .dst_stage_mask(vk::PipelineStageFlags2::COMPUTE_SHADER)
         .dst_access_mask(vk::AccessFlags2::SHADER_STORAGE_READ | vk::AccessFlags2::SHADER_STORAGE_WRITE)];
     unsafe { gpu.device.cmd_pipeline_barrier2(cmd, &vk::DependencyInfo::default().memory_barriers(&b)) };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The compiled module's reflection matches the host layout (4A: with the emitter bindings and
+    /// the 80-byte emitter), without a device.
+    #[test]
+    fn host_layout_matches_the_compiled_module() {
+        reflect::check(REFLECTION, &host_layout()).unwrap();
+        assert_eq!(size_of::<Params>(), 128);
+        // Negative control: the emitter's `meta` field moved by 4 bytes is refused.
+        let mut bad = host_layout();
+        for p in &mut bad {
+            if let Param::Descriptor { name: "emitters", element, .. } = p {
+                element.last_mut().unwrap().offset += 4;
+            }
+        }
+        assert!(reflect::check(REFLECTION, &bad).is_err());
+    }
 }

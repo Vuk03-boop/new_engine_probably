@@ -2,14 +2,20 @@
 //!
 //! It is the statistical oracle for `gpu::reference`: the same estimator, in f64, drawing its random
 //! numbers in the same order from the same [`Rng`] streams (sample `s` of pixel `i` uses
-//! `Rng::new(i, s, seed)`). Emission is off (ADR-0005, M3).
+//! `Rng::new(i, s, seed)`).
 //!
 //! Per sample:
 //! 1. A primary ray through the pixel centre. A miss sees the sky (sky on) and the sun disk (sun on).
+//!    A hit sees the surface's emitted radiance (`emission`, 4A).
 //! 2. At each surface vertex: the sun by next-event estimation (a uniform point on the disk, or the
-//!    centre with `point_sun`, and one shadow ray), then one cosine-sampled continuation ray. A
-//!    continuation that escapes takes the sky radiance; one that hits a surface continues while
-//!    bounces remain (`max_bounces` = surface-to-surface bounces).
+//!    centre with `point_sun`, and one shadow ray); then the emitters by next-event estimation
+//!    (`emitters_direct` at the primary vertex, `emitters_indirect` after it; ADR-0005 Amendment 3);
+//!    then one cosine-sampled continuation ray. A continuation that escapes takes the sky radiance;
+//!    one that hits a surface continues while bounces remain (`max_bounces` = surface-to-surface
+//!    bounces) and never adds that surface's emission.
+//!
+//! Emitter terms are off by default, so every M3 image is unchanged; with them off, no emitter random
+//! numbers are drawn.
 
 use std::f64::consts::PI;
 
@@ -17,7 +23,8 @@ use world::reference::{trace, Ray};
 use world::{MaterialRegistry, World};
 
 use crate::atmosphere::{Atmosphere, SkyOptions};
-use crate::sample::{self, add, dot, mul, normalize, scale, Rng, V3};
+use crate::emitters::{EmitterTable, SphericalRect, SOLID_ANGLE_MIN};
+use crate::sample::{self, add, dot, mul, normalize, scale, sub, Rng, V3};
 use crate::sun::{self, E_SUN};
 
 /// Offset of secondary-ray origins along the face normal, voxels (ADR-0005).
@@ -57,12 +64,54 @@ pub struct Settings {
     /// Control: every albedo is 1.
     pub albedo_one: bool,
     pub sky_options: SkyOptions,
+    /// Emitted radiance where the primary ray hits (4A).
+    pub emission: bool,
+    /// Emitter next-event estimation at the primary vertex (4A).
+    pub emitters_direct: bool,
+    /// Emitter next-event estimation at vertices 1..=`max_bounces` (4A).
+    pub emitters_indirect: bool,
+    /// Control: sample every emitter by area (uniform on the quad) instead of by solid angle.
+    pub emitter_area_sampling: bool,
+    /// Planted emitter faults for negative controls.
+    pub emitter_faults: EmitterFaults,
 }
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { sun: true, sky: true, max_bounces: 8, point_sun: false, uniform_sky: false, albedo_one: false, sky_options: SkyOptions::default() }
+        Settings {
+            sun: true,
+            sky: true,
+            max_bounces: 8,
+            point_sun: false,
+            uniform_sky: false,
+            albedo_one: false,
+            sky_options: SkyOptions::default(),
+            emission: false,
+            emitters_direct: false,
+            emitters_indirect: false,
+            emitter_area_sampling: false,
+            emitter_faults: EmitterFaults::default(),
+        }
     }
+}
+
+impl Settings {
+    /// Whether any emitter term is on (the estimator then needs an [`EmitterTable`]).
+    pub fn uses_emitters(&self) -> bool {
+        self.emission || self.emitters_direct || self.emitters_indirect
+    }
+}
+
+/// Planted faults for the emitter terms (4A negative controls); all off by default.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct EmitterFaults {
+    /// The area PDF used as if it were a solid-angle PDF: A / P(i) in place of the geometry term
+    /// (by area) or of S / P(i) (by solid angle).
+    pub no_solid_angle: bool,
+    /// A continuation that hits an emitter adds its emission (counted twice with next-event estimation).
+    pub double_emission: bool,
+    /// The emitter's cosine is dropped (by area; by solid angle there is none to drop).
+    pub no_emitter_cosine: bool,
 }
 
 /// The sun for one time of day.
@@ -109,6 +158,7 @@ struct Surface {
     point: V3,
     normal: V3,
     albedo: V3,
+    material: world::MaterialId,
 }
 
 fn hit_surface(world: &World, albedo: &[V3], origin: V3, dir: V3, s: &Settings) -> Option<Surface> {
@@ -120,7 +170,7 @@ fn hit_surface(world: &World, albedo: &[V3], origin: V3, dir: V3, s: &Settings) 
     // Faces lie on integer voxel planes: snap, then offset (ADR-0005).
     point[a] = point[a].round() + normal[a] * RAY_OFFSET;
     let albedo = if s.albedo_one { [1.0; 3] } else { albedo[h.material.raw() as usize] };
-    Some(Surface { point, normal, albedo })
+    Some(Surface { point, normal, albedo, material: h.material })
 }
 
 fn sky(light: &Lighting, dir: V3, rng: &mut Rng, s: &Settings) -> V3 {
@@ -133,9 +183,58 @@ fn sky(light: &Lighting, dir: V3, rng: &mut Rng, s: &Settings) -> V3 {
     }
 }
 
-/// One sample of pixel (x, y) for frame `frame`.
+/// Emitter next-event estimation at `surf` (ADR-0005 Amendment 3), without β and albedo: one emitter
+/// by power, then a point uniform in its solid angle (by area when the solid angle is below
+/// [`SOLID_ANGLE_MIN`], or with `area`), and one visibility segment. Always draws its numbers first.
+fn emitter_sample(world: &World, em: &EmitterTable, surf: &Surface, rng: &mut Rng, area: bool, f: &EmitterFaults) -> V3 {
+    let e = &em.emitters[em.select(rng)];
+    let (u, v) = (rng.uniform(), rng.uniform());
+    // Behind or in the emitter's plane: every point of it has cos θ_y ≤ 0.
+    if dot(e.normal, sub(surf.point, e.p0)) <= 0.0 {
+        return [0.0; 3];
+    }
+    let sr = if area { None } else { Some(SphericalRect::new(e, surf.point)).filter(|r| r.solid_angle >= SOLID_ANGLE_MIN) };
+    let y = match &sr {
+        Some(r) => r.sample(u, v),
+        None => e.point(u, v),
+    };
+    let d = sub(y, surf.point);
+    let d2 = dot(d, d);
+    let w = scale(d, 1.0 / d2.sqrt());
+    let (cx, cy) = (dot(surf.normal, w), -dot(e.normal, w));
+    if cx <= 0.0 || cy <= 0.0 {
+        return [0.0; 3];
+    }
+    // The segment ends RAY_OFFSET in front of the emitter's face, so the face itself never occludes.
+    let end = add(y, scale(e.normal, RAY_OFFSET));
+    if trace(world, &Ray { origin: surf.point, dir: sub(end, surf.point) }, 1.0).is_some() {
+        return [0.0; 3];
+    }
+    // Radiance × cos θ_x / pdf in solid angle, over π.
+    let k = if f.no_solid_angle {
+        e.area
+    } else if let Some(r) = &sr {
+        r.solid_angle
+    } else if f.no_emitter_cosine {
+        e.area / d2
+    } else {
+        e.area * cy / d2
+    };
+    scale(e.radiance, cx * k / (e.pdf * PI))
+}
+
+/// One sample of pixel (x, y) for frame `frame`, without emitters (`s` must not use them).
 #[allow(clippy::too_many_arguments)]
 pub fn sample_pixel(world: &World, albedo: &[V3], light: &Lighting, cam: &Pinhole, s: &Settings, x: u32, y: u32, frame: u32, seed: u32) -> V3 {
+    assert!(!s.uses_emitters(), "emitter terms need an EmitterTable: use sample_pixel_lit");
+    sample_pixel_lit(world, albedo, &NO_EMITTERS, light, cam, s, x, y, frame, seed)
+}
+
+static NO_EMITTERS: EmitterTable = EmitterTable { snapshot: 0, emitters: Vec::new(), emission: Vec::new(), total_power: 0.0 };
+
+/// One sample of pixel (x, y) for frame `frame`, with the emitters of `em`.
+#[allow(clippy::too_many_arguments)]
+pub fn sample_pixel_lit(world: &World, albedo: &[V3], em: &EmitterTable, light: &Lighting, cam: &Pinhole, s: &Settings, x: u32, y: u32, frame: u32, seed: u32) -> V3 {
     let mut rng = Rng::new(y * cam.width + x, frame, seed);
     let d = cam.dir(x, y);
     let Some(mut surf) = hit_surface(world, albedo, cam.eye, d, s) else {
@@ -147,7 +246,7 @@ pub fn sample_pixel(world: &World, albedo: &[V3], light: &Lighting, cam: &Pinhol
         return l;
     };
     let sun_on = s.sun && !s.uniform_sky;
-    let mut l = [0.0; 3];
+    let mut l = if s.emission { em.emission_of(surf.material) } else { [0.0; 3] };
     let mut beta = [1.0; 3];
     for bounce in 0..=s.max_bounces {
         // Sun: always draw two numbers, so the streams stay aligned with the GPU.
@@ -159,6 +258,10 @@ pub fn sample_pixel(world: &World, albedo: &[V3], light: &Lighting, cam: &Pinhol
                 l = add(l, mul(mul(beta, surf.albedo), scale(light.sun_at_ground, c / PI)));
             }
         }
+        let nee = if bounce == 0 { s.emitters_direct } else { s.emitters_indirect };
+        if nee && !em.is_empty() {
+            l = add(l, mul(mul(beta, surf.albedo), emitter_sample(world, em, &surf, &mut rng, s.emitter_area_sampling, &s.emitter_faults)));
+        }
         let wi = sample::cosine_hemisphere(surf.normal, rng.uniform(), rng.uniform());
         beta = mul(beta, surf.albedo);
         match hit_surface(world, albedo, surf.point, wi, s) {
@@ -166,8 +269,15 @@ pub fn sample_pixel(world: &World, albedo: &[V3], light: &Lighting, cam: &Pinhol
                 l = add(l, mul(beta, sky(light, wi, &mut rng, s)));
                 break;
             }
-            Some(next) if bounce < s.max_bounces => surf = next,
-            Some(_) => break,
+            Some(next) => {
+                if s.emitter_faults.double_emission {
+                    l = add(l, mul(beta, em.emission_of(next.material)));
+                }
+                if bounce == s.max_bounces {
+                    break;
+                }
+                surf = next;
+            }
         }
     }
     l
@@ -196,9 +306,17 @@ impl Accum {
     }
 }
 
-/// Renders samples `first..first + count` of every pixel on `threads` threads (rows interleaved).
+/// Renders samples `first..first + count` of every pixel on `threads` threads (rows interleaved),
+/// without emitters (`s` must not use them).
 #[allow(clippy::too_many_arguments)]
 pub fn render(world: &World, albedo: &[V3], light: &Lighting, cam: &Pinhole, s: &Settings, first: u32, count: u32, seed: u32, threads: usize) -> Accum {
+    assert!(!s.uses_emitters(), "emitter terms need an EmitterTable: use render_lit");
+    render_lit(world, albedo, &NO_EMITTERS, light, cam, s, first, count, seed, threads)
+}
+
+/// [`render`] with the emitters of `em`.
+#[allow(clippy::too_many_arguments)]
+pub fn render_lit(world: &World, albedo: &[V3], em: &EmitterTable, light: &Lighting, cam: &Pinhole, s: &Settings, first: u32, count: u32, seed: u32, threads: usize) -> Accum {
     let (w, h) = (cam.width, cam.height);
     let rows: Vec<Vec<(V3, V3)>> = std::thread::scope(|scope| {
         let handles: Vec<_> = (0..threads)
@@ -210,7 +328,7 @@ pub fn render(world: &World, albedo: &[V3], light: &Lighting, cam: &Pinhole, s: 
                             .map(|x| {
                                 let (mut a, mut b) = ([0.0; 3], [0.0; 3]);
                                 for f in first..first + count {
-                                    let v = sample_pixel(world, albedo, light, cam, s, x, y, f, seed);
+                                    let v = sample_pixel_lit(world, albedo, em, light, cam, s, x, y, f, seed);
                                     a = add(a, v);
                                     b = add(b, mul(v, v));
                                 }
@@ -305,5 +423,36 @@ mod tests {
             }
         }
         assert!(expect[0] > expect[2], "the noon sun at 45° is slightly warm after the atmosphere");
+    }
+}
+
+#[cfg(test)]
+mod fingerprint {
+    use super::*;
+    use crate::sun::SunPath;
+
+    /// Diagnostic (4A): prints a bit-level fingerprint of a small street render with the default
+    /// settings, so a change can show that emitters-off images are unchanged on the same machine.
+    #[test]
+    #[ignore]
+    fn diagnostic_street_fingerprint() {
+        let (w, view) = world::scene::street_block();
+        let al = albedos(w.materials()).unwrap();
+        let vox = |m: [f64; 3]| m.map(|x| x / world::dims::VOXEL_SIZE_M);
+        let (eye, target) = (vox(view.eye_m), vox(view.target_m));
+        let f = normalize(sample::sub(target, eye));
+        let r = normalize(sample::cross(f, [0.0, 1.0, 0.0]));
+        let u = sample::cross(r, f);
+        let th = (view.vertical_fov_deg.to_radians() / 2.0).tan();
+        let cam = Pinhole { eye, forward: f, right: scale(r, th * 16.0 / 9.0), up: scale(u, th), width: 32, height: 18 };
+        for hour in [6.25, 12.0, 18.25] {
+            let light = Lighting::new(Atmosphere::default(), SunPath::default().direction(hour));
+            let acc = render(&w, &al, &light, &cam, &Settings { max_bounces: 2, ..Settings::default() }, 0, 4, 7, 2);
+            let mut h: u64 = 0xcbf29ce484222325;
+            for v in acc.sum.iter().chain(acc.sum_sq.iter()).flatten() {
+                h = (h ^ v.to_bits()).wrapping_mul(0x100000001b3);
+            }
+            eprintln!("fingerprint hour {hour}: {h:016x}");
+        }
     }
 }

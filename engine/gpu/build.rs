@@ -32,9 +32,10 @@ const SHADERS: &[(&str, &str, &str, &str, &[&str])] = &[
 fn main() {
     println!("cargo:rerun-if-env-changed=VULKAN_SDK");
     println!("cargo:rerun-if-changed=build.rs");
-    // Shared includes (light_common.slang, sky_common.slang) are not listed as modules.
+    // Shared includes (light_common.slang, sky_common.slang, emitters_common.slang) are not listed as modules.
     println!("cargo:rerun-if-changed=shaders/light_common.slang");
     println!("cargo:rerun-if-changed=shaders/sky_common.slang");
+    println!("cargo:rerun-if-changed=shaders/emitters_common.slang");
     let sdk = std::env::var("VULKAN_SDK").expect("VULKAN_SDK is not set: the gpu crate needs the pinned Vulkan SDK (ADR-0001)");
     let bin = PathBuf::from(sdk).join("Bin");
     let slangc = bin.join("slangc.exe");

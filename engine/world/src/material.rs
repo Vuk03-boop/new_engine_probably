@@ -21,8 +21,12 @@ impl MaterialId {
     }
 }
 
-/// Numerical material parameters. Linear RGB; emissive is in the same relative units as base colour
-/// until a radiometric unit is decided with the lighting work (Phase 3).
+/// Luminance in cd/m² of one unit of emitted radiance (ADR-0005 Amendment 3: E_sun = 1 is about
+/// 128,000 lux above the atmosphere). For authoring only; the renderer works in the relative units.
+pub const CANDELA_PER_UNIT: f64 = 128_000.0;
+
+/// Numerical material parameters. Linear RGB. `base_color` is the Lambertian albedo and `emissive`
+/// the emitted radiance, in ADR-0005 units (Amendment 3: 1 unit of luminance = [`CANDELA_PER_UNIT`]).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MaterialParams {
     pub base_color: [f32; 3],
