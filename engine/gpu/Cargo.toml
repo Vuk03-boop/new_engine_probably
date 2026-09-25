@@ -1,0 +1,15 @@
+[package]
+name = "gpu"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+# Phase 2B: Vulkan device, ledger-backed device memory, staging uploads, timeline retirement,
+# pinned-slangc shaders with reflection layout checks, and the ADR-0004 mesh upload.
+# Not a default workspace member: its tests need the Vulkan SDK (pinned slangc) and a GPU.
+[dependencies]
+ash = "=0.38.0"
+memory = { path = "../memory" }
+world = { path = "../world" }
+derived = { path = "../derived" }
+light = { path = "../light" }

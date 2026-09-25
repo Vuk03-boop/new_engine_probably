@@ -1,0 +1,188 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 10.02s
+     Running unittests src\lib.rs (target\release\deps\gpu-68ceee8ec9eb66f1.exe)
+
+running 12 tests
+test alloc::tests::first_fit_aligns_splits_and_coalesces ... ok
+test equivalence::tests::axis_normals_encode_to_exact_snorm_bits ... ok
+test equivalence::tests::camera_rays_have_unit_forward_component ... ok
+test equivalence::tests::resolve_picks_the_voxel_behind_the_face ... ok
+test layout::tests::f16_integers_are_exact ... ok
+test layout::tests::image_sections_are_aligned_and_hold_the_triangulation ... ok
+test layout::tests::negative_coordinates_group_into_the_right_region ... ok
+test layout::tests::pack_round_trips_and_fields_do_not_overlap ... ok
+test layout::tests::regions_preserve_every_quad_in_world_position ... ok
+test reflect::tests::parses_nested_values_and_rejects_garbage ... ok
+test timeline::tests::retirement_releases_in_order_only_after_completion ... ok
+test timing::tests::nearest_rank_percentiles ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests\bounce.rs (target\release\deps\bounce-f54a86207fcd32c1.exe)
+
+running 5 tests
+test bounce_images ... ignored
+test corrected_one_bounce_converges_to_the_reference ... dawn street (sky corrected true): image +0.0007 -0.0011 -0.0003 | indirect -0.0004 -0.0034 -0.0029 (bounce share of the reference 7.7%, 10811 px with indirect) bad 0 (data)
+dawn low (sky corrected true): image +0.0043 +0.0025 +0.0011 | indirect -0.0048 -0.0060 -0.0064 (bounce share of the reference 5.9%, 7430 px with indirect) bad 0 (data)
+morning street (sky corrected true): image +0.0016 +0.0004 +0.0003 | indirect +0.0050 +0.0028 +0.0001 (bounce share of the reference 9.2%, 10811 px with indirect) bad 0 pass
+morning low (sky corrected true): image +0.0003 +0.0007 +0.0013 | indirect -0.0058 -0.0050 -0.0047 (bounce share of the reference 4.6%, 7430 px with indirect) bad 0 pass
+midday street (sky corrected true): image +0.0020 +0.0010 +0.0002 | indirect +0.0027 +0.0017 -0.0001 (bounce share of the reference 11.5%, 10811 px with indirect) bad 0 pass
+midday low (sky corrected true): image -0.0001 +0.0001 +0.0005 | indirect -0.0022 -0.0023 -0.0028 (bounce share of the reference 4.2%, 7430 px with indirect) bad 0 pass
+dusk street (sky corrected true): image -0.0004 -0.0012 -0.0003 | indirect -0.0009 -0.0020 -0.0023 (bounce share of the reference 7.4%, 10811 px with indirect) bad 0 (data)
+dusk low (sky corrected true): image +0.0016 +0.0014 +0.0012 | indirect +0.0005 -0.0036 -0.0064 (bounce share of the reference 4.9%, 7430 px with indirect) bad 0 (data)
+twilight street (sky corrected true): image -0.0068 -0.0107 -0.0077 | indirect -0.0052 -0.0107 -0.0108 (bounce share of the reference 6.8%, 10811 px with indirect) bad 0 (data)
+twilight low (sky corrected true): image -0.0056 -0.0092 -0.0066 | indirect -0.0100 -0.0149 -0.0167 (bounce share of the reference 5.2%, 7430 px with indirect) bad 0 (data)
+validation: 0 errors, 0 warnings
+ok
+test missing_energy_of_higher_bounces ... dawn street surfaces: luminance 0 bounces 1.2474e-3, 1 bounce 1.3521e-3, 8 bounces 1.3728e-3; 1 bounce reaches 98.5% (direct 90.9%), missing 1.5%
+dawn street not sunlit: luminance 0 bounces 1.5496e-3, 1 bounce 1.6991e-3, 8 bounces 1.7285e-3; 1 bounce reaches 98.3% (direct 89.7%), missing 1.7%
+dawn low surfaces: luminance 0 bounces 1.6803e-3, 1 bounce 1.7864e-3, 8 bounces 1.8063e-3; 1 bounce reaches 98.9% (direct 93.0%), missing 1.1%
+dawn low not sunlit: luminance 0 bounces 2.1386e-3, 1 bounce 2.3296e-3, 8 bounces 2.3684e-3; 1 bounce reaches 98.4% (direct 90.3%), missing 1.6%
+morning street surfaces: luminance 0 bounces 4.7123e-3, 1 bounce 5.1895e-3, 8 bounces 5.2562e-3; 1 bounce reaches 98.7% (direct 89.7%), missing 1.3%
+morning street not sunlit: luminance 0 bounces 4.2816e-3, 1 bounce 4.8448e-3, 8 bounces 4.9230e-3; 1 bounce reaches 98.4% (direct 87.0%), missing 1.6%
+morning low surfaces: luminance 0 bounces 1.1669e-2, 1 bounce 1.2236e-2, 8 bounces 1.2309e-2; 1 bounce reaches 99.4% (direct 94.8%), missing 0.6%
+morning low not sunlit: luminance 0 bounces 6.0353e-3, 1 bounce 6.9001e-3, 8 bounces 7.0119e-3; 1 bounce reaches 98.4% (direct 86.1%), missing 1.6%
+midday street surfaces: luminance 0 bounces 6.0732e-3, 1 bounce 6.8585e-3, 8 bounces 6.9550e-3; 1 bounce reaches 98.6% (direct 87.3%), missing 1.4%
+midday street not sunlit: luminance 0 bounces 5.6480e-3, 1 bounce 6.4775e-3, 8 bounces 6.5792e-3; 1 bounce reaches 98.5% (direct 85.8%), missing 1.5%
+midday low surfaces: luminance 0 bounces 2.2086e-2, 1 bounce 2.3062e-2, 8 bounces 2.3172e-2; 1 bounce reaches 99.5% (direct 95.3%), missing 0.5%
+midday low not sunlit: luminance 0 bounces 8.0719e-3, 1 bounce 9.3891e-3, 8 bounces 9.5326e-3; 1 bounce reaches 98.5% (direct 84.7%), missing 1.5%
+dusk street surfaces: luminance 0 bounces 1.4294e-3, 1 bounce 1.5435e-3, 8 bounces 1.5670e-3; 1 bounce reaches 98.5% (direct 91.2%), missing 1.5%
+dusk street not sunlit: luminance 0 bounces 1.5483e-3, 1 bounce 1.7109e-3, 8 bounces 1.7414e-3; 1 bounce reaches 98.2% (direct 88.9%), missing 1.8%
+dusk low surfaces: luminance 0 bounces 2.1722e-3, 1 bounce 2.2830e-3, 8 bounces 2.3058e-3; 1 bounce reaches 99.0% (direct 94.2%), missing 1.0%
+dusk low not sunlit: luminance 0 bounces 2.2414e-3, 1 bounce 2.4491e-3, 8 bounces 2.4921e-3; 1 bounce reaches 98.3% (direct 89.9%), missing 1.7%
+twilight street surfaces: luminance 0 bounces 9.7911e-5, 1 bounce 1.0502e-4, 8 bounces 1.0668e-4; 1 bounce reaches 98.4% (direct 91.8%), missing 1.6%
+twilight street not sunlit: luminance 0 bounces 9.7911e-5, 1 bounce 1.0502e-4, 8 bounces 1.0668e-4; 1 bounce reaches 98.4% (direct 91.8%), missing 1.6%
+twilight low surfaces: luminance 0 bounces 1.2490e-4, 1 bounce 1.3181e-4, 8 bounces 1.3330e-4; 1 bounce reaches 98.9% (direct 93.7%), missing 1.1%
+twilight low not sunlit: luminance 0 bounces 1.2490e-4, 1 bounce 1.3181e-4, 8 bounces 1.3330e-4; 1 bounce reaches 98.9% (direct 93.7%), missing 1.1%
+validation: 0 errors, 0 warnings
+ok
+test one_bounce_converges_to_the_reference ... dawn street (sky corrected false): image -0.0327 -0.0440 -0.0450 | indirect -0.0197 -0.0354 -0.0403 (bounce share of the reference 7.7%, 10811 px with indirect) bad 0 (data)
+dawn low (sky corrected false): image -0.0233 -0.0362 -0.0397 | indirect -0.0240 -0.0379 -0.0441 (bounce share of the reference 5.9%, 7430 px with indirect) bad 0 (data)
+  noise dawn street direct: 1-sample relMSE 0.601, mean luminance 7.0851e-3
+  noise dawn street bounce: 1-sample relMSE 0.500, mean luminance 7.1613e-3
+morning street (sky corrected false): image -0.0075 -0.0199 -0.0308 | indirect +0.0018 -0.0081 -0.0218 (bounce share of the reference 9.2%, 10811 px with indirect) bad 0 pass
+morning low (sky corrected false): image -0.0032 -0.0095 -0.0186 | indirect -0.0086 -0.0148 -0.0246 (bounce share of the reference 4.6%, 7430 px with indirect) bad 0 pass
+  noise morning street direct: 1-sample relMSE 0.570, mean luminance 1.6796e-2
+  noise morning street bounce: 1-sample relMSE 0.460, mean luminance 1.7152e-2
+midday street (sky corrected false): image +0.0026 -0.0056 -0.0101 | indirect +0.0048 +0.0004 -0.0043 (bounce share of the reference 11.5%, 10811 px with indirect) bad 0 pass
+midday low (sky corrected false): image +0.0004 -0.0018 -0.0038 | indirect -0.0010 -0.0036 -0.0067 (bounce share of the reference 4.2%, 7430 px with indirect) bad 0 pass
+  noise midday street direct: 1-sample relMSE 0.740, mean luminance 1.4738e-2
+  noise midday street bounce: 1-sample relMSE 0.609, mean luminance 1.5329e-2
+dusk street (sky corrected false): image -0.0272 -0.0403 -0.0447 | indirect -0.0175 -0.0328 -0.0397 (bounce share of the reference 7.4%, 10811 px with indirect) bad 0 (data)
+dusk low (sky corrected false): image -0.0168 -0.0310 -0.0391 | indirect -0.0176 -0.0347 -0.0440 (bounce share of the reference 4.9%, 7430 px with indirect) bad 0 (data)
+  noise dusk street direct: 1-sample relMSE 0.833, mean luminance 4.1097e-3
+  noise dusk street bounce: 1-sample relMSE 0.653, mean luminance 4.1929e-3
+twilight street (sky corrected false): image -0.0049 +0.0526 +0.1057 | indirect -0.0011 +0.0469 +0.0954 (bounce share of the reference 6.8%, 10811 px with indirect) bad 0 (data)
+twilight low (sky corrected false): image -0.0033 +0.0515 +0.1033 | indirect -0.0063 +0.0438 +0.0906 (bounce share of the reference 5.2%, 7430 px with indirect) bad 0 (data)
+  noise twilight street direct: 1-sample relMSE 1.214, mean luminance 2.3194e-4
+  noise twilight street bounce: 1-sample relMSE 0.996, mean luminance 2.3747e-4
+validation: 0 errors, 0 warnings
+ok
+test one_bounce_equals_the_reference_sample_per_pixel ... street uniform sky: 7 mismatched (0.005%), bad 0, 17722 px changed by the bounce | control bounce off: 17726 mismatched (13.68%)
+street point sun 8 h: 0 mismatched (0.000%), bad 0, 5450 px changed by the bounce | control bounce off: 5450 mismatched (4.21%)
+street disk sun 8 h: 0 mismatched (0.000%), bad 0, 5452 px changed by the bounce | control bounce off: 5452 mismatched (4.21%)
+street point sun 12 h: 0 mismatched (0.000%), bad 0, 3119 px changed by the bounce | control bounce off: 3119 mismatched (2.41%)
+street disk sun 12 h: 0 mismatched (0.000%), bad 0, 3187 px changed by the bounce | control bounce off: 3187 mismatched (2.46%)
+street point sun 17.75 h: 1 mismatched (0.001%), bad 0, 15787 px changed by the bounce | control bounce off: 15788 mismatched (12.18%)
+street disk sun 17.75 h: 1 mismatched (0.001%), bad 0, 15777 px changed by the bounce | control bounce off: 15778 mismatched (12.17%)
+low uniform sky: 5 mismatched (0.004%), bad 0, 9889 px changed by the bounce | control bounce off: 9889 mismatched (7.63%)
+low point sun 8 h: 2 mismatched (0.002%), bad 0, 4554 px changed by the bounce | control bounce off: 4554 mismatched (3.51%)
+low disk sun 8 h: 2 mismatched (0.002%), bad 0, 4560 px changed by the bounce | control bounce off: 4560 mismatched (3.52%)
+low point sun 12 h: 1 mismatched (0.001%), bad 0, 3013 px changed by the bounce | control bounce off: 3014 mismatched (2.33%)
+low disk sun 12 h: 1 mismatched (0.001%), bad 0, 3123 px changed by the bounce | control bounce off: 3122 mismatched (2.41%)
+low point sun 17.75 h: 2 mismatched (0.002%), bad 0, 8253 px changed by the bounce | control bounce off: 8255 mismatched (6.37%)
+low disk sun 17.75 h: 2 mismatched (0.002%), bad 0, 8259 px changed by the bounce | control bounce off: 8261 mismatched (6.37%)
+overhead uniform sky: 5 mismatched (0.004%), bad 0, 6768 px changed by the bounce | control bounce off: 6771 mismatched (5.22%)
+overhead point sun 8 h: 3 mismatched (0.002%), bad 0, 2079 px changed by the bounce | control bounce off: 2080 mismatched (1.60%)
+overhead disk sun 8 h: 2 mismatched (0.002%), bad 0, 2080 px changed by the bounce | control bounce off: 2080 mismatched (1.60%)
+overhead point sun 12 h: 1 mismatched (0.001%), bad 0, 1485 px changed by the bounce | control bounce off: 1486 mismatched (1.15%)
+overhead disk sun 12 h: 1 mismatched (0.001%), bad 0, 1726 px changed by the bounce | control bounce off: 1727 mismatched (1.33%)
+overhead point sun 17.75 h: 2 mismatched (0.002%), bad 0, 4344 px changed by the bounce | control bounce off: 4346 mismatched (3.35%)
+overhead disk sun 17.75 h: 1 mismatched (0.001%), bad 0, 4346 px changed by the bounce | control bounce off: 4347 mismatched (3.35%)
+tally bounce off: 21 of 21 arms fail, 130992 mismatched pixels in total
+tally ok: 0 of 21 arms fail, 39 mismatched pixels in total
+control: frame 30 against reference frame 29: 9977 mismatched
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 134.80s
+
+     Running tests\denoise.rs (target\release\deps\denoise-c7317801a1103d3d.exe)
+
+running 8 tests
+test a_moving_sun_does_not_lag ... sun motion cap: age cap 8, filtered rel_mse 0.0130 bias -0.0080
+sun motion no cap: age cap 64, filtered rel_mse 0.0695 bias -0.0504
+still sun, filtered at age 8: 0.0165
+validation: 0 errors, 0 warnings
+ok
+test diagnose_motion_edges ... ignored
+test edits_relight_what_they_change ... edit: 538 shadowed samples with a distant occluder; removing [[318, 94, 172], [326, 102, 180]) around VoxelCoord { x: 322, y: 98, z: 176 } at distance 277 frees 5 of them
+R1 relight: 920 px relit, 0 of 57600 decisions differ from the host rule (passes)
+R1 none: 0 px relit, 920 of 57600 decisions differ from the host rule (fails)
+R2: 172 changed px; 4 frames after the edit: relight 0.0319, none 0.3120, reset 0.0319
+validation: 0 errors, 0 warnings
+ok
+test measure_raw_input ... ignored
+test motion_images ... ignored
+test motion_path_meets_the_budget ... motion frame 8: filtered rel_mse 0.0238 bias +0.0010 | raw 0.0940 bias +0.0019 MISSED
+  age 1-3 interior: 324 px, filtered 0.0002 raw 0.0048 (shares of the frame's mean)
+  age 1-3 edge    : 155 px, filtered 0.0019 raw 0.0064 (shares of the frame's mean)
+  age 4-15 interior: 30141 px, filtered 0.0024 raw 0.0403 (shares of the frame's mean)
+  age 4-15 edge    : 13152 px, filtered 0.0193 raw 0.0426 (shares of the frame's mean)
+  age 16+ interior: 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+  age 16+ edge    : 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+motion frame 16: filtered rel_mse 0.0210 bias +0.0027 | raw 0.0523 bias +0.0029 MISSED
+  age 1-3 interior: 326 px, filtered 0.0002 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 148 px, filtered 0.0015 raw 0.0071 (shares of the frame's mean)
+  age 4-15 interior: 856 px, filtered 0.0001 raw 0.0019 (shares of the frame's mean)
+  age 4-15 edge    : 353 px, filtered 0.0006 raw 0.0012 (shares of the frame's mean)
+  age 16+ interior: 29597 px, filtered 0.0019 raw 0.0162 (shares of the frame's mean)
+  age 16+ edge    : 12971 px, filtered 0.0166 raw 0.0207 (shares of the frame's mean)
+motion frame 32: filtered rel_mse 0.0208 bias +0.0014 | raw 0.0341 bias +0.0011 MISSED
+  age 1-3 interior: 326 px, filtered 0.0001 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 118 px, filtered 0.0008 raw 0.0032 (shares of the frame's mean)
+  age 4-15 interior: 970 px, filtered 0.0001 raw 0.0017 (shares of the frame's mean)
+  age 4-15 edge    : 229 px, filtered 0.0003 raw 0.0009 (shares of the frame's mean)
+  age 16+ interior: 30125 px, filtered 0.0011 raw 0.0067 (shares of the frame's mean)
+  age 16+ edge    : 13505 px, filtered 0.0184 raw 0.0164 (shares of the frame's mean)
+validation: 0 errors, 0 warnings
+
+thread 'motion_path_meets_the_budget' (17592) panicked at gpu\tests\denoise.rs:648:5:
+D4 missed at frames [8, 16, 32]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test stills_meet_the_budget ... denoise pipeline with the temporal reflection refused: 24 errors
+hour 8 age 1: filtered rel_mse 0.1011 (raw 1.2547, raw at age 8 0.1550: gain met) bias +0.0049 (raw +0.0064) energy ok
+hour 8 age 4: filtered rel_mse 0.0370 (raw 0.3113, raw at age 16 0.0761: gain met) bias +0.0012 (raw +0.0004) energy ok
+hour 8 age 16: filtered rel_mse 0.0099 (raw 0.0761, raw at age 64 0.0194: gain met) bias +0.0012 (raw +0.0015) energy ok
+hour 8 age 64: filtered rel_mse 0.0047 (raw 0.0194, raw at age 64 0.0194: gain met) bias +0.0010 (raw +0.0005) energy ok
+hour 8 edges at 64: filtered 0.0119 raw 0.0307 | ignore_guides 0.8376 (all surfaces 0.3554, bias -0.0033)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\denoise_3e_8.ppm
+hour 12 age 1: filtered rel_mse 0.1355 (raw 1.3478, raw at age 8 0.1641: gain met) bias +0.0058 (raw +0.0071) energy ok
+hour 12 age 4: filtered rel_mse 0.0556 (raw 0.3308, raw at age 16 0.0800: gain met) bias +0.0003 (raw -0.0008) energy ok
+hour 12 age 16: filtered rel_mse 0.0098 (raw 0.0800, raw at age 64 0.0203: gain met) bias +0.0014 (raw +0.0015) energy ok
+hour 12 age 64: filtered rel_mse 0.0044 (raw 0.0203, raw at age 64 0.0203: gain met) bias +0.0010 (raw +0.0003) energy ok
+hour 12 edges at 64: filtered 0.0108 raw 0.0329 | ignore_guides 0.7710 (all surfaces 0.3023, bias -0.0034)
+hour 17.75 age 1: filtered rel_mse 0.0889 (raw 1.4386, raw at age 8 0.2007: gain met) bias +0.0063 (raw +0.0092) energy ok
+hour 17.75 age 4: filtered rel_mse 0.0383 (raw 0.3775, raw at age 16 0.0963: gain met) bias +0.0047 (raw +0.0036) energy ok
+hour 17.75 age 16: filtered rel_mse 0.0177 (raw 0.0963, raw at age 64 0.0248: gain met) bias +0.0012 (raw +0.0021) energy ok
+hour 17.75 age 64: filtered rel_mse 0.0088 (raw 0.0248, raw at age 64 0.0248: gain met) bias +0.0010 (raw +0.0005) energy ok
+hour 17.75 edges at 64: filtered 0.0222 raw 0.0370 | ignore_guides 1.2536 (all surfaces 0.6831, bias -0.0027)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\denoise_3e_17.75.ppm
+hour 18.25 age 1: filtered rel_mse 0.0957 (raw 1.7764, raw at age 8 0.2286: gain met) bias +0.0027 (raw +0.0071) energy ok
+hour 18.25 age 4: filtered rel_mse 0.0356 (raw 0.4442, raw at age 16 0.1106: gain met) bias +0.0029 (raw +0.0030) energy ok
+hour 18.25 age 16: filtered rel_mse 0.0152 (raw 0.1106, raw at age 64 0.0286: gain met) bias -0.0005 (raw +0.0016) energy ok
+hour 18.25 age 64: filtered rel_mse 0.0084 (raw 0.0286, raw at age 64 0.0286: gain met) bias +0.0001 (raw +0.0003) energy ok
+hour 18.25 edges at 64: filtered 0.0199 raw 0.0400 | ignore_guides 1.6082 (all surfaces 0.9007, bias -0.0062)
+validation: 0 errors, 0 warnings
+ok
+test sweep_sliders ... ignored
+
+failures:
+
+failures:
+    motion_path_meets_the_budget
+
+test result: FAILED. 3 passed; 1 failed; 4 ignored; 0 measured; 2 filtered out; finished in 59.91s
+
+error: test failed, to rerun pass `-p gpu --test denoise`

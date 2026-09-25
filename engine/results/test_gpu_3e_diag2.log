@@ -1,0 +1,22 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 13.23s
+     Running tests\denoise.rs (target\release\deps\denoise-cba05e17b2083eac.exe)
+
+running 1 test
+test diagnose_motion_edges ... still at the end view, raw age 32: all 0.0402 (bias -0.0005) | edge 0.0621 (bias -0.0003)
+still at the end view, filtered age 32: all 0.0084 (bias -0.0012) | edge 0.0212 (bias +0.0049)
+motion raw: all 0.0326 (bias -0.0005) | edge 0.0583 (bias -0.0013)
+motion filtered: all 0.0272 (bias +0.0009) | edge 0.0672 (bias +0.0064)
+translation only raw: all 0.0170 (bias -0.0005) | edge 0.0370 (bias +0.0009)
+translation only filtered: all 0.0174 (bias +0.0010) | edge 0.0449 (bias +0.0077)
+rotation only raw: all 0.0380 (bias -0.0001) | edge 0.0646 (bias -0.0006)
+rotation only filtered: all 0.0259 (bias +0.0011) | edge 0.0650 (bias +0.0067)
+motion levels 1: all 0.0241 (bias -0.0007) | edge 0.0529 (bias +0.0000)
+motion levels 3: all 0.0258 (bias +0.0001) | edge 0.0628 (bias +0.0046)
+motion sigma 1: all 0.0232 (bias -0.0012) | edge 0.0507 (bias +0.0005)
+motion sigma 16: all 0.0398 (bias +0.0033) | edge 0.1007 (bias +0.0133)
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 272.78s
+

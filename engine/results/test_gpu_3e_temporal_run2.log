@@ -1,0 +1,42 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 2.40s
+     Running tests\temporal.rs (target\release\deps\temporal-01ad16d9f3221158.exe)
+
+running 7 tests
+test accumulated_images ... wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\temporal_3d_8_1.ppm
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\temporal_3d_8_64.ppm
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\temporal_3d_17.75_1.ppm
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\temporal_3d_17.75_64.ppm
+validation: 0 errors, 0 warnings
+ok
+test accumulation_converges_to_the_reference ... convergence: accumulated [0.21616219437528073, 0.1726363307463047, 0.11997316766949663] reference [0.21615852771646174, 0.17263693728322269, 0.11997662194750537] relative [1.6962822876998018e-5, -3.5133669974429793e-6, -2.879125910260072e-5]
+validation: 0 errors, 0 warnings
+ok
+test an_edit_resets_only_its_regions ... edit: 1 regions rebuilt, 295 px in them; 295 px edited (0 outside them); 0 of 57600 decisions differ from the host []
+validation: 0 errors, 0 warnings
+ok
+test global_resets ... slow sun: cause ResetCause { first: false, cut: false, light: false, forced: false }, 43288 of 43288 accepted
+light jump: cause ResetCause { first: false, cut: false, light: true, forced: false }, 43288 of 43288 reset
+camera cut: cause ResetCause { first: false, cut: true, light: false, forced: false }, 39918 of 39918 reset
+validation: 0 errors, 0 warnings
+ok
+test moving_camera_decisions_match_the_host ... move ok dx 4 yaw 0: 57600 of 57600 reasons agree (100.000%), host rejects 202, motion off by > 0.01 px on 0 of 43211; disagreements []
+move ok dx -6 yaw 3: 57600 of 57600 reasons agree (100.000%), host rejects 7964, motion off by > 0.01 px on 0 of 36604; disagreements []
+move ok dx 0 yaw 8: 57600 of 57600 reasons agree (100.000%), host rejects 8603, motion off by > 0.01 px on 0 of 37585; disagreements []
+move never_reject dx 4 yaw 0: 57398 of 57600 reasons agree (99.649%), host rejects 202, motion off by > 0.01 px on 0 of 43211; disagreements ["host disoccluded gpu accepted: 8", "host normal gpu accepted: 75", "host material gpu accepted: 119"]
+move never_reject dx -6 yaw 3: 57396 of 57600 reasons agree (99.646%), host rejects 7964, motion off by > 0.01 px on 0 of 36604; disagreements ["host disoccluded gpu accepted: 12", "host normal gpu accepted: 67", "host material gpu accepted: 125"]
+move never_reject dx 0 yaw 8: 57406 of 57600 reasons agree (99.663%), host rejects 8603, motion off by > 0.01 px on 0 of 37585; disagreements ["host disoccluded gpu accepted: 8", "host normal gpu accepted: 75", "host material gpu accepted: 110", "host no previous surface gpu accepted: 1"]
+validation: 0 errors, 0 warnings
+ok
+test static_history_is_the_running_mean ... temporal pipeline with the shade reflection refused: 14 errors
+static ok: 43288 surface px; 0 off the running mean by more than 1e-4; 0 with state other than (age 24, accepted)
+static reset_always: 43288 surface px; 43089 off the running mean by more than 1e-4; 43288 with state other than (age 24, accepted)
+static no_fresh: 43288 surface px; 43089 off the running mean by more than 1e-4; 0 with state other than (age 24, accepted)
+validation: 0 errors, 0 warnings
+ok
+test temporal_cost_at_1080p ... cost 1080p (validation true): shade (sun + sky) median 1.087 p90 1.114 ms | temporal median 1.466 p90 1.485 ms (60 reps, turning camera)
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 81.65s
+

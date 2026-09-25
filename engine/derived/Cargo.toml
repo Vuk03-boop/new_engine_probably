@@ -1,0 +1,11 @@
+[package]
+name = "derived"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+# Phase 1C: versioned jobs, bounded queues, snapshot publication and reader-safe retirement for
+# data derived from the authoritative world. No external dependencies.
+[dependencies]
+world = { path = "../world" }
+memory = { path = "../memory" }

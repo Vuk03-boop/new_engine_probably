@@ -1,0 +1,37 @@
+﻿cargo :    Compiling light v0.1.0 (C:\Users\Vuk 
+Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\light)
+At line:1 char:302
++ ... Text' } catch {} } }; cargo test --release -j 2 -p light 2>&1 | Tee-O ...
++                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling li...l\engine\light):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `release` profile [optimized] target(s) in 1.69s
+     Running unittests src\lib.rs (target\release\deps\light-7f4d920c4e93ae78.exe)
+
+running 16 tests
+test atmosphere::tests::diagnostic_step_dependence_at_twilight ... ignored
+test sun::tests::sun_radiance_times_solid_angle_is_the_irradiance ... ok
+test atmosphere::tests::step_layout_covers_the_segment_in_order ... ok
+test atmosphere::tests::ground_blocks_a_set_sun ... ok
+test sample::tests::basis_is_orthonormal ... ok
+test sample::tests::phases_integrate_to_one ... ok
+test reference::tests::albedos_outside_the_unit_range_are_refused ... ok
+test atmosphere::tests::zenith_transmittance_matches_the_closed_form ... ok
+test sample::tests::rng_is_uniform_and_deterministic ... ok
+test sun::tests::equinox_path_at_45_degrees ... ok
+test reference::tests::point_sun_on_a_plane_matches_the_closed_form ... ok
+test reference::tests::white_furnace_is_one ... ok
+test sample::tests::samplers_match_their_pdfs ... ok
+test atmosphere::tests::multiple_scattering_adds_light_and_the_sky_is_blue ... ok
+test atmosphere::tests::one_event_monte_carlo_matches_single_scattering_quadrature ... ok
+test atmosphere::tests::default_step_count_is_converged_within_one_percent ... ok
+
+test result: ok. 15 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 8.46s
+
+   Doc-tests light
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

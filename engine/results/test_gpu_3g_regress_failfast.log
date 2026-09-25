@@ -1,0 +1,104 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 3.15s
+     Running unittests src\lib.rs (target\release\deps\gpu-68ceee8ec9eb66f1.exe)
+
+running 12 tests
+test alloc::tests::first_fit_aligns_splits_and_coalesces ... ok
+test equivalence::tests::axis_normals_encode_to_exact_snorm_bits ... ok
+test equivalence::tests::camera_rays_have_unit_forward_component ... ok
+test equivalence::tests::resolve_picks_the_voxel_behind_the_face ... ok
+test layout::tests::f16_integers_are_exact ... ok
+test layout::tests::image_sections_are_aligned_and_hold_the_triangulation ... ok
+test layout::tests::negative_coordinates_group_into_the_right_region ... ok
+test layout::tests::pack_round_trips_and_fields_do_not_overlap ... ok
+test layout::tests::regions_preserve_every_quad_in_world_position ... ok
+test reflect::tests::parses_nested_values_and_rejects_garbage ... ok
+test timeline::tests::retirement_releases_in_order_only_after_completion ... ok
+test timing::tests::nearest_rank_percentiles ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running unittests src\bin\ref_light.rs (target\release\deps\ref_light-a55e0f7240f4a944.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\sky_bake.rs (target\release\deps\sky_bake-69107915ae4aab6c.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\bounce.rs (target\release\deps\bounce-f54a86207fcd32c1.exe)
+
+running 5 tests
+test bounce_images ... ignored
+test corrected_one_bounce_converges_to_the_reference ... ok
+test missing_energy_of_higher_bounces ... ok
+test one_bounce_converges_to_the_reference ... ok
+test one_bounce_equals_the_reference_sample_per_pixel ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 132.65s
+
+     Running tests\denoise.rs (target\release\deps\denoise-c7317801a1103d3d.exe)
+
+running 11 tests
+test a_moving_sun_does_not_lag ... ok
+test denoise_cost_at_1080p ... FAILED
+test denoise_cost_breakdown ... ignored
+test diagnose_motion_edges ... ignored
+test edits_relight_what_they_change ... ok
+test edits_relight_what_they_change_with_the_bounce ... ok
+test measure_raw_input ... ignored
+test motion_images ... ignored
+test motion_path_meets_the_budget ... FAILED
+test stills_meet_the_budget ... ok
+test sweep_sliders ... ignored
+
+failures:
+
+---- denoise_cost_at_1080p stdout ----
+cost 1080p (validation true): temporal median 1.471 p90 2.385 ms | denoise (2 levels) median 3.491 p90 3.644 ms (60 reps)
+validation: 0 errors, 0 warnings
+
+thread 'denoise_cost_at_1080p' (4840) panicked at gpu\tests\denoise.rs:1071:5:
+C1: denoise median 3.491 ms over 3.0 ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- motion_path_meets_the_budget stdout ----
+motion frame 8: filtered rel_mse 0.0238 bias +0.0010 | raw 0.0940 bias +0.0019 MISSED
+  age 1-3 interior: 324 px, filtered 0.0002 raw 0.0048 (shares of the frame's mean)
+  age 1-3 edge    : 155 px, filtered 0.0019 raw 0.0064 (shares of the frame's mean)
+  age 4-15 interior: 30141 px, filtered 0.0024 raw 0.0403 (shares of the frame's mean)
+  age 4-15 edge    : 13152 px, filtered 0.0193 raw 0.0426 (shares of the frame's mean)
+  age 16+ interior: 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+  age 16+ edge    : 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+motion frame 16: filtered rel_mse 0.0210 bias +0.0027 | raw 0.0523 bias +0.0029 MISSED
+  age 1-3 interior: 326 px, filtered 0.0002 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 148 px, filtered 0.0015 raw 0.0071 (shares of the frame's mean)
+  age 4-15 interior: 856 px, filtered 0.0001 raw 0.0019 (shares of the frame's mean)
+  age 4-15 edge    : 353 px, filtered 0.0006 raw 0.0012 (shares of the frame's mean)
+  age 16+ interior: 29597 px, filtered 0.0019 raw 0.0162 (shares of the frame's mean)
+  age 16+ edge    : 12971 px, filtered 0.0166 raw 0.0207 (shares of the frame's mean)
+motion frame 32: filtered rel_mse 0.0208 bias +0.0014 | raw 0.0341 bias +0.0011 MISSED
+  age 1-3 interior: 326 px, filtered 0.0001 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 118 px, filtered 0.0008 raw 0.0032 (shares of the frame's mean)
+  age 4-15 interior: 970 px, filtered 0.0001 raw 0.0017 (shares of the frame's mean)
+  age 4-15 edge    : 229 px, filtered 0.0003 raw 0.0009 (shares of the frame's mean)
+  age 16+ interior: 30125 px, filtered 0.0011 raw 0.0067 (shares of the frame's mean)
+  age 16+ edge    : 13505 px, filtered 0.0184 raw 0.0164 (shares of the frame's mean)
+validation: 0 errors, 0 warnings
+
+thread 'motion_path_meets_the_budget' (20932) panicked at gpu\tests\denoise.rs:649:5:
+D4 missed at frames [8, 16, 32]
+
+
+failures:
+    denoise_cost_at_1080p
+    motion_path_meets_the_budget
+
+test result: FAILED. 4 passed; 2 failed; 5 ignored; 0 measured; 0 filtered out; finished in 81.88s
+
+error: test failed, to rerun pass `-p gpu --test denoise`
+exit 101

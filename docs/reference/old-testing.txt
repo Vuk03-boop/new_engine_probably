@@ -1,0 +1,367 @@
+# Testing
+
+## Shape of the suite
+
+Everything lives in `tests/` as integration suites, one file per domain
+(`glass.rs`, `water.rs`, `snell.rs`, `light.rs`, `shadow_grid.rs`,
+`edit_journal.rs`, `menu`-adjacent: `settings_menu.rs`, `emitter_gate.rs`,
+…). `tests/support/mod.rs` is the shared helper. Suites are pure and
+headless: no GPU device, no window — contract checks, source/shader-text
+pins, image diffs via the headless modes, and temp-file round-trips only.
+
+Run: `cargo test`, or one suite with `cargo test --test <name>`.
+Benches: `cargo bench --bench terrain` (criterion, `harness = false`) and
+`cargo run --release -- --bench-frames N`.
+
+**Use `--no-fail-fast` when you want the whole picture.** Cargo stops at the
+first failing test *binary*, so a single early failure hides every suite after
+it and the pass count reads far lower than it is.
+
+**Do not invoke the suite twice in one command.** `cargo test | grep FAILED;
+cargo test | grep -c ok` runs everything twice — measured at 3m36s against 53s
+for one invocation redirected to a file and analysed afterwards. Most of the
+cost is linking the test binaries, not running tests.
+
+## Current state
+
+Every configuration is green:
+
+| Configuration | Passing |
+| --- | --- |
+| `cargo test` (default, = `dlss`) | 441 |
+| `--features dlss-rr-prep` | 449 |
+| `--features dlss-rr` | 449 |
+| `--no-default-features` | 435 |
+| `--no-default-features --features dlss-prep` | 441 |
+
+Clippy is **not** clean: 17 diagnostics across `--all-targets`, the bulk of them
+`field_reassign_with_default` in tests.
+
+## Build configurations
+
+`dlss` is a **default** feature, so a plain `cargo test` needs the vendor SDK.
+`--no-default-features` is the SDK-free path, and the `*-prep` features layer
+the passes back on there.
+
+| Command | Needs the DLSS SDK |
+| --- | --- |
+| `cargo test` | yes (default includes `dlss`) |
+| `cargo test --features dlss-rr-prep` | yes |
+| `cargo test --features dlss-rr` | yes |
+| `cargo test --no-default-features` | no |
+| `cargo test --no-default-features --features dlss-prep` | no |
+| `cargo test --no-default-features --features dlss-rr-prep` | no |
+
+When the feature under active work is not the default, run `cargo check` with
+no features before committing — the default build is the one every other
+command uses, and a `#[cfg]`-gated field read from ungated code breaks it while
+the feature build stays green.
+
+## Enforced invariants
+
+| Invariant | Where pinned |
+| --- | --- |
+| Bit-exact controls: a "reverts batch N" flag pair must produce bit-identical output | `tests/light.rs` (`--no-light-rgb`), image-diff suites |
+| Rust/WGSL constant agreement (e.g. `BRICK_WORDS = 32`, 2-byte light cell) | `tests/light.rs` (`light_cell_is_two_bytes_wide`) |
+| `SURFACE_EPS` defined exactly once, in `common.wgsl` | `tests/batch91.rs` |
+| Water invariants: mottle pinned 0, half-res secondary legs default | `tests/water.rs`, `tests/water_sec.rs` |
+| Physics, refraction and wave math | `tests/physics.rs`, `tests/snell.rs`, `tests/waves.rs` |
+| Journal round-trips and edit path | `tests/edit_journal.rs`, `tests/edit_regression.rs` |
+| Batch-103 reuse passes: flags, bindings 22/23, `hiz_temporal`, `shadow_reproject`, `bake_tint`, `ssr_world` | `tests/batch103.rs` |
+| Batch-104 glass secondary legs: shared legs, span scan, sec bindings 2/3, dispatch, `--glass-sec` | `tests/batch104.rs` |
+| Every `SPEC_` override with a `FLAG_HI_` sibling is wired, and every wired name exists | `tests/spec_hi.rs` |
+| DLSS depth/motion conventions; a DLSS frame leaves a history behind it | `tests/dlss_prep.rs` (`--features dlss-prep`) |
+| The RR G-buffer: `rr_store` placement in all four opaque variants, sky defaults, linear roughness | `tests/dlss_rr_prep.rs` (`--features dlss-rr-prep`) |
+| RR flags, refusals, and the resize re-attach of blit source 3 | `tests/dlss_rr_config.rs` (every configuration) |
+| The feature-off module carries no RR symbol and no surviving `//#rr-*` marker | `tests/rr_shader_text.rs` |
+| Quality renders at the guide's ratio, not the range minimum | `quality_renders_at_the_ratio_the_guide_pins` |
+| The DLSS settings row: cycle coverage, row presence per build, version-4 round trip, flag beats stored value | `tests/dlss_menu.rs` |
+
+**Source-text pins.** Many suites locate behavior by reading `.rs`/`.wgsl`
+source and asserting it contains (or lacks) a literal. `support::wgsl_function`
+strips `//` comments before pinning. Renaming a shared constant, moving a
+definition to another file, or introducing a stray `//` inside a string literal
+will fail these suites. Treat that as the intended tripwire: grep the tests
+before you refactor names.
+
+Three ways these pins go wrong, all of which have already happened:
+
+1. **Read shader text through `render::shader_source()`, never `include_str!`.**
+   `resolve.wgsl` and `common.wgsl` carry both arms of every RR-touched line
+   (`//#rr-on` / `//#rr-off` / `//#rr-end`) and are deliberately not
+   brace-balanced on disk. `include_str!` sees both arms. `tests/split_passes.rs`
+   did this and failed with `unterminated WGSL function`, a message pointing
+   nowhere near the cause.
+2. **A pin can pass on narration.** `water_seen_through_a_pane_is_shaded_as_water`
+   matched its literals inside a *comment* above the call site for years. Anchor
+   on the mechanism, and say in the failure message what the invariant protects.
+3. **Asserting a string is absent proves nothing.** `tests/dlss_prep.rs`
+   asserted the prep shader lacked `frame.jitter` to prove its rays were
+   unjittered — it passed for hours while `ray_dir` added the jitter one call
+   away. Assert the compensating behaviour is *present*, and pin the upstream
+   assumption separately.
+
+**Menu tests pin row counts as literals** (`m.rows().len()` in
+`tests/experiments.rs` and `tests/split_passes.rs`). Adding a row to any page
+fails both, and the failure reads like a regression. Assert on which settings
+are present instead.
+
+## Validation scripts (`validation/`)
+
+Python checkers over the tree/git history, run individually. **Invoke them with
+`py`, not `python3`** — on this machine `python3` hits the Windows App Execution
+Alias and fails with "Python was not found".
+
+The nine GPU-backed `check_*.py` scripts currently **cannot run**: they import a
+`wgpu` Python module that is not installed. `check_docs.py` is standard-library
+only and runs without those dependencies or a build. `upload_report.py` is different — standard
+library only, shelling out to the release binary — so the bit-exact sweep is
+runnable.
+
+| Script | Checks |
+| --- | --- |
+| `check_docs.py` | Stdlib-only, no build/GPU: per-file line counts and public-surface identifiers; source-line citations and source quotations, with explicit historical exceptions. Run `py validation/check_docs.py` from the repo root. |
+| `check_menu.py` | Menu flow/settings contract |
+| `check_shaders.py` | Shader pipeline wiring and pinned constants |
+| `check_surface.py` | Surface repair families |
+| `check_split.py` | Pass-split (march/resolve) decoupling |
+| `check_compact.py` | Compaction/ownership behavior |
+| `check_decoupled.py` | The decoupled-restructure contract |
+| `check_diagnostics.py` | Diagnostic capture paths |
+| `check_family_timestamps.py` | Result-family timestamp ordering |
+| `check_glass_transport.py` | Glass light-transport transport results |
+| `upload_report.py` | Full baseline-vs-flag sweep: capture, diff, and bench every flag arm, verify restated defaults are bit-identical, exercise journals/lookbook/bench-terrain/`cargo test`, and write `uploadme.txt` for upload (`--fast`, `--skip-tests`, `--skip-lookbook`, `--skip-perf`, `--cases SUBSTR`) |
+
+## The upload report (for remote diagnosis)
+
+`py validation/upload_report.py` from the repo root builds the release binary,
+then writes `uploadme.txt` (plus a full command trace in `uploadme.txt.log` and
+PNGs in `uploadme_runs/`):
+
+1. **Environment + build**: host, toolchain, git HEAD, GPU adapter name,
+   `cargo build --release` result and warning count.
+2. **Baseline**: a pinned capture (960x540, seed 1337, uniform TAA) plus a
+   *determinism twin* — two identical captures must diff to zero.
+3. **Flag sweep**: every CLI arm as a screenshot diffed against the baseline
+   with the binary's own `--diff`. Arms that merely restate defaults must be
+   bit-identical (EXACT — `compact-shade-hit` is one: it is an alternate
+   build of the same math, so bit-exactness is its contract); feature arms
+   must move pixels (CHANGE), and an arm that moves nothing is reported
+   SUSPECT rather than silently green. Arms whose feature needs a non-default
+   vantage are declared in `CTX` (single source: the same catalogue
+   `src/harness/vantage.rs` curates) and are diffed against a **paired
+   context baseline** — the same vantage with the arm's flag left off, cached
+   per context — so the measured pixels are the flag's alone and an arm can
+   never pass by merely pointing the camera elsewhere. Arms that still
+   cannot trigger in any available scene carry the INERT expectation and
+   report as expected-inert with the reason spelled out.
+4. **Perf sweep**: `--bench-frames` under perf-relevant flags with
+   wall/gpu-total deltas vs baseline, then one baseline re-run at the end so
+   thermal/order drift (laptops heat up across the sweep) can be told apart
+   from a real regression.
+5. **Functional**: edit-journal save/replay bit-identity, `--bench-terrain`
+   timings, `--lookbook`, and the full `cargo test --release` summary.
+
+Neither DLSS flag appears in the sweep: both are refused in every headless mode
+so their captures cannot be reproducible.
+
+Verdicts land at the end of the file: `FAIL` needs a fix, `SUSPECT` needs a
+look, `EXPECTED-INERT` is the scene saying "nothing to see" for a reason the
+report names (and a note fires if such an arm starts moving pixels — the
+trigger exists after all). The file is designed to be pasted back so someone
+else can diagnose or optimize from it.
+
+Scene-sensitivity notes learned the first times this ran: `--tint-strength`
+clamps to 1.0 in the CPU→GPU frame upload, so values above 1 are
+bit-identical by construction; `--probe-noise` only perturbs a forced
+`--probe-fill` pre-fill; `--snell`/`--snell-bend` engage only under water;
+the demo builders sit 14 blocks ahead of the camera, which the default
+vantage leaves buried inside the front hill; the water-secondary share path
+and the soft-shadow contact both under-cover at the `--fast` 640x360 capture
+(they engaged at 960x540), which is why those arms are INERT rather than
+noiseless; the first perf sweep's apparent regressions (compact +30%,
+water-sec-scale-4 +32%) were thermal ordering — the drift re-run now prices
+that in before anyone panics; `isolate-glass` is an output-preserving
+lane-split A/B and sits in EXACT for the same reason as `compact-shade-hit`,
+with `isolate-glass-b` in the perf table to price it; and `--no-snell` only
+shows itself below `SNELL_MIN_DEPTH` (3 blocks), which is why its context
+submerges five.
+
+## Vantages
+
+`src/harness/vantage.rs` is the single catalogue. Two notes worth keeping:
+
+- `open-sea` is 60 blocks above open water with nothing to reflect, which makes
+  it a poor reflection test despite the name.
+- The reflection vantage — an island mirrored in calm water, distant peaks —
+  is `--cam-submerge -35 --cam-pitch -16 --cam-yaw 225`.
+
+## The harness binary
+
+`cargo run --release -j 2 --bin harness -- <sub>` drives the measurement library
+in `src/harness/`, which sat caller-less while its binary was missing.
+`harness help` lists the vocabulary; the ones that earn their keep:
+
+| subcommand | what it is for |
+| --- | --- |
+| `bitexact --exe-a A --exe-b B --rounds N` | paired A/B between two *binaries*, alternating which runs first each round |
+| `bench --rounds N` | repeated single-binary runs |
+| `reference --samples N` | states this machine's noise floor and refuses to report without one |
+| `validate [--only NAME]` | runs the `CHECKS` table |
+| `compare A.png B.png --crop NAME` | the difference metrics between two arms: MAE, max, differing count, bbox |
+| `scan A.png --crop NAME` | the single-image metrics over one capture: `row_band`, `coherence`, `speckle` |
+| `list`, `implies`, `capture`, `march` | the catalogues and one-shot captures |
+
+`row_band` is the short-period counterpart to `coherence`, and exists because
+`coherence` cannot answer for screen-locked dither. `coherence` correlates
+pixels against pixels from `COH_LAG_MIN` outwards, so a one- to three-row
+corduroy is both under its lag floor and buried in the per-pixel noise it sits
+in. `row_band` collapses the high-passed crop to one mean per row *first* --
+horizontal content averages away across the columns, a bias every column shares
+does not -- then reports the strongest repeat within `ROW_BAND_LAG_MAX` rows.
+The lag is the diagnosis: three rows is `dither`'s own vertical period in
+`common.wgsl`, one row an alternating bias. It reports the fundamental rather
+than a harmonic, which `ROW_BAND_FUNDAMENTAL` sets the tolerance for. On the
+synthetic pair in `tests/harness.rs` it reads 0.99 against 0.13 where
+`coherence` cannot separate the two arms at all; clean headless captures read
+around 0.05, and the lag is meaningless at that level.
+
+**Read `rms` before `peak`.** Pearson correlation is scale-free, so on its own
+`peak` will state near-certainty about nothing: a clean sky crop read 0.72 over
+a row-mean amplitude of 0.017 code values, which is not an artifact but 8-bit
+rounding averaged across the row. `ROW_BAND_QUANT_MARGIN` gates on that
+amplitude and zeroes `peak` below it, and `scan` prints the amplitude beside the
+correlation. A gated reading means "nothing here", not "not measured".
+
+**`row_band` only answers for row-*shared* bias**, which is the narrow case of
+screen-locked dither. An artifact that runs diagonally -- wave banding seen in
+perspective, for one -- has a repeat vector with a non-zero `dx`, averages away
+across the columns, and is `coherence`'s question, not this one. When the two
+disagree, the lag vector says which: `coherence` reporting `(-13, 2)` where
+`row_band` reports 3 rows means the structure is diagonal and `row_band` is
+measuring the small part of it that happens to line up with the rows.
+
+**Prefer `bitexact` to hand-run benches.** It does what this file's drift
+guidance asks for, and does it better: `bench::paired` alternates arm order every
+round rather than always running A first, and `bench::Cell` reports the mean
+paired delta, its **standard error**, and a **sign count** of how many rounds
+moved the same way. A delta under roughly twice its stderr is not a result.
+
+Note it measures at `bench::WIDTH` x `bench::HEIGHT` (1920x1080), not the
+1600x900 of `--bench-frames`, so its numbers are a separate baseline.
+
+### The record
+
+Every subcommand takes `--out PATH` and appends one JSON object per line.
+`perf.jsonl` is the intended home and is **tracked**: newline-delimited JSON
+diffs, merges and greps, where a SQLite file does none of the three. Query it by
+importing on demand — `/perf.db` is gitignored as derived:
+
+```
+sqlite3 perf.db -cmd ".import --json perf.jsonl runs" \
+  "select commit_id, on_march, on_resolve from runs where vantage='default'"
+```
+
+Each row carries `commit_id` and `dirty`, and `dirty` is computed over `src/`
+plus the manifests — not the whole tree, which would flag the record file itself,
+and not `--untracked-files=no`, which hides a new source file. **A row with
+`dirty: true` is an anecdote, not a measurement**, because nothing identifies
+what was actually built. It also carries `batch` and `round`, so run order
+survives; that ordering is what exposed the thermal drift documented below.
+
+## Performance baseline
+
+`cargo run --release -j 2 -- --no-dlss --bench-frames 300` is the repeatable
+frame measurement: fixed vantage, no vsync floor, per-stage breakdown. Both DLSS
+flags are refused in every headless mode, so this covers the native path only —
+for the shipping configuration read the in-game HUD, whose GPU row has included
+the evaluate since `timer::q::DLSS`.
+
+RTX 3050 Laptop, 2026-09-20, 1600x900, 116 chunks drawn:
+
+| arm | march | resolve | GPU total | wall median | p99 |
+| --- | --- | --- | --- | --- | --- |
+| hi-z off | 7.16 | 3.56 | 11.24ms | 11.39ms (88 fps) | 15.53ms |
+| hi-z on | 3.34 + 0.20 march2 | 3.56 | 7.71ms | 8.74ms (114 fps) | 10.35ms |
+
+**Read per stage, never the total, and never from one run.** This is a laptop
+GPU and it throttles: four consecutive benches on 2026-09-20 walked `march` from
+3.34 to 3.58 ms monotonically with run order, in a metric none of the flags under
+test touched. The giveaway was `--no-shadows` finishing *slower* than the
+baseline — strictly less work cannot cost more. Totals and `wall` carry that
+drift; a 5% difference between two sequential runs is not a result.
+
+`resolve` is the stable one (3.56 and 3.57 on separate occasions) and does carry
+signal through the drift. When a difference matters, interleave the arms —
+A, B, A, B — so drift cancels, and let the machine idle first.
+
+Three things this establishes, worth knowing before optimising the wrong thing:
+
+- **Hi-Z is worth 31% of the frame** and more than halves the march. It is not
+  optional tuning, it is load-bearing.
+- **With it on, march and resolve are level** — 3.34 against 3.56. There is no
+  single hot pass to attack; winning more means taking on one of the two
+  properly.
+- **Cost scales with pixels, not with world content.** 1600x900 at 7.71 ms
+  against 1920x991 at 10.45 ms is 1.32x the pixels for 1.35x the time. Adding
+  block types, structures or worldgen features is nearly free at frame time;
+  adding a term to the shading path is paid once per pixel, and `resolve` is
+  already two thirds of a native frame.
+
+Re-run it either side of any change that touches marching, shading or view
+distance, and compare per stage rather than by frame rate — the stage that moved
+names the cause.
+
+### The default vantage is shadow-light — pick the vantage to match the question
+
+Shadow cost swings 6.5x with camera placement, so a shadow result taken at the
+default bench vantage does not transfer. Measured 2026-09-20, interleaved A/B/A/B
+at `--time noon`, hi-z on, reading the paired `resolve` delta:
+
+| vantage | chunks | `--no-shadows` saves |
+| --- | --- | --- |
+| default | 116 | 0.17 ms |
+| reflection (`--cam-submerge -35 --cam-pitch -16 --cam-yaw 225`) | 145 | 1.11 and 1.06 ms |
+
+At the reflection vantage shadows are ~14% of the frame and worth 109 -> 126 fps.
+Use it for anything touching shadows, water or secondary rays.
+
+### Both batch-103 temporal flags are measured losses
+
+Settled 2026-09-20, interleaved A/B/A/B, hi-z on. Neither is worth turning on,
+and both are worth understanding before anyone builds something similar.
+
+**`--shadow-temporal`: +0.15 and +0.23 ms** at the reflection vantage, with
+1.1 ms of shadow work available to save. The bench camera is static, so history
+validity is at its maximum — this is the flag's best case, and under motion more
+rays retrace, not fewer.
+
+The mechanism is structural, not a tuning problem. `shadow_reproject` calls
+`shadow_guide` for every pixel, and `primary_shadow` then calls it again for
+every pixel. `shadow_guide` is an atomic `vis` load, a `block_at` into the brick
+pool, a `hit_t` and a `chunks[ci]` lookup — several dependent memory loads. So
+the flag buys a *conditional* skipped `shadow_ray_t` at the price of an
+*unconditional* duplicate guide reconstruction. Anyone revisiting this should
+fold the reprojection into `primary_shadow`, which already has the guide in
+hand, rather than adding a pass that recomputes it.
+
+**`--hiz-temporal`: +0.06 and +0.10 ms**, and it does the opposite of its
+purpose. The pair counts are fully deterministic and identical across repeats:
+baseline marches 68,896 and defers 104,413; with the flag it marches **69,200**
+and defers **104,109**. It blends last frame's Hi-Z into the defer test and ends
+up deferring 304 *fewer* pairs. The +0.04 ms it adds to the `hiz` pass is not
+recovered. Whether that is a sign error or the idea failing is unexamined.
+
+## Protocol
+
+1. Red-green-refactor: pin the expectation (failing test or captured
+   reference) *before* the behavior change; keep the pin while refactoring.
+2. `cargo test` must pass before and after every change; the relevant
+   `validation/check_*.py` should agree.
+3. Changing a shader constant? Grep `tests/` for its name first.
+4. A new control that replaces an old behavior ships as a `--no-*`/arm pair
+   with its bit-exactness story spelled out in the flag's `--help` line.
+5. Reproduce in the configuration that failed before changing the
+   configuration. A filtered run is a different experiment: rayon-pool
+   contention inside one test binary is a real variable, and a name filter
+   removes it.

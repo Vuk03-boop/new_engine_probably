@@ -1,0 +1,79 @@
+# 0010. Compile pipelines off the main thread, behind a progress bar
+
+Status: Accepted
+
+## Context
+
+Specialized pipelines are built lazily. `Renderer::new` leaves `spec_pipes`
+empty and `ensure_spec` calls `make_spec` on first use, which means nine
+`create_compute_pipeline` calls per specialization happen inside `render`, on
+the thread that pumps window messages.
+
+The driver's shader compiler is where the time goes. `resolve.wgsl` plus
+`common.wgsl` is one ~4,300-line module; `RESOLVE_LANE` is an `override`, so it
+specializes in the driver and cannot remove code, and each lane is a full
+compile of the whole thing. On this machine that is normally about a second per
+specialization. It is not reliably a second: measured on the same GPU, same
+spec key `0xbc1fff80/0xf90bb`, a **bit-exact one-line change** to
+`surface_from_below` took the run from **4.8s to 133s** -- a ~28x blow-up in
+the driver's optimizer with provably identical output
+(`differing 0 of 1440000`).
+
+Windows terminates a window that has not pumped messages for about five
+seconds. So the observable failure was not a crash: every instance logged
+`AppHangB1`, no exception, no panic, nothing for wgpu to report, and an exit
+code (`0xcfffffff`) that decodes to no documented status. It was read as a
+shader-compile "cliff" that any edit might fall off, and the only gate was
+launching the game and watching.
+
+Two facts make that framing wrong. The compile **succeeds** -- headless, with
+no window to hang, the same 133s compile completes and renders correctly. And
+the driver caches the result on disk, so the second launch is fast, which is
+why the same build could look healthy on one run and die on the next
+(`docs/lessons.md`).
+
+## Decision
+
+`ensure_spec` no longer blocks. It returns `Option<usize>`: `Some` once the
+specialization exists, `None` while a worker thread is building it. The work
+moves to a `std::thread` holding clones of the device, module and pipeline
+layouts -- all of which are cheap handles to the same underlying objects.
+
+`Renderer::render` becomes a thin gate returning `bool`. It ensures this
+frame's spec key and its `FLAG_HI_EMITTER_WORLD` sibling, and returns `false`
+without drawing if either is still compiling; the frame body is unchanged in
+`render_ready`, where the same `ensure_spec` calls are now cache hits.
+
+Callers handle `false` in the way that suits them:
+
+- `app.rs` draws `draw_compiling` -- a progress bar fed by `CompileProgress`,
+  which `make_spec` updates per pipeline with a label. `Screen::Playing`
+  already sets `ControlFlow::Poll` and requests a redraw each iteration, so the
+  bar animates and the pump stays alive.
+- `headless.rs` blocks in `render_blocking`. It has no window, so nothing can
+  declare it hung, and waiting keeps captures deterministic.
+
+## Consequences
+
+The hang is gone by construction, not by staying under a time budget. A slow
+compile is now a loading bar, however slow it gets.
+
+**This unblocks work that was previously ungovernable.** Editing
+`resolve.wgsl` no longer risks an unexplained death, so the optimisation
+backlog in `docs/audit-triage.md` section 10.6 becomes reachable, and the
+bit-exact `underwater_body` fix recorded there as unlandable (section 10.2) can
+be revisited.
+
+Compile time still matters, it is just no longer fatal. A cold cache on a
+pathological specialization means minutes of staring at a bar, so the timed
+headless gate in `docs/lessons.md` remains the right instrument for noticing
+that a change cost 28x. The bar says as much on screen, because a still bar
+would otherwise read as the freeze this change removes.
+
+Rendering is unaffected: a capture through the new path is bit-identical to one
+taken before it (`differing 0 of 1440000  MAE 0.0000  max 0`), and the suite is
+green across all 60 test binaries.
+
+Not addressed here: shipping prebuilt pipelines. wgpu exposes a pipeline cache
+and `make_spec` passes `cache: None`; using it would cut the first-run wait
+rather than merely making it survivable, and is the obvious follow-on.

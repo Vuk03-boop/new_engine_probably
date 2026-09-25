@@ -1,0 +1,70 @@
+# 0011. Directional ambient occlusion over the streaming LODs
+
+Status: Accepted
+
+## Context
+
+The corner AO in `surface_light` is built from the 3x3 neighbourhood of sky and
+openness samples around a face: a one-voxel radius. It cannot express
+mid-scale occlusion -- a valley floor, the underside of canopy, ground meeting
+a cliff -- and that missing scale is part of why midtones read flat at midday.
+Raking light (ADR-free, `--time 0.26`) recovers much of the form on its own,
+but only where the sun reaches.
+
+## Decision
+
+A half-resolution R8Unorm pass, `ao_probe` in `src/render/shaders/ao.wgsl`,
+writing a single occlusion factor that resolve multiplies into the **ambient**
+term only. The corner AO is untouched and still multiplies as it did, so the
+two compose rather than double-darken.
+
+Five taps leave the surface along its normal at 1, 2, 4, 8 and 16 blocks,
+spread by fixed tangential offsets, each weighted `1/(1+r)`. `ao_guide`
+duplicates `shadow_guide`'s `vis` unpack minus the sun-facing rejection, since
+AO cares about surfaces the sun cannot reach.
+
+**Occupancy rides the streaming LOD chain as it stands.** `grid_lookup`
+resolves a world point to whichever chunk is resident, and that chunk's own
+`voxel_size` sets the granularity, so distant taps read coarse bricks for free.
+There is no per-LOD probe to choose: the grid is a dense 3D array at 64-block
+granularity, not a hash table, and LOD is a property of the resident chunk.
+The cone therefore widens by step distance, not by selecting a level.
+
+Each tap snaps its sample point to `max(voxel_size, r * AO_CONE)` before
+reading. Without it, neighbouring pixels at a large radius land in different
+LOD-0 voxels and the result steps in hard rectangles; snapping makes them agree
+over the width the cone covers.
+
+`--dir-ao` sets `frame.flags_hi` bit 2, the non-forking runtime range that
+`FLAG_GLASS_SEC` already uses, so no pipeline forks on it. **Off by default.**
+
+## Alternatives considered
+
+- **A per-LOD hash probe of the chunk grid** — the original design. There is no
+  hash table to probe and no per-LOD index; `partition_for_grid` is frustum and
+  LOD *culling*, with no hashing to extract.
+- **Replacing the corner AO** — it answers a different question at a different
+  scale, and removing it would lose contact darkening at voxel edges.
+- **Full resolution** — half plus a bilinear upsample is what makes the cost
+  disappear into the noise floor; the signal is low-frequency by construction.
+
+## Consequences
+
+Off is bit exact: a default capture with the pass compiled in is **0 differing
+pixels of 921,600** against the tree before it existed (hard rule 1).
+
+On, at `terraces`: 451,801 pixels move, MAE 1.14, max 17 before snapping and
+MAE 0.91, max 16 after. At `night` nothing moves, correctly -- ambient scales
+with daylight, so there is nothing for AO to modulate.
+
+Cost is **under this machine's noise floor**. A four-round paired `bitexact`
+reads total +0.12 ms against a standard error of 0.153 and a sign count of 3/4,
+which `docs/testing.md` says is not a result. The same run drifted 9.98 to
+11.27 ms with run order, which is the thermal drift the paired instrument
+exists to survive.
+
+`ENTRY_POINTS` gains `ao_probe` (16), `tests/cutout.rs`'s decode census gains
+`ao_guide`, and `tests/water_sec.rs` pins the new count. Group 5 carries the
+storage view at binding 0 and the sampled view plus sampler at 1 and 2 --
+separate bindings because `shader_source` concatenates every stage into one
+module, where a storage and a sampled view cannot share a number.

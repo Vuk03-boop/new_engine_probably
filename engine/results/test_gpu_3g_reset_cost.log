@@ -1,0 +1,21 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\gate.rs (target\release\deps\gate-a2734e9011721b8f.exe)
+
+running 1 test
+test reset_frame_cost_at_1080p ... age  1 (validation false): shade 1.659 temporal 0.921 filter 3.871 ms (medians of 6)
+age  2 (validation false): shade 1.658 temporal 1.308 filter 3.828 ms (medians of 6)
+age  3 (validation false): shade 1.660 temporal 1.305 filter 3.871 ms (medians of 6)
+age  4 (validation false): shade 1.658 temporal 1.307 filter 3.827 ms (medians of 6)
+age  5 (validation false): shade 1.657 temporal 1.302 filter 3.873 ms (medians of 6)
+age  6 (validation false): shade 1.658 temporal 1.306 filter 3.828 ms (medians of 6)
+age  7 (validation false): shade 1.657 temporal 1.303 filter 3.872 ms (medians of 6)
+age  8 (validation false): shade 1.661 temporal 1.308 filter 3.050 ms (medians of 6)
+age  9 (validation false): shade 1.656 temporal 1.298 filter 3.050 ms (medians of 6)
+age 10 (validation false): shade 1.659 temporal 1.308 filter 3.052 ms (medians of 6)
+ages 1-8: shade p50 1.659 p90 1.661 | temporal p50 1.306 p90 1.309 | filter p50 3.830 p90 3.874 ms (48 frames)
+ages 9-40: shade p50 1.659 p90 1.661 | temporal p50 1.306 p90 1.309 | filter p50 3.052 p90 3.053 ms (192 frames)
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 4.57s
+

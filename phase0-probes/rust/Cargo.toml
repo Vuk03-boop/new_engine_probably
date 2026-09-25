@@ -1,0 +1,17 @@
+[package]
+name = "rt_probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ash = "=0.38.0"
+# Bundles ufbx C v0.23.0, byte-identical to ../third_party/ufbx used by the C++ probe.
+ufbx = "=0.11.4"
+winit = "=0.30.13"
+ash-window = "=0.13.0"
+# Same version ash already locks; used to find the RenderDoc in-app API when its layer is loaded.
+libloading = "=0.8.9"
+
+[profile.release]
+debug = false

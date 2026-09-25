@@ -1,0 +1,24 @@
+Usage: C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\tools\RenderDoc_1.46_64\qrenderdoc.exe [options] filename
+Qt UI for RenderDoc
+
+Options:
+  -?, -h, --help                                   Displays help on commandline
+                                                   options.
+  --help-all                                       Displays help including Qt
+                                                   specific options.
+  -v, --version                                    Displays version
+                                                   information.
+  --tempfile                                       The filename to be opened is
+                                                   a temporary file owned by
+                                                   this instance.
+  --targetcontrol, --remoteaccess <host:port>      A target control connection
+                                                   to open on startup.
+  --replayhost <host>                              The replay host to connect
+                                                   to on startup.
+  --python, --script, --py <filename.py>           Run a python script before
+                                                   opening the main UI.
+  --ui-python, --ui-script, --ui-py <filename.py>  Run a python script after
+                                                   opening the main UI.
+
+Arguments:
+  filename                                         The file to open.

@@ -1,0 +1,7 @@
+﻿.\target\release\ref_light.exe : validation: 0 errors, 0 warnings
+At line:1 char:366
++ ... lyContinue; .\target\release\ref_light.exe results\phase3a_ref --size ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (validation: 0 errors, 0 warnings:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

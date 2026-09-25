@@ -1,0 +1,61 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 2.86s
+     Running tests\edit.rs (target\release\deps\edit-0dccd5e577abf12b.exe)
+
+running 3 tests
+test debug_views_read_ray_outputs_like_the_gbuffer ... view edit_close material: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view edit_close normal: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view edit_close region hash: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view edit_close brick hash: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view edit_close surface-id hash: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view edit_close linear depth: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view edit_close snapshot version: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view edit_close lit: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view street_view material: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+view street_view normal: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+view street_view region hash: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+view street_view brick hash: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+view street_view surface-id hash: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+view street_view linear depth: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+view street_view snapshot version: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+view street_view lit: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+validation: 0 errors, 0 warnings
+ok
+test planted_edit_faults_are_caught ... check planted skip_region edit_close: raster pixels 230400 ref_hits 212047 gpu_hits 203693 checked 158403 near_edge 16348 (7.71% of hits) | crack 24473 material 19192 normal 12201 face 30699 depth 15316 extra 0 bad_id 29391 | plane_depth 0 | max depth err/tol 38767.5458
+check planted skip_region edit_close: ray    pixels 230400 ref_hits 212047 gpu_hits 203692 checked 158403 near_edge 16346 (7.71% of hits) | crack 24473 material 19192 normal 12202 face 30699 depth 15316 extra 0 bad_id 29393 | plane_depth 0 | max depth err/tol 38767.4454
+check planted skip_region edit_close: agree  pixels 230400 both_hit 174299 same_id 174105 | non-edge: hit_miss 0 differ 6072 depth 0 | near-edge: hit_miss 3 differ 821 | max depth diff/tol 0.3040
+  example: (184,0): resolved VoxelCoord { x: 380, y: 79, z: 175 } Face { axis: 0, positive: false }, reference VoxelCoord { x: 380, y: 79, z: 176 } Face { axis: 2, positive: false }
+  example: (185,0): resolved VoxelCoord { x: 380, y: 79, z: 175 } Face { axis: 0, positive: false }, reference VoxelCoord { x: 378, y: 79, z: 176 } Face { axis: 2, positive: false }
+  example: (186,0): resolved VoxelCoord { x: 380, y: 79, z: 176 } Face { axis: 0, positive: false }, reference VoxelCoord { x: 376, y: 79, z: 176 } Face { axis: 2, positive: false }
+  example: (187,0): resolved VoxelCoord { x: 383, y: 79, z: 175 } Face { axis: 0, positive: true }, reference VoxelCoord { x: 374, y: 79, z: 176 } Face { axis: 2, positive: false }
+planted skip_region RegionKey { x: 3, y: 0, z: 1 }: 268619 failures (edit close-up)
+validation: 0 errors, 0 warnings
+early free planted=false: validation errors during the swap 0; first: None
+mesh-only edit_close: pixels 230400 ref_hits 212047 gpu_hits 212048 checked 193079 near_edge 18986 (8.95% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.4198
+mesh-only street_view: pixels 230400 ref_hits 176779 gpu_hits 176779 checked 151245 near_edge 25563 (14.46% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.4695
+validation: 0 errors, 0 warnings
+[validation error] vkDestroyBuffer(): can't be called on VkBuffer 0x6f000000006f that is currently in use by VkDescriptorSet 0x1940000000194 which is in use by VkCommandBuffer 0x204151b88d0
+The Vulkan spec states: All submitted commands that refer to buffer, either directly or via a VkBufferView, must have completed execution (https://docs.vulkan.org/spec/latest/chapters/resources.html#VUID-vkDestroyBuffer-buffer-00922)
+[validation error] vkDestroyBuffer(): can't be called on VkBuffer 0x700000000070 that is currently in use by VkDescriptorSet 0x1950000000195 which is in use by VkCommandBuffer 0x204151b88d0
+The Vulkan spec states: All submitted commands that refer to buffer, either directly or via a VkBufferView, must have completed execution (https://docs.vulkan.org/spec/latest/chapters/resources.html#VUID-vkDestroyBuffer-buffer-00922)
+early free planted=true: validation errors during the swap 2; first: Some("vkDestroyBuffer(): can't be called on VkBuffer 0x6f000000006f that is currently in use by VkDescriptorSet 0x1940000000194 which is in use by VkCommandBuffer 0x204151b88d0\nThe Vulkan spec states: All submitted commands that refer to buffer, either directly or via a VkBufferView, must have completed execution (https://docs.vulkan.org/spec/latest/chapters/resources.html#VUID-vkDestroyBuffer-buffer-00922)")
+ok
+test refused_update_keeps_the_previous_snapshot ... A_mesh_refused: update refused: OverBudget { category: GpuAccel, requested: 2097152, category_reserved: 85983232, total_reserved: 517996544, limit: 517996544, limit_is_total: true }
+
+thread 'refused_update_keeps_the_previous_snapshot' (7792) panicked at gpu\tests\edit.rs:174:136:
+called `Result::unwrap()` on an `Err` value: OverBudget(OverBudget { category: Staging, requested: 4194304, category_reserved: 16777216, total_reserved: 517996544, limit: 517996544, limit_is_total: true })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+[validation error] vkDestroyDevice(): VkDevice 0x204150300d0 has 387 leaked objects that have not been destroyed.
+(Only printing the first 10 objects, but can be increased by raising the VK_LAYER_DUPLICATE_MESSAGE_LIMIT/'duplicate_message_limit' setting value)
+VkCommandBuffer 0x204151ae0d0, VkSemaphore 0x20000000002, VkDeviceMemory 0xbd00000000bd, VkDeviceMemory 0xd600000000d6, VkDeviceMemory 0xa800000000a8, VkDeviceMemory 0x3e000000003e, VkDeviceMemory 0x960000000096, VkDeviceMemory 0x550000000055, VkDeviceMemory 0x690000000069, VkDeviceMemory 0x7c000000007c.
+The Vulkan spec states: All child objects created on device that can be destroyed or freed must have been destroyed or freed prior to destroying device (https://docs.vulkan.org/spec/latest/chapters/devsandqueues.html#VUID-vkDestroyDevice-device-05137)
+FAILED
+
+failures:
+
+failures:
+    refused_update_keeps_the_previous_snapshot
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 21.24s
+
+error: test failed, to rerun pass `-p gpu --test edit`

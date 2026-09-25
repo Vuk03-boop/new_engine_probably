@@ -1,0 +1,57 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 53.37s
+     Running tests\denoise.rs (target\release\deps\denoise-cba05e17b2083eac.exe)
+
+running 2 tests
+test diagnose_motion_edges ... still at the end view, raw age 32: all 0.0402 (bias -0.0005) | edge 0.0621 (bias -0.0003)
+still at the end view, filtered age 32: all 0.0084 (bias -0.0012) | edge 0.0212 (bias +0.0049)
+motion raw: all 0.0341 (bias +0.0011) | edge 0.0588 (bias -0.0000)
+motion filtered: all 0.0242 (bias +0.0021) | edge 0.0631 (bias +0.0075)
+translation only raw: all 0.0202 (bias +0.0013) | edge 0.0386 (bias +0.0020)
+translation only filtered: all 0.0148 (bias +0.0023) | edge 0.0392 (bias +0.0084)
+rotation only raw: all 0.0415 (bias +0.0015) | edge 0.0656 (bias +0.0004)
+rotation only filtered: all 0.0229 (bias +0.0023) | edge 0.0597 (bias +0.0076)
+motion bilinear raw: all 0.0326 (bias -0.0005) | edge 0.0583 (bias -0.0013)
+motion bilinear filtered: all 0.0260 (bias +0.0008) | edge 0.0639 (bias +0.0062)
+motion levels 1: all 0.0213 (bias +0.0007) | edge 0.0503 (bias +0.0012)
+motion levels 3: all 0.0226 (bias +0.0014) | edge 0.0587 (bias +0.0057)
+motion sigma 1: all 0.0217 (bias -0.0003) | edge 0.0494 (bias +0.0011)
+motion sigma 16: all 0.0371 (bias +0.0048) | edge 0.0971 (bias +0.0147)
+validation: 0 errors, 0 warnings
+ok
+test motion_path_meets_the_budget ... motion frame 8: filtered rel_mse 0.0243 bias -0.0016 | raw 0.0940 bias +0.0019 MISSED
+  age 1-3 interior: 324 px, filtered 0.0001 raw 0.0048 (shares of the frame's mean)
+  age 1-3 edge    : 155 px, filtered 0.0016 raw 0.0064 (shares of the frame's mean)
+  age 4-15 interior: 30141 px, filtered 0.0016 raw 0.0403 (shares of the frame's mean)
+  age 4-15 edge    : 13152 px, filtered 0.0210 raw 0.0426 (shares of the frame's mean)
+  age 16+ interior: 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+  age 16+ edge    : 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+motion frame 16: filtered rel_mse 0.0232 bias +0.0026 | raw 0.0523 bias +0.0029 MISSED
+  age 1-3 interior: 326 px, filtered 0.0001 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 148 px, filtered 0.0006 raw 0.0071 (shares of the frame's mean)
+  age 4-15 interior: 856 px, filtered 0.0001 raw 0.0019 (shares of the frame's mean)
+  age 4-15 edge    : 353 px, filtered 0.0007 raw 0.0012 (shares of the frame's mean)
+  age 16+ interior: 29597 px, filtered 0.0015 raw 0.0162 (shares of the frame's mean)
+  age 16+ edge    : 12971 px, filtered 0.0202 raw 0.0207 (shares of the frame's mean)
+motion frame 32: filtered rel_mse 0.0242 bias +0.0021 | raw 0.0341 bias +0.0011 MISSED
+  age 1-3 interior: 326 px, filtered 0.0000 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 118 px, filtered 0.0008 raw 0.0032 (shares of the frame's mean)
+  age 4-15 interior: 970 px, filtered 0.0000 raw 0.0017 (shares of the frame's mean)
+  age 4-15 edge    : 229 px, filtered 0.0003 raw 0.0009 (shares of the frame's mean)
+  age 16+ interior: 30125 px, filtered 0.0010 raw 0.0067 (shares of the frame's mean)
+  age 16+ edge    : 13505 px, filtered 0.0220 raw 0.0164 (shares of the frame's mean)
+validation: 0 errors, 0 warnings
+
+thread 'motion_path_meets_the_budget' (17348) panicked at gpu\tests\denoise.rs:641:5:
+D4 missed at frames [8, 16, 32]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    motion_path_meets_the_budget
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 392.19s
+
+error: test failed, to rerun pass `-p gpu --test denoise`

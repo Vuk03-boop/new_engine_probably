@@ -1,0 +1,15 @@
+M1 pipeline counts only the current snapshot: exit 101, compiled True -> DETECTED
+    thread 'reported_pipeline_memory_brackets_measured_heap' (5612) panicked at derived\tests\memory_account.rs:37:5:
+    two snapshots 0: measured 5213360 above reported reserved 4106024
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+M2 world omits brick material arrays: exit 101, compiled True -> DETECTED
+    thread 'reported_world_memory_brackets_measured_heap' (7908) panicked at world\tests\memory_account.rs:34:5:
+    street_block 0: measured 5924240 above reported reserved 894448
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+M3 ledger refusal still reserves: exit 101, compiled True -> DETECTED
+    thread 'ledger::tests::refusal_is_deterministic_and_changes_nothing_but_the_counter' (12108) panicked at memory\src\ledger.rs:252:9:
+    test result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+M4 btree bound assumes full nodes: exit 101, compiled True -> DETECTED
+    thread 'reported_pipeline_memory_brackets_measured_heap' (13016) panicked at derived\tests\memory_account.rs:37:5:
+    jobs in flight 0: measured 1089104 above reported reserved 940008
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s

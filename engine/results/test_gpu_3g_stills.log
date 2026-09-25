@@ -1,0 +1,79 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\gate.rs (target\release\deps\gate-a2734e9011721b8f.exe)
+
+running 1 test
+test stills_against_the_reference ... reference street_dawn: 4096 spp in 94.7 s
+street_dawn: 1558103 surface px, reference noise rel_mse 2.04e-3
+  age  1: filtered rel_mse 0.0310 bias -0.0041 | raw 1.1160 bias +0.0002 | raw at age  8 0.1417 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0099 bias -0.0010 | raw 0.2824 bias +0.0003 | raw at age 16 0.0722 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0045 bias -0.0020 | raw 0.0722 bias -0.0002 | raw at age 64 0.0196 | Q1 pass Q2 pass
+  age 64: filtered rel_mse 0.0030 bias -0.0004 | raw 0.0196 bias +0.0000 | raw at age 64 0.0196 | Q1 pass Q2 pass
+reference low_dawn: 4096 spp in 89.7 s
+low_dawn: 1068265 surface px, reference noise rel_mse 1.78e-3
+  age  1: filtered rel_mse 0.0242 bias -0.0040 | raw 0.8208 bias +0.0000 | raw at age  8 0.1038 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0083 bias -0.0013 | raw 0.2056 bias -0.0002 | raw at age 16 0.0526 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0040 bias -0.0020 | raw 0.0526 bias -0.0003 | raw at age 64 0.0147 | Q1 pass Q2 pass
+  age 64: filtered rel_mse 0.0027 bias -0.0004 | raw 0.0147 bias +0.0000 | raw at age 64 0.0147 | Q1 pass Q2 pass
+reference street_morning: 4096 spp in 98.8 s
+street_morning: 1558103 surface px, reference noise rel_mse 1.02e-3
+  age  1: filtered rel_mse 0.0245 bias -0.0022 | raw 0.8704 bias -0.0001 | raw at age  8 0.1099 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0075 bias -0.0003 | raw 0.2193 bias +0.0002 | raw at age 16 0.0556 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0028 bias -0.0007 | raw 0.0556 bias +0.0001 | raw at age 64 0.0147 | Q1 pass Q2 pass
+  age 64: filtered rel_mse 0.0016 bias +0.0001 | raw 0.0147 bias +0.0002 | raw at age 64 0.0147 | Q1 pass Q2 pass
+reference low_morning: 4096 spp in 88.4 s
+low_morning: 1068265 surface px, reference noise rel_mse 5.84e-4
+  age  1: filtered rel_mse 0.0240 bias -0.0012 | raw 0.4593 bias -0.0003 | raw at age  8 0.0578 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0139 bias -0.0000 | raw 0.1148 bias -0.0000 | raw at age 16 0.0291 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0025 bias -0.0003 | raw 0.0291 bias +0.0001 | raw at age 64 0.0078 | Q1 pass Q2 pass
+  age 64: filtered rel_mse 0.0017 bias +0.0000 | raw 0.0078 bias +0.0001 | raw at age 64 0.0078 | Q1 pass Q2 pass
+reference street_midday: 4096 spp in 99.5 s
+street_midday: 1558103 surface px, reference noise rel_mse 1.01e-3
+  age  1: filtered rel_mse 0.0283 bias -0.0019 | raw 0.9707 bias -0.0001 | raw at age  8 0.1222 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0088 bias -0.0004 | raw 0.2438 bias -0.0000 | raw at age 16 0.0618 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0029 bias -0.0007 | raw 0.0618 bias -0.0001 | raw at age 64 0.0162 | Q1 pass Q2 pass
+  age 64: filtered rel_mse 0.0016 bias +0.0001 | raw 0.0162 bias +0.0001 | raw at age 64 0.0162 | Q1 pass Q2 pass
+reference low_midday: 4096 spp in 89.7 s
+low_midday: 1068265 surface px, reference noise rel_mse 4.72e-4
+  age  1: filtered rel_mse 0.0365 bias -0.0009 | raw 0.4571 bias -0.0004 | raw at age  8 0.0576 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0264 bias +0.0000 | raw 0.1145 bias +0.0001 | raw at age 16 0.0290 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0098 bias -0.0002 | raw 0.0290 bias +0.0001 | raw at age 64 0.0077 | Q1 pass Q2 FAIL
+  age 64: filtered rel_mse 0.0090 bias -0.0001 | raw 0.0077 bias +0.0000 | raw at age 64 0.0077 | Q1 pass Q2 FAIL
+reference street_dusk: 4096 spp in 101.4 s
+street_dusk: 1558103 surface px, reference noise rel_mse 2.01e-3
+  age  1: filtered rel_mse 0.0309 bias -0.0039 | raw 1.1104 bias +0.0001 | raw at age  8 0.1416 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0100 bias -0.0010 | raw 0.2826 bias +0.0002 | raw at age 16 0.0720 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0045 bias -0.0018 | raw 0.0720 bias -0.0000 | raw at age 64 0.0195 | Q1 pass Q2 pass
+  age 64: filtered rel_mse 0.0029 bias -0.0004 | raw 0.0195 bias +0.0001 | raw at age 64 0.0195 | Q1 pass Q2 pass
+reference low_dusk: 4096 spp in 91.6 s
+low_dusk: 1068265 surface px, reference noise rel_mse 1.71e-3
+  age  1: filtered rel_mse 0.0240 bias -0.0041 | raw 0.8026 bias -0.0006 | raw at age  8 0.1009 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0080 bias -0.0015 | raw 0.2002 bias -0.0005 | raw at age 16 0.0513 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0038 bias -0.0018 | raw 0.0513 bias -0.0002 | raw at age 64 0.0142 | Q1 pass Q2 pass
+  age 64: filtered rel_mse 0.0026 bias -0.0004 | raw 0.0142 bias +0.0000 | raw at age 64 0.0142 | Q1 pass Q2 pass
+reference street_twilight: 16384 spp in 333.3 s
+street_twilight: 1558103 surface px, reference noise rel_mse 3.88e-3
+  age  1: filtered rel_mse 0.0414 bias -0.0143 | raw 1.4716 bias -0.0079 | raw at age  8 0.1882 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0141 bias -0.0095 | raw 0.3739 bias -0.0077 | raw at age 16 0.0962 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0070 bias -0.0102 | raw 0.0962 bias -0.0077 | raw at age 64 0.0270 | Q1 pass Q2 pass
+  age 64: filtered rel_mse 0.0051 bias -0.0083 | raw 0.0270 bias -0.0077 | raw at age 64 0.0270 | Q1 pass Q2 pass
+reference low_twilight: 16384 spp in 297.9 s
+low_twilight: 1068265 surface px, reference noise rel_mse 3.47e-3
+  age  1: filtered rel_mse 0.0356 bias -0.0147 | raw 1.1791 bias -0.0087 | raw at age  8 0.1499 | Q1 pass Q2 pass
+  age  4: filtered rel_mse 0.0122 bias -0.0103 | raw 0.2958 bias -0.0086 | raw at age 16 0.0766 | Q1 pass Q2 pass
+  age 16: filtered rel_mse 0.0062 bias -0.0100 | raw 0.0766 bias -0.0075 | raw at age 64 0.0220 | Q1 pass Q2 pass
+  age 64: filtered rel_mse 0.0046 bias -0.0080 | raw 0.0220 bias -0.0074 | raw at age 64 0.0220 | Q1 pass Q2 pass
+validation: 0 errors, 0 warnings
+
+thread 'stills_against_the_reference' (16600) panicked at gpu\tests\gate.rs:523:5:
+failed: ["Q2 low_midday age 16", "Q2 low_midday age 64"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    stills_against_the_reference
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 1428.18s
+
+error: test failed, to rerun pass `-p gpu --test gate`

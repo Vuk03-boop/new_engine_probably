@@ -1,0 +1,30 @@
+﻿cargo :    Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+At line:1 char:302
++ ... tch {} } }; cargo test --release -j 2 -p gpu --test reference -- --te ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling gp...sal\engine\gpu):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `release` profile [optimized] target(s) in 1.41s
+     Running tests\reference.rs (target\release\deps\reference-48901475ed028826.exe)
+
+running 1 test
+  gpu: 4096 frames at 96x54 in 825 ms
+  gpu: 256 frames at 96x54 in 49 ms
+tail midday spp 256: null (gpu vs gpu) |z|>4 0.051% mean z [1.19, 1.25, 0.09] | cpu vs gpu |z|>4 0.135% mean z [1.23, 
+1.43, 0.48]
+  gpu: 1024 frames at 96x54 in 227 ms
+tail midday spp 1024: null (gpu vs gpu) |z|>4 0.013% mean z [1.8, 1.9, 0.4] | cpu vs gpu |z|>4 0.006% mean z [1.14, 
+-0.05, -1.55]
+  gpu: 4096 frames at 96x54 in 702 ms
+  gpu: 256 frames at 96x54 in 41 ms
+tail twilight spp 256: null (gpu vs gpu) |z|>4 1.755% mean z [0.63, 0.25, 0.19] | cpu vs gpu |z|>4 1.948% mean z 
+[0.54, 0.2, -0.29]
+  gpu: 1024 frames at 96x54 in 187 ms
+tail twilight spp 1024: null (gpu vs gpu) |z|>4 0.090% mean z [1.99, 0.5, -0.82] | cpu vs gpu |z|>4 0.071% mean z 
+[-0.34, -0.84, -0.85]
+validation: 0 errors, 0 warnings
+test diagnostic_tail_rate_of_the_pixel_metric ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 100.12s
+

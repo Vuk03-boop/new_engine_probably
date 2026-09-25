@@ -1,0 +1,152 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.28s
+     Running unittests src\lib.rs (target\debug\deps\gpu-550de2d2cb0851cd.exe)
+
+running 12 tests
+test alloc::tests::first_fit_aligns_splits_and_coalesces ... ok
+test equivalence::tests::axis_normals_encode_to_exact_snorm_bits ... ok
+test equivalence::tests::camera_rays_have_unit_forward_component ... ok
+test equivalence::tests::resolve_picks_the_voxel_behind_the_face ... ok
+test layout::tests::f16_integers_are_exact ... ok
+test layout::tests::image_sections_are_aligned_and_hold_the_triangulation ... ok
+test layout::tests::negative_coordinates_group_into_the_right_region ... ok
+test layout::tests::pack_round_trips_and_fields_do_not_overlap ... ok
+test layout::tests::regions_preserve_every_quad_in_world_position ... ok
+test reflect::tests::parses_nested_values_and_rejects_garbage ... ok
+test timeline::tests::retirement_releases_in_order_only_after_completion ... ok
+test timing::tests::nearest_rank_percentiles ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.02s
+
+     Running tests\device.rs (target\debug\deps\device-39f31d64bda25876.exe)
+
+running 9 tests
+test a_refused_grant_changes_nothing_and_old_meshes_stay_valid ... ok
+test device_budget_follows_adr_0003 ... device "NVIDIA GeForce RTX 3050 Laptop GPU", driver device-local budget Some(3531289396) B, engine budget 3150000000 B
+ok
+test formats_assumed_by_adr_0003_and_0004_are_supported ... depth D32_SFLOAT: attachment true storage image true
+normal R16G16_SNORM: attachment true storage image true
+material R16_UINT: attachment true storage image true
+surface id R32G32_UINT: attachment true storage image true
+vertex R16G16B16A16_SFLOAT: vertex buffer true acceleration-structure vertex true
+ok
+test frame_readers_keep_1c_snapshots_alive_until_the_gpu_is_done ... ok
+test gpu_decode_agrees_with_the_host_layout ... merge none region brick: 520540 quads decoded and 1041080 triangles checked on the GPU, all equal
+merge none region 2x2x2_chunks: 520540 quads decoded and 1041080 triangles checked on the GPU, all equal
+merge greedy region brick: 10503 quads decoded and 275890 triangles checked on the GPU, all equal
+merge greedy region 2x2x2_chunks: 10503 quads decoded and 275890 triangles checked on the GPU, all equal
+ok
+test mesh_uploads_read_back_bit_exact_for_every_setting ... merge none region brick: 5103 regions, 520540 quads, 1041080 triangles, 37479600 B images, ledger GpuMesh live 37556480 reserved 67108864, blocks 2
+merge none region 2x2x2_bricks: 1176 regions, 520540 quads, 1041080 triangles, 37479456 B images, ledger GpuMesh live 37509632 reserved 67108864, blocks 2
+merge none region chunk: 291 regions, 520540 quads, 1041080 triangles, 37479360 B images, ledger GpuMesh live 37488384 reserved 67108864, blocks 2
+merge none region 2x2x2_chunks: 67 regions, 520540 quads, 1041080 triangles, 37478976 B images, ledger GpuMesh live 37483520 reserved 67108864, blocks 2
+merge greedy region brick: 5103 regions, 10503 quads, 275890 triangles, 6845344 B images, ledger GpuMesh live 7829760 reserved 67108864, blocks 2
+merge greedy region 2x2x2_bricks: 1176 regions, 10503 quads, 275890 triangles, 6792624 B images, ledger GpuMesh live 6960640 reserved 67108864, blocks 2
+merge greedy region chunk: 291 regions, 10503 quads, 275890 triangles, 6791664 B images, ledger GpuMesh live 6814720 reserved 67108864, blocks 2
+merge greedy region 2x2x2_chunks: 67 regions, 10503 quads, 275890 triangles, 6791216 B images, ledger GpuMesh live 6798848 reserved 67108864, blocks 2
+ok
+test negative_control_early_free_is_caught ... [validation error] vkDestroyBuffer(): can't be called on VkBuffer 0x70000000007 that is currently in use by VkCommandBuffer 0x1ba8078e0d0
+The Vulkan spec states: All submitted commands that refer to buffer, either directly or via a VkBufferView, must have completed execution (https://docs.vulkan.org/spec/latest/chapters/resources.html#VUID-vkDestroyBuffer-buffer-00922)
+planted early free: corruption detected; validation reported 1 error(s)
+ok
+test negative_controls_layout_mismatches_are_reported ... ok
+test retirement_waits_for_the_gpu ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 45.10s
+
+     Running tests\raster.rs (target\debug\deps\raster-65c35cc9b1849f28.exe)
+
+running 5 tests
+test debug_views_show_the_stored_gbuffer_values_and_the_timer_measures ... debug view with the raster reflection refused: 20 errors, first Some("vertex: depth_tex: not in the shader")
+view material         0 of 230400 px differ from the CPU re-derivation (173137 drawn); GPU ms gbuffer 0.098 view 0.015 
+view normal           0 of 230400 px differ from the CPU re-derivation (173137 drawn); GPU ms gbuffer 0.097 view 0.012 
+view region hash      0 of 230400 px differ from the CPU re-derivation (173137 drawn); GPU ms gbuffer 0.096 view 0.014 
+view brick hash       0 of 230400 px differ from the CPU re-derivation (173137 drawn); GPU ms gbuffer 0.098 view 0.015 
+view surface-id hash  0 of 230400 px differ from the CPU re-derivation (173137 drawn); GPU ms gbuffer 0.098 view 0.013 
+view linear depth     0 of 230400 px differ from the CPU re-derivation (173137 drawn); GPU ms gbuffer 0.098 view 0.013 
+view snapshot version 0 of 230400 px differ from the CPU re-derivation (173137 drawn); GPU ms gbuffer 0.097 view 0.014 
+view lit              0 of 230400 px differ from the CPU re-derivation (173137 drawn); GPU ms gbuffer 0.100 view 0.017 
+planted: lit view against a 2% brighter sun on the CPU: 45220 px differ
+ok
+test negative_control_unsplit_greedy_cracks_again ... reference overhead: 640x360, 5 rays/px, 102337 hits, 28.33 s on 2 threads
+overhead greedy chunk, split CornersOnly: 21006 triangles: pixels 230400 ref_hits 102337 gpu_hits 102335 checked 75032 near_edge 27371 (26.75% of hits) | crack 1 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.3749
+    (331,279): crack (nothing drawn), reference VoxelCoord { x: 83, y: -1, z: 64 } Face { axis: 1, positive: true } t 351.8246
+overhead greedy chunk, split Watertight: 275890 triangles: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.3078
+ok
+test planted_faults_are_caught ... reference street_view: 640x360, 5 rays/px, 173137 hits, 48.59 s on 2 threads
+control baseline: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 2 | max depth err/tol 0.5343
+control reversed_winding: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 172048 material 25350 normal 142318 face 142318 depth 142318 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 4363.3717
+    (336,0): crack (farther surface VoxelCoord { x: 178, y: 157, z: 176 } Face { axis: 1, positive: true } t 206.8601), reference VoxelCoord { x: 178, y: 157, z: 176 } Face { axis: 2, positive: false } t 206.5048
+    (336,0): normal [0, 32767], reference [32767, 32767]
+    (336,0): resolved VoxelCoord { x: 178, y: 157, z: 176 } Face { axis: 1, positive: true }, reference VoxelCoord { x: 178, y: 157, z: 176 } Face { axis: 2, positive: false }
+control offset_off_by_one: pixels 230400 ref_hits 173137 gpu_hits 173206 checked 142313 near_edge 30848 (17.82% of hits) | crack 2446 material 3056 normal 1762 face 4613 depth 4896 extra 53 bad_id 0 | plane_depth 1607 | max depth err/tol 1310.9973
+    (399,0): crack (farther surface VoxelCoord { x: 128, y: 133, z: 176 } Face { axis: 0, positive: false } t 167.7438), reference VoxelCoord { x: 128, y: 132, z: 176 } Face { axis: 2, positive: false } t 167.1138
+    (399,0): normal [-32767, 0], reference [32767, 32767]
+    (399,0): resolved VoxelCoord { x: 128, y: 133, z: 176 } Face { axis: 0, positive: false }, reference VoxelCoord { x: 128, y: 132, z: 176 } Face { axis: 2, positive: false }
+control material_from_wrong_primitive: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 25933 normal 115119 face 0 depth 0 extra 0 bad_id 0 | plane_depth 2 | max depth err/tol 0.5343
+    (336,0): normal [0, 0], reference [32767, 32767]
+    (337,0): normal [0, 0], reference [32767, 32767]
+    (338,0): normal [0, 0], reference [32767, 32767]
+dropped region 50 covered 8866 px
+control dropped_region: pixels 230400 ref_hits 173137 gpu_hits 164271 checked 134186 near_edge 30848 (17.82% of hits) | crack 8866 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 2 | max depth err/tol 0.5343
+    (326,300): crack (nothing drawn), reference VoxelCoord { x: 95, y: -1, z: 95 } Face { axis: 1, positive: true } t 82.8403
+    (327,300): crack (nothing drawn), reference VoxelCoord { x: 95, y: -1, z: 95 } Face { axis: 1, positive: true } t 82.8403
+    (328,300): crack (nothing drawn), reference VoxelCoord { x: 95, y: -1, z: 95 } Face { axis: 1, positive: true } t 82.8403
+ok
+test raster_matches_the_voxel_reference_for_every_setting ... reference street_view: 640x360, 5 rays/px, 173137 hits, 45.78 s on 2 threads
+reference chunk_corner: 640x360, 5 rays/px, 180972 hits, 36.05 s on 2 threads
+reference overhead: 640x360, 5 rays/px, 102337 hits, 25.66 s on 2 threads
+reference grazing: 640x360, 5 rays/px, 147065 hits, 48.29 s on 2 threads
+device NVIDIA GeForce RTX 3050 Laptop GPU; targets 640x360: 4423680 B driver-required
+merge none region brick: 520540 quads, 1041080 triangles, 37479600 B device images
+camera street_view merge none region brick: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5089
+camera chunk_corner merge none region brick: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5160
+camera overhead merge none region brick: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.4080
+camera grazing merge none region brick: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 268 | max depth err/tol 0.8774
+merge none region 2x2x2_bricks: 520540 quads, 1041080 triangles, 37479456 B device images
+camera street_view merge none region 2x2x2_bricks: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5089
+camera chunk_corner merge none region 2x2x2_bricks: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5160
+camera overhead merge none region 2x2x2_bricks: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.4080
+camera grazing merge none region 2x2x2_bricks: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 268 | max depth err/tol 0.8774
+merge none region chunk: 520540 quads, 1041080 triangles, 37479360 B device images
+camera street_view merge none region chunk: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5089
+camera chunk_corner merge none region chunk: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5160
+camera overhead merge none region chunk: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.4080
+camera grazing merge none region chunk: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 268 | max depth err/tol 0.8774
+merge none region 2x2x2_chunks: 520540 quads, 1041080 triangles, 37478976 B device images
+camera street_view merge none region 2x2x2_chunks: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5089
+camera chunk_corner merge none region 2x2x2_chunks: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5160
+camera overhead merge none region 2x2x2_chunks: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.4080
+camera grazing merge none region 2x2x2_chunks: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 268 | max depth err/tol 0.8774
+merge greedy region brick: 10503 quads, 275890 triangles, 6845344 B device images
+camera street_view merge greedy region brick: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 2 | max depth err/tol 0.5343
+camera chunk_corner merge greedy region brick: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.6400
+camera overhead merge greedy region brick: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.3078
+camera grazing merge greedy region brick: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 235 | max depth err/tol 0.9547
+merge greedy region 2x2x2_bricks: 10503 quads, 275890 triangles, 6792624 B device images
+camera street_view merge greedy region 2x2x2_bricks: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 2 | max depth err/tol 0.5343
+camera chunk_corner merge greedy region 2x2x2_bricks: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.6400
+camera overhead merge greedy region 2x2x2_bricks: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.3078
+camera grazing merge greedy region 2x2x2_bricks: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 235 | max depth err/tol 0.9547
+merge greedy region chunk: 10503 quads, 275890 triangles, 6791664 B device images
+camera street_view merge greedy region chunk: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 2 | max depth err/tol 0.5343
+camera chunk_corner merge greedy region chunk: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.6400
+camera overhead merge greedy region chunk: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.3078
+camera grazing merge greedy region chunk: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 235 | max depth err/tol 0.9547
+merge greedy region 2x2x2_chunks: 10503 quads, 275890 triangles, 6791216 B device images
+camera street_view merge greedy region 2x2x2_chunks: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 2 | max depth err/tol 0.5343
+camera chunk_corner merge greedy region 2x2x2_chunks: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.6400
+camera overhead merge greedy region 2x2x2_chunks: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.3078
+camera grazing merge greedy region 2x2x2_chunks: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 235 | max depth err/tol 0.9547
+ok
+test targets_take_ledger_grants_and_a_refusal_changes_nothing ... 1080p targets: 37324800 B texels (18 B/px), 39813120 B driver-required, ledger GpuTemporal live 39813120 reserved 67108864
+ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 280.88s
+
+   Doc-tests gpu
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

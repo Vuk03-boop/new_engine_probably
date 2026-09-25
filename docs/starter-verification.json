@@ -1,0 +1,345 @@
+{
+  "status": "PASS",
+  "date": "2026-09-22",
+  "scope": "Restoration and single-model documentation starter only",
+  "protected_existing_files_byte_identical": 1159,
+  "engine_baseline_files_unchanged": 295,
+  "retained_pdfs_unchanged": 16,
+  "uploaded_proposal_files_restored": 11,
+  "restoration_details": [
+    {
+      "file": "BUILD-ROADMAP.md",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    },
+    {
+      "file": "CONTEXT-AND-CONSTRAINTS.md",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    },
+    {
+      "file": "ENGINEERING-LESSONS.md",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    },
+    {
+      "file": "PROPOSITION.md",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    },
+    {
+      "file": "README.md",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": false,
+      "intentional_change": "Starter navigation added to README; original upload preserved"
+    },
+    {
+      "file": "TECHNIQUE-MAP.md",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    },
+    {
+      "file": "VALIDATION-AND-BUDGETS.md",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    },
+    {
+      "file": "WORKSPACE-CLEANUP.md",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    },
+    {
+      "file": "cleanup-receipt.json",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    },
+    {
+      "file": "preservation-baseline.json",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    },
+    {
+      "file": "verification.json",
+      "original_upload_preserved": true,
+      "restored_file_still_byte_identical": true,
+      "intentional_change": null
+    }
+  ],
+  "historical_reference_texts_copied": 11,
+  "reference_hashes_match_originals": true,
+  "fresh_lexical_source_checks": 4,
+  "claude_lines": 78,
+  "startup_words_claude_plus_now": 1549,
+  "markdown_documents_checked": 18,
+  "local_links_checked": 149,
+  "all_workspace_local_links_resolve": true,
+  "new_operating_docs_and_evidence_links_self_contained": true,
+  "original_design_documents_with_larger_workspace_links": [
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/AGENTS.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/adr/0011-directional-ambient-occlusion.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../research-review/batch-06-restir-spatial-reuse.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/adr/0010-compile-pipelines-off-the-main-thread.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../research-review/batch-05-textures-shader-organization.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/AGENTS.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../research-review/batch-04-scheduling-queues.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../research-review/batch-06-restir-spatial-reuse.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/adr/0008-ray-reconstruction-material-guides.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/adr/0012-continuous-shore-foam.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "ENGINEERING-LESSONS.md",
+      "target": "../reconstruction/README.md"
+    },
+    {
+      "document": "CONTEXT-AND-CONSTRAINTS.md",
+      "target": "../research-review/batch-09-synthesis.md"
+    },
+    {
+      "document": "CONTEXT-AND-CONSTRAINTS.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "README.md",
+      "target": "../research-review/batch-09-synthesis.md"
+    },
+    {
+      "document": "README.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "README.md",
+      "target": "../recovered-codebase/"
+    },
+    {
+      "document": "README.md",
+      "target": "../archive/"
+    },
+    {
+      "document": "README.md",
+      "target": "../reconstruction/"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-01-representation.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-02-streaming-memory.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-01-representation.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-05-textures-shader-organization.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-06-restir-spatial-reuse.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-07-temporal-lod-continuity.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-07-temporal-lod-continuity.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-06-restir-spatial-reuse.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-03-coherent-traversal.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-01-representation.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-08-lighting-neural-heightfield.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-08-lighting-neural-heightfield.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-02-streaming-memory.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-04-scheduling-queues.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-05-textures-shader-organization.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-03-coherent-traversal.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-08-lighting-neural-heightfield.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-04-scheduling-queues.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-04-scheduling-queues.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-02-streaming-memory.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-03-coherent-traversal.md"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/sources/batch-09/coverage.csv"
+    },
+    {
+      "document": "TECHNIQUE-MAP.md",
+      "target": "../research-review/sources/INDEX.md"
+    },
+    {
+      "document": "WORKSPACE-CLEANUP.md",
+      "target": "../research-review/sources/batch-09/historical-link-audit.json"
+    },
+    {
+      "document": "WORKSPACE-CLEANUP.md",
+      "target": "../README.md"
+    }
+  ],
+  "new_engine_code_files": 0,
+  "agents_or_swarms_created": false,
+  "builds_shader_api_gpu_tests_run": false,
+  "historical_performance_remeasured": false,
+  "files_deleted": 0,
+  "root_workspace_readme_updated": true,
+  "project_file_sha256": {
+    "BUILD-ROADMAP.md": "c22215a7c6ba04f3c030fe143a821ab29065d42144a5148aff8340efcdebb23b",
+    "CLAUDE.md": "3ea8686a34edbca2303665d534bb7582c51003ed8f5bd93068b2dade70de4018",
+    "CONTEXT-AND-CONSTRAINTS.md": "469b617fffd25854e7f9307b161cf567013b8acca393d22943eaef76d42fc844",
+    "ENGINEERING-LESSONS.md": "da1468b070934997eaf4be179317f4ec35ef4fbf5251bfb69f4bd286b16f06f4",
+    "PROPOSITION.md": "c919abede0ae85e68e518b35c1c41928d747657efa0b39d820325a2bc3123862",
+    "README.md": "a940e6ab22cfbe44883b4ef4679a57ed800dc5658a5f6d650a06f0de6b96237c",
+    "TECHNIQUE-MAP.md": "9c0250f0510de31bbda07faa23c5e7666e456fc6013b005707ace583eb8f7f7d",
+    "VALIDATION-AND-BUDGETS.md": "6604ccfbac12ce2f03f6466afc1a89fd4779c71ca598357fa845f2f00a469cf9",
+    "WORKSPACE-CLEANUP.md": "a72f1365a7cf0326552587542883fde101a3eeb9a549540f726a0b627b239bc8",
+    "cleanup-receipt.json": "70316584accefa5c4deff58c6764de781c0940e492861714cb9f8f209895e508",
+    "docs/DECISIONS.md": "642cb0b4f1bef62126f241f878618271226a5a1956fe424904bad500f27b74f5",
+    "docs/LESSONS-AND-ROI.md": "e8ae8fdb35f733bb0c476ff714317b153dcb22ad4834a4b974a6c662079a5fe7",
+    "docs/NOW.md": "472e6f98828a84459d744c4d6d205c1c65c490dd983d1660f77d4f075acd9939",
+    "docs/WORKFLOW.md": "47f973ffe6ef3cdad9dba3d4da98ea6108d304d98f9d865b5f745534e2546a71",
+    "docs/reference/README.md": "dd728884ee258fa6b6e38860de90827c584f8d75d6f7636c8af9d0dc9ed51c0a",
+    "docs/reference/audit-corrections.txt": "ec1a0412db786cd69857533d13e531ba37a7631c7df4c8858312742862679554",
+    "docs/reference/manifest.json": "d4f6ae9f7649ba01a7956d9ede6bcaa50404fa0f1455d03ee1464c1eebbf9a34",
+    "docs/reference/old-adr-0002-water.txt": "cb4dcc9051823db53d0e7111fedc9cdb875cb3fa64ecb211dafcb7ebafb4cc37",
+    "docs/reference/old-adr-0005-temporal.txt": "263569b653a2435df6f9cde54d29eb31f15950becba2d3bc889a1fbe6de6b320",
+    "docs/reference/old-adr-0008-rr-guides.txt": "1fabfdcdf3ad50d7d3c1d6fc0fefb85126776dfb928ca6b9869ef4200a3f5f6c",
+    "docs/reference/old-adr-0010-compilation.txt": "3f126f94f6aaf84e497c35405afcff9cc0aab2a1c11a4568b802486dfe9fa9a1",
+    "docs/reference/old-adr-0011-ao.txt": "b28964650fd308ac617380743b887efd5bbea5a7783a90b2e7301bde672cac18",
+    "docs/reference/old-adr-0012-foam.txt": "013c277f83c33751d90062ba4259df8cc1963b0322d509491fd5cc1a5a0a7d2d",
+    "docs/reference/old-dlss-open-questions.txt": "6bdf6ac3c4eeeb25b1c86032a550fda3e7aecf71a0000f3e8e485e32a24348c2",
+    "docs/reference/old-lessons.txt": "b50634de8f2b7d88fbdd62f709656f732337ec279ce7ca71ab91ffa90db61f88",
+    "docs/reference/old-testing.txt": "752ada635d25945b3bdc146c4258138fcd9eb9ae7f8cede06a4d34236d904664",
+    "docs/reference/shader-organization-review.txt": "3ecfa498018f66067f41a08e5710ea7ed07a0c3c4646d26b6b3588126bf02764",
+    "docs/restoration-baseline.json": "1b1439416e0cd480999d09fb8fd43c97aeadd428ba9dcbbf16ec8373a10a6934",
+    "docs/templates/ADR.md": "76cb9cf54214a96577b01083db7957ce9be9e7cf10c549f4a830b97ed12b3711",
+    "docs/templates/CHANGE.md": "031f5a226168eb81c9689afccf0cefda21f425d618996fd775b8f486e02b648b",
+    "docs/templates/HANDOFF.md": "4f7d91a886908882b777ab462812728bc02d283e5c832ac8d44c745978fbde47",
+    "preservation-baseline.json": "84446176e493ee7ee879519cf26d27243943494296773657fbd6bcfbb3a7e600",
+    "verification.json": "5bc78a0926cdb6f1664d34ef45e714b4e1fcf33b0ece714f1aae35803f73e573"
+  }
+}

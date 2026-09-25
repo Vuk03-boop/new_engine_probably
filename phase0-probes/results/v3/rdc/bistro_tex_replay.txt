@@ -1,0 +1,18 @@
+open_file_ok=True
+local_replay_support=ReplaySupport.Supported
+open_capture_ok=True
+action => vkQueueSubmit(1)[0]: vkBeginCommandBuffer(ResourceId::4658) flags=ActionFlags.CommandBufferBoundary|BeginPass|PassBoundary
+action vkCmdTraceRaysKHR() flags=ActionFlags.DispatchRay
+action vkCmdTraceRaysKHR() flags=ActionFlags.DispatchRay
+action vkCmdTraceRaysKHR() flags=ActionFlags.DispatchRay
+action vkCmdTraceRaysKHR() flags=ActionFlags.DispatchRay
+action vkCmdTraceRaysKHR() flags=ActionFlags.DispatchRay
+action vkCmdTraceRaysKHR() flags=ActionFlags.DispatchRay
+action vkCmdCopyImageToBuffer() flags=ActionFlags.Copy
+action => vkQueueSubmit(1)[0]: vkEndCommandBuffer(ResourceId::4658) flags=ActionFlags.CommandBufferBoundary|EndPass|PassBoundary
+action End of Capture flags=ActionFlags.Present
+chunks=2136
+chunk_count vkCreateAccelerationStructureKHR=2
+chunk_count vkCmdBuildAccelerationStructuresKHR=0
+chunk_count vkCreateRayTracingPipelinesKHR=1
+chunk_count vkCmdTraceRaysKHR=6

@@ -1,0 +1,10 @@
+[package]
+name = "light"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+# Phase 3A (ADR-0005): light units, the sun path, the physical atmosphere and the CPU reference path
+# tracer. Pure CPU, no external dependencies.
+[dependencies]
+world = { path = "../world" }

@@ -1,0 +1,3 @@
+[validation] vkDestroyDevice(): VkDevice 0x2e0a58100d0 has 1 leaked objects that have not been destroyed.
+VkPipeline 0x310000000031
+The Vulkan spec states: All child objects created on device that can be destroyed or freed must have been destroyed or freed prior to destroying device (https://docs.vulkan.org/spec/latest/chapters/devsandqueues.html#VUID-vkDestroyDevice-device-05137)

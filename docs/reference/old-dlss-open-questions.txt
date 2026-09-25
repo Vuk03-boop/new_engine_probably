@@ -1,0 +1,164 @@
+# DLSS — what is still open
+
+The unresolved half of the DLSS work. Everything settled lives in `dlss.md`,
+ADR 0008 and `lessons.md`; nothing is duplicated here. This file replaces the
+two per-session handoffs (`handoff-dlss-rr.md`, `handoff-session-2026-09-19.md`)
+that were merged into it on 2026-09-20 — `git log` has them if the narrative is
+ever wanted.
+
+Baseline for any comparison: `--dlss quality`, no Ray Reconstruction. That is
+the configuration that works, and since 2026-09-20 it is also reachable from
+Display -> DLSS rather than only from the flag.
+
+## Open, in the order they matter
+
+1. **Ray Reconstruction costs 4.6x what Super Resolution does, and its benefit
+   has still never been demonstrated.** The cost half of this is settled — see
+   the measured section below, and note that the bar is now "worth halving the
+   frame rate", not "worth looking at". The benefit half is untouched: the only
+   thing that could justify RR here is reflection stability under camera motion,
+   and that has never been judged in motion. The four-arm A/B: `--dlss quality`
+   flatten on (baseline), `--dlss-rr quality` flatten on, `--dlss-rr quality`
+   flatten off (the intended configuration), native flatten off (detail
+   reference). Judged while panning, with waves moving, and across a resize.
+
+2. **The jitter sign is untested for both upscalers.**
+   `--dlss-jitter-flip none|x|y|both` (default `both`) settles it; it reaches
+   the RR path only since `f9943bf`. Every result taken before `217c47d` is void
+   because the history reset every frame. The guide tries an **axis swap before
+   any negation** (§8.4.1.6b then c) — a swap the flag cannot express, though
+   the SDK's own hotkeys can (§3.18.1.1). This is the prime suspect for residual
+   softness and is independent of RR.
+
+3. **`WaterCtx.roughness` as the guide's linear roughness is unverified.** It
+   was built as a sub-pixel wave-variance term, not a material property, and
+   measures 0.0 across the near field peaking at 0.036 — so RR is told the water
+   is a near-mirror. The water does read as near-mirror natively, so that may be
+   honest. Do not "fix" it without judging the image.
+
+4. **`select_rr` costs a real hazard, and reverting it is the wrong lever.** It
+   keeps `rr_debug_color` out of every non-RR build, at the price of shader files
+   that are not valid WGSL on disk -- which already cost one test, fixed on
+   2026-09-20. It was written to fix the crash in item 5 and did not.
+
+   This item used to read "measure the cost it avoids, or revert it". **Reverting
+   is inverted** and that wording should not be acted on: `select_rr` *strips*
+   the `//#rr-on` regions when `dlss-rr-prep` is off, so the shipping build
+   carries no RR call sites at all today. Removing it means always emitting the
+   `-on` text, which needs no-op `rr_debug_color` and `rr_spec_albedo` on top of
+   the `rr_store` the stub already has -- pushing RR code *into* the shipping
+   shader. Now that RR is measured at 4.6x Super Resolution's cost, that is
+   exactly backwards.
+
+   Nor is the cost measurable the easy way. A constant-returning stub folds away
+   under constant propagation, so benching against one measures nothing; the
+   argument in `shader_source`'s comment is specifically about call sites that
+   branch on a uniform and therefore cannot fold.
+
+   The genuine choice is binary. **Keep RR** and `select_rr` stays with its
+   hazard, or **cull the RR G-buffer wholesale** -- the `dlss-rr` and
+   `dlss-rr-prep` features, `dlss_rr.wgsl`, `dlss_rr_stub.wgsl`, all 18 marker
+   regions, `DlssRr`, `DlssRrPrep`, `select_rr` -- at which point both arms
+   collapse to one, the files become valid WGSL again and the hazard is gone by
+   deletion rather than by reversal. That is a larger removal than the one spec'd
+   in `glmPrune/CULL-TEMPORAL.md`.
+
+   **Gate it on item 1.** RR's cost is settled; its benefit has never been
+   judged. Deleting the implementation before anyone looks at what it does to
+   reflection stability destroys the ability to answer that question at all.
+
+5. **An intermittent pipeline-creation failure.** `--dlss` or `--dlss-rr` dies
+   at pipeline creation with exit `0xcfffffff`, no Rust panic, no wgpu error;
+   or the window stalls at "PREPARING WORLD / COMPILING PIPELINES" until Windows
+   marks it unresponsive. **Reboot before investigating, and re-run the control
+   after every failure** — a whole session was spent bisecting this as code when
+   it was machine state, and it reproduced on `23b148d` too (`lessons.md`). Note
+   the window is created before GPU init, so it cannot pump messages during the
+   ~3.7 s of DLSS startup (device creation alone is 2.7 s against 0.3 s
+   without), which may be all of the stall.
+   `VOXELCRAFT_TRACE_FRAME=1` names the last marker reached.
+
+6. **Jittered vs unjittered matrices for the specular guide.** The guide does
+   not say. Currently unjittered, matching `prev_view_proj` and the motion
+   vectors. Verify by A/B.
+
+## Already measured — do not re-measure
+
+- **The evaluate costs 2.66 ms for Super Resolution and 12.16 ms for Ray
+  Reconstruction.** Measured 2026-09-20 on an RTX 3050 Laptop at Quality,
+  windowed, through `timer::q::DLSS`. Whole-frame GPU and frame rate for the
+  three configurations:
+
+  | configuration | evaluate | other passes | GPU total | fps |
+  | --- | --- | --- | --- | --- |
+  | `--dlss quality` | 2.66 | 5.58 | 8.24 | 120 |
+  | native, `--no-dlss` | — | 10.45 | 10.45 | 89 |
+  | `--dlss-rr quality` | 12.16 | 5.40 | 17.56 | 61 |
+
+  **Super Resolution is a clear net win.** It charges 2.66 ms and saves more
+  than that by marching and resolving at Quality's internal resolution — resolve
+  falls to 3.72 against native's 6.96 — so 89 fps becomes 120.
+
+  **Ray Reconstruction is not, and not marginally.** Its render side is the
+  cheaper of the two: RR takes over denoising, so shadow ray and filter fall to
+  0.11/0.15 against Super Resolution's 0.58/0.64 and native's 0.90/1.29. The
+  evaluate then swamps that saving several times over. RR is the slowest of the
+  three configurations, slower than running no upscaler at all.
+
+  **And the HUD was hiding all of it.** Before `timer::q::DLSS` the GPU row read
+  5.46 ms inside an 8.13 ms frame; the ~2.7 ms nobody could account for was the
+  evaluate. With the bracket in place the residual is 0.11 ms.
+
+  Caveat on rigour: the three runs are different vantages (189, 196 and 192
+  chunks drawn), not the same-vantage, world-settled pair this file asks for.
+  The evaluate is a fixed-resolution neural pass and a 4.6x gap is far outside
+  what a vantage change moves, so the ranking is safe — treat each figure as
+  good to about a tenth of a millisecond, not better. The native arm also
+  confirms the instrument is inert without an upscaler: no `dlss` field appears
+  and `total_ms` is unchanged.
+
+- **`suggested_mip_bias`'s extra `-1.0` is not the native path's problem, and
+  must not be ported to it.** This was open item 8, closed 2026-09-20 on an
+  RTX 3050 Laptop. Headless, same vantage both arms (`--no-dlss --scale 0.7
+  --time noon`, 1600x900 traced at 1120x630, 157 chunks drawn): adding
+  `--mip-bias -1` moves 1,021,196 of 1,440,000 pixels, MAE 1.66, max channel
+  delta 134. So the bias does reach the native path and the shift is real and
+  widespread — low amplitude everywhere, large at edges, the signature of a mip
+  change. It is still the wrong fix. Judged in motion, the sharpened run crawls
+  **and so does the unbiased control**: the native/TAA path is unstable at
+  `--scale 0.7` either way. The defect is reconstruction, not mip selection.
+  The `-1.0` is correct for DLSS, whose accumulation can hold that detail
+  still, and wrong for TAA, which cannot. Corollary worth stating plainly:
+  `--scale 0.7` on the native path is not a usable configuration, and carrying
+  low internal resolution is what DLSS is here for.
+
+- **The 65% water flatten is sub-perceptual.** `ctx.roughness * 0.65` with
+  roughness under 0.04; A/B across six vantages tops out at 10/255 max channel
+  delta. It is not discarding reflection detail. Full numbers in ADR 0008.
+- **Half-res water secondary legs are not the reflection problem.** Half against
+  full differs by at most 4/255 at the reflection vantage, 15/255 for a low
+  camera over shallows. Full-res legs cost a stable +0.15 ms GPU (~2%). They
+  matter for near-field refraction, not reflections.
+- **The test suite is not memory-hungry.** A full `cargo test` peaks at 1.42 GB
+  working set across at most three processes. Cargo runs test binaries one at a
+  time; `RAYON_NUM_THREADS`, not `--test-threads`, is the lever that matters.
+
+## Tooling notes that keep catching people
+
+- **`python3` is not on PATH** — it hits the Windows App Execution Alias and
+  fails with "Python was not found". Use `py`. `AGENTS.md` and `testing.md`
+  both still write `python3` in the command tables.
+- **The nine `validation/check_*.py` scripts cannot run here**: no `wgpu` Python
+  module. `upload_report.py` is different — standard library only, shells out to
+  the release binary — so the bit-exact sweep *is* runnable.
+- **Both DLSS flags are refused in every headless mode** by design, so there is
+  no headless DLSS screenshot or bench. Resolution is confirmed from the startup
+  line and image quality from the in-game HUD.
+- **Killing the game before it flushes loses stdout.** Give it time or the
+  startup line comes back empty.
+- **`pdftotext -layout` reads the SDK PDFs** in `../DLSS/doc/`. Consistently
+  faster than inferring a convention from crate source.
+- **The reflection vantage.** The vantage catalogue's `open-sea` is 60 blocks
+  above open water with nothing to reflect, which makes it a poor reflection
+  test. This one has an island mirrored in calm water plus distant peaks:
+  `--cam-submerge -35 --cam-pitch -16 --cam-yaw 225`.

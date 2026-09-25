@@ -1,0 +1,19 @@
+[package]
+name = "viewer"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+# The first window (2C-2): walking (M1) and free-fly cameras over the street block, the G-buffer debug views,
+# 2 frames in flight, per-pass GPU timing. Not a default workspace member (needs a GPU and a display).
+# winit and ash-window are the A-006 versions proven in Phase 0.
+[dependencies]
+ash = "=0.38.0"
+ash-window = "=0.13.0"
+winit = "=0.30.13"
+memory = { path = "../memory" }
+world = { path = "../world" }
+derived = { path = "../derived" }
+gpu = { path = "../gpu" }
+walk = { path = "../walk" }
+light = { path = "../light" }

@@ -1,0 +1,145 @@
+    Finished `release` profile [optimized] target(s) in 0.02s
+     Running tests\raster.rs (target\release\deps\raster-97d2044beb76a2cd.exe)
+
+running 3 tests
+test planted_faults_are_caught ... reference street_view: 640x360, 5 rays/px, 173137 hits, 2.59 s on 2 threads
+control baseline: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.6232
+control reversed_winding: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 172048 material 25351 normal 142318 face 142318 depth 142318 extra 0 bad_id 0 | max depth err/tol 4363.2678
+    (336,0): crack, reference VoxelCoord { x: 178, y: 157, z: 176 } Face { axis: 2, positive: false } t 206.5048, gpu Some(206.8593690428142)
+    (336,0): normal [0, 32767], reference [32767, 32767]
+    (336,0): resolved VoxelCoord { x: 178, y: 157, z: 176 } Face { axis: 1, positive: true }, reference VoxelCoord { x: 178, y: 157, z: 176 } Face { axis: 2, positive: false }
+control offset_off_by_one: pixels 230400 ref_hits 173137 gpu_hits 173206 checked 142313 near_edge 30848 (17.82% of hits) | crack 4052 material 3056 normal 1762 face 4613 depth 4896 extra 53 bad_id 0 | max depth err/tol 1310.9984
+    (399,0): crack, reference VoxelCoord { x: 128, y: 132, z: 176 } Face { axis: 2, positive: false } t 167.1138, gpu Some(167.74372219709628)
+    (399,0): normal [-32767, 0], reference [32767, 32767]
+    (399,0): resolved VoxelCoord { x: 128, y: 133, z: 176 } Face { axis: 0, positive: false }, reference VoxelCoord { x: 128, y: 132, z: 176 } Face { axis: 2, positive: false }
+control material_from_wrong_primitive: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 25933 normal 115119 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.6232
+    (336,0): normal [0, 0], reference [32767, 32767]
+    (337,0): normal [0, 0], reference [32767, 32767]
+    (338,0): normal [0, 0], reference [32767, 32767]
+dropped region 50 covered 8866 px
+control dropped_region: pixels 230400 ref_hits 173137 gpu_hits 164271 checked 134186 near_edge 30848 (17.82% of hits) | crack 8866 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.6232
+    (326,300): crack, reference VoxelCoord { x: 95, y: -1, z: 95 } Face { axis: 1, positive: true } t 82.8403, gpu None
+    (327,300): crack, reference VoxelCoord { x: 95, y: -1, z: 95 } Face { axis: 1, positive: true } t 82.8403, gpu None
+    (328,300): crack, reference VoxelCoord { x: 95, y: -1, z: 95 } Face { axis: 1, positive: true } t 82.8403, gpu None
+ok
+test raster_matches_the_voxel_reference_for_every_setting ... reference street_view: 640x360, 5 rays/px, 173137 hits, 5.02 s on 2 threads
+reference chunk_corner: 640x360, 5 rays/px, 180972 hits, 3.76 s on 2 threads
+reference overhead: 640x360, 5 rays/px, 102337 hits, 1.93 s on 2 threads
+reference grazing: 640x360, 5 rays/px, 147065 hits, 2.87 s on 2 threads
+device NVIDIA GeForce RTX 3050 Laptop GPU; targets 640x360: 4423680 B driver-required
+camera street_view merge none region brick: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5089
+camera chunk_corner merge none region brick: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5160
+camera overhead merge none region brick: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.4080
+camera grazing merge none region brick: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 268 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.8774
+    (250,180): crack, reference VoxelCoord { x: 345, y: 2, z: -47 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.38755260003865)
+    (251,180): crack, reference VoxelCoord { x: 345, y: 2, z: -46 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4158147834494)
+    (252,180): crack, reference VoxelCoord { x: 345, y: 2, z: -45 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.44401460608293)
+    (253,180): crack, reference VoxelCoord { x: 345, y: 2, z: -44 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4134007476437)
+    (259,180): crack, reference VoxelCoord { x: 345, y: 2, z: -37 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.39328511791587)
+    (260,180): crack, reference VoxelCoord { x: 345, y: 2, z: -36 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4214811968354)
+    (268,180): crack, reference VoxelCoord { x: 344, y: 2, z: -27 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.39928603122263)
+    (269,180): crack, reference VoxelCoord { x: 344, y: 2, z: -26 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4275501689297)
+camera street_view merge none region 2x2x2_bricks: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5089
+camera chunk_corner merge none region 2x2x2_bricks: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5160
+camera overhead merge none region 2x2x2_bricks: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.4080
+camera grazing merge none region 2x2x2_bricks: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 268 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.8774
+    (250,180): crack, reference VoxelCoord { x: 345, y: 2, z: -47 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.38755260003865)
+    (251,180): crack, reference VoxelCoord { x: 345, y: 2, z: -46 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4158147834494)
+    (252,180): crack, reference VoxelCoord { x: 345, y: 2, z: -45 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.44401460608293)
+    (253,180): crack, reference VoxelCoord { x: 345, y: 2, z: -44 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4134007476437)
+    (259,180): crack, reference VoxelCoord { x: 345, y: 2, z: -37 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.39328511791587)
+    (260,180): crack, reference VoxelCoord { x: 345, y: 2, z: -36 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4214811968354)
+    (268,180): crack, reference VoxelCoord { x: 344, y: 2, z: -27 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.39928603122263)
+    (269,180): crack, reference VoxelCoord { x: 344, y: 2, z: -26 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4275501689297)
+camera street_view merge none region chunk: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5089
+camera chunk_corner merge none region chunk: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5160
+camera overhead merge none region chunk: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.4080
+camera grazing merge none region chunk: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 268 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.8774
+    (250,180): crack, reference VoxelCoord { x: 345, y: 2, z: -47 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.38755260003865)
+    (251,180): crack, reference VoxelCoord { x: 345, y: 2, z: -46 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4158147834494)
+    (252,180): crack, reference VoxelCoord { x: 345, y: 2, z: -45 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.44401460608293)
+    (253,180): crack, reference VoxelCoord { x: 345, y: 2, z: -44 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4134007476437)
+    (259,180): crack, reference VoxelCoord { x: 345, y: 2, z: -37 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.39328511791587)
+    (260,180): crack, reference VoxelCoord { x: 345, y: 2, z: -36 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4214811968354)
+    (268,180): crack, reference VoxelCoord { x: 344, y: 2, z: -27 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.39928603122263)
+    (269,180): crack, reference VoxelCoord { x: 344, y: 2, z: -26 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4275501689297)
+camera street_view merge none region 2x2x2_chunks: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5089
+camera chunk_corner merge none region 2x2x2_chunks: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5160
+camera overhead merge none region 2x2x2_chunks: pixels 230400 ref_hits 102337 gpu_hits 102334 checked 75032 near_edge 27371 (26.75% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.4080
+camera grazing merge none region 2x2x2_chunks: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 268 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.8774
+    (250,180): crack, reference VoxelCoord { x: 345, y: 2, z: -47 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.38755260003865)
+    (251,180): crack, reference VoxelCoord { x: 345, y: 2, z: -46 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4158147834494)
+    (252,180): crack, reference VoxelCoord { x: 345, y: 2, z: -45 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.44401460608293)
+    (253,180): crack, reference VoxelCoord { x: 345, y: 2, z: -44 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4134007476437)
+    (259,180): crack, reference VoxelCoord { x: 345, y: 2, z: -37 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.39328511791587)
+    (260,180): crack, reference VoxelCoord { x: 345, y: 2, z: -36 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4214811968354)
+    (268,180): crack, reference VoxelCoord { x: 344, y: 2, z: -27 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.39928603122263)
+    (269,180): crack, reference VoxelCoord { x: 344, y: 2, z: -26 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4275501689297)
+camera street_view merge greedy region brick: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.6232
+camera chunk_corner merge greedy region brick: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5861
+camera overhead merge greedy region brick: pixels 230400 ref_hits 102337 gpu_hits 102335 checked 75032 near_edge 27371 (26.75% of hits) | crack 1 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.3749
+    (331,279): crack, reference VoxelCoord { x: 83, y: -1, z: 64 } Face { axis: 1, positive: true } t 351.8246, gpu None
+camera grazing merge greedy region brick: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 258 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.9546
+    (276,180): crack, reference VoxelCoord { x: 344, y: 2, z: -19 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.3842673846865)
+    (277,180): crack, reference VoxelCoord { x: 344, y: 2, z: -18 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4126296045536)
+    (278,180): crack, reference VoxelCoord { x: 344, y: 2, z: -17 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.44099656525776)
+    (279,180): crack, reference VoxelCoord { x: 344, y: 2, z: -16 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.43781091372)
+    (280,180): crack, reference VoxelCoord { x: 344, y: 2, z: -14 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4319427647792)
+    (281,180): crack, reference VoxelCoord { x: 344, y: 2, z: -13 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4260412881929)
+    (284,180): crack, reference VoxelCoord { x: 344, y: 2, z: -10 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4083380896302)
+    (285,180): crack, reference VoxelCoord { x: 344, y: 2, z: -9 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4024374338057)
+camera street_view merge greedy region 2x2x2_bricks: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.6232
+camera chunk_corner merge greedy region 2x2x2_bricks: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5861
+camera overhead merge greedy region 2x2x2_bricks: pixels 230400 ref_hits 102337 gpu_hits 102335 checked 75032 near_edge 27371 (26.75% of hits) | crack 1 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.3749
+    (331,279): crack, reference VoxelCoord { x: 83, y: -1, z: 64 } Face { axis: 1, positive: true } t 351.8246, gpu None
+camera grazing merge greedy region 2x2x2_bricks: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 258 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.9546
+    (276,180): crack, reference VoxelCoord { x: 344, y: 2, z: -19 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.3842673846865)
+    (277,180): crack, reference VoxelCoord { x: 344, y: 2, z: -18 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4126296045536)
+    (278,180): crack, reference VoxelCoord { x: 344, y: 2, z: -17 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.44099656525776)
+    (279,180): crack, reference VoxelCoord { x: 344, y: 2, z: -16 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.43781091372)
+    (280,180): crack, reference VoxelCoord { x: 344, y: 2, z: -14 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4319427647792)
+    (281,180): crack, reference VoxelCoord { x: 344, y: 2, z: -13 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4260412881929)
+    (284,180): crack, reference VoxelCoord { x: 344, y: 2, z: -10 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4083380896302)
+    (285,180): crack, reference VoxelCoord { x: 344, y: 2, z: -9 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4024374338057)
+camera street_view merge greedy region chunk: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.6232
+camera chunk_corner merge greedy region chunk: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5861
+camera overhead merge greedy region chunk: pixels 230400 ref_hits 102337 gpu_hits 102335 checked 75032 near_edge 27371 (26.75% of hits) | crack 1 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.3749
+    (331,279): crack, reference VoxelCoord { x: 83, y: -1, z: 64 } Face { axis: 1, positive: true } t 351.8246, gpu None
+camera grazing merge greedy region chunk: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 258 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.9546
+    (276,180): crack, reference VoxelCoord { x: 344, y: 2, z: -19 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.3842673846865)
+    (277,180): crack, reference VoxelCoord { x: 344, y: 2, z: -18 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4126296045536)
+    (278,180): crack, reference VoxelCoord { x: 344, y: 2, z: -17 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.44099656525776)
+    (279,180): crack, reference VoxelCoord { x: 344, y: 2, z: -16 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.43781091372)
+    (280,180): crack, reference VoxelCoord { x: 344, y: 2, z: -14 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4319427647792)
+    (281,180): crack, reference VoxelCoord { x: 344, y: 2, z: -13 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4260412881929)
+    (284,180): crack, reference VoxelCoord { x: 344, y: 2, z: -10 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4083380896302)
+    (285,180): crack, reference VoxelCoord { x: 344, y: 2, z: -9 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4024374338057)
+camera street_view merge greedy region 2x2x2_chunks: pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.6232
+camera chunk_corner merge greedy region 2x2x2_chunks: pixels 230400 ref_hits 180972 gpu_hits 180972 checked 156594 near_edge 24404 (13.48% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.5861
+camera overhead merge greedy region 2x2x2_chunks: pixels 230400 ref_hits 102337 gpu_hits 102335 checked 75032 near_edge 27371 (26.75% of hits) | crack 1 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.3749
+    (331,279): crack, reference VoxelCoord { x: 83, y: -1, z: 64 } Face { axis: 1, positive: true } t 351.8246, gpu None
+camera grazing merge greedy region 2x2x2_chunks: pixels 230400 ref_hits 147065 gpu_hits 147065 checked 123704 near_edge 23417 (15.92% of hits) | crack 258 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | max depth err/tol 0.9546
+    (276,180): crack, reference VoxelCoord { x: 344, y: 2, z: -19 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.3842673846865)
+    (277,180): crack, reference VoxelCoord { x: 344, y: 2, z: -18 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4126296045536)
+    (278,180): crack, reference VoxelCoord { x: 344, y: 2, z: -17 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.44099656525776)
+    (279,180): crack, reference VoxelCoord { x: 344, y: 2, z: -16 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.43781091372)
+    (280,180): crack, reference VoxelCoord { x: 344, y: 2, z: -14 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4319427647792)
+    (281,180): crack, reference VoxelCoord { x: 344, y: 2, z: -13 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4260412881929)
+    (284,180): crack, reference VoxelCoord { x: 344, y: 2, z: -10 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4083380896302)
+    (285,180): crack, reference VoxelCoord { x: 344, y: 2, z: -9 } Face { axis: 1, positive: true } t 339.3454, gpu Some(339.4024374338057)
+
+thread 'raster_matches_the_voxel_reference_for_every_setting' (19352) panicked at gpu\tests\raster.rs:202:5:
+settings that break ADR-0003 Amendment 1: ["grazing/none/brick", "grazing/none/2x2x2_bricks", "grazing/none/chunk", "grazing/none/2x2x2_chunks", "overhead/greedy/brick", "grazing/greedy/brick", "overhead/greedy/2x2x2_bricks", "grazing/greedy/2x2x2_bricks", "overhead/greedy/chunk", "grazing/greedy/chunk", "overhead/greedy/2x2x2_chunks", "grazing/greedy/2x2x2_chunks"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test targets_take_ledger_grants_and_a_refusal_changes_nothing ... 1080p targets: 37324800 B texels (18 B/px), 39813120 B driver-required, ledger GpuTemporal live 39813120 reserved 67108864
+ok
+
+failures:
+
+failures:
+    raster_matches_the_voxel_reference_for_every_setting
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.03s
+
+error: test failed, to rerun pass `-p gpu --test raster`

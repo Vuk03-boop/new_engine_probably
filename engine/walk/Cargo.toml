@@ -1,0 +1,10 @@
+[package]
+name = "walk"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+# M1 walking camera: box collision, gravity and step-up against the authoritative voxel world.
+# Pure CPU, no external dependencies.
+[dependencies]
+world = { path = "../world" }

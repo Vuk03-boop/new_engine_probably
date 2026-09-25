@@ -1,0 +1,55 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 4.39s
+     Running unittests src\lib.rs (target\release\deps\gpu-6012e4063b37d12a.exe)
+
+running 11 tests
+test alloc::tests::first_fit_aligns_splits_and_coalesces ... ok
+test equivalence::tests::axis_normals_encode_to_exact_snorm_bits ... ok
+test equivalence::tests::camera_rays_have_unit_forward_component ... ok
+test equivalence::tests::resolve_picks_the_voxel_behind_the_face ... ok
+test layout::tests::f16_integers_are_exact ... ok
+test layout::tests::image_sections_are_aligned_and_indices_follow_adr_0004 ... ok
+test layout::tests::negative_coordinates_group_into_the_right_region ... ok
+test layout::tests::pack_round_trips_and_fields_do_not_overlap ... ok
+test layout::tests::regions_preserve_every_quad_in_world_position ... ok
+test reflect::tests::parses_nested_values_and_rejects_garbage ... ok
+test timeline::tests::retirement_releases_in_order_only_after_completion ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests\device.rs (target\release\deps\device-7981311e0dc98936.exe)
+
+running 9 tests
+test a_refused_grant_changes_nothing_and_old_meshes_stay_valid ... ok
+test device_budget_follows_adr_0003 ... device "NVIDIA GeForce RTX 3050 Laptop GPU", driver device-local budget Some(3531289396) B, engine budget 3150000000 B
+ok
+test formats_assumed_by_adr_0003_and_0004_are_supported ... depth D32_SFLOAT: attachment true storage image true
+normal R16G16_SNORM: attachment true storage image true
+material R16_UINT: attachment true storage image true
+surface id R32G32_UINT: attachment true storage image true
+vertex R16G16B16A16_SFLOAT: vertex buffer true acceleration-structure vertex true
+ok
+test frame_readers_keep_1c_snapshots_alive_until_the_gpu_is_done ... ok
+test gpu_decode_agrees_with_the_host_layout ... merge none region brick: 520540 quads decoded on the GPU, all equal
+merge none region 2x2x2_chunks: 520540 quads decoded on the GPU, all equal
+merge greedy region brick: 10503 quads decoded on the GPU, all equal
+merge greedy region 2x2x2_chunks: 10503 quads decoded on the GPU, all equal
+ok
+test mesh_uploads_read_back_bit_exact_for_every_setting ... merge none region brick: 5103 regions, 520540 quads, 33315040 B images, ledger GpuMesh live 33325312 reserved 67108864, blocks 2
+merge none region 2x2x2_bricks: 1176 regions, 520540 quads, 33314944 B images, ledger GpuMesh live 33323520 reserved 67108864, blocks 2
+merge none region chunk: 291 regions, 520540 quads, 33314880 B images, ledger GpuMesh live 33319936 reserved 67108864, blocks 2
+merge none region 2x2x2_chunks: 67 regions, 520540 quads, 33314624 B images, ledger GpuMesh live 33316096 reserved 67108864, blocks 2
+merge greedy region brick: 5103 regions, 10503 quads, 715056 B images, ledger GpuMesh live 1392384 reserved 67108864, blocks 2
+merge greedy region 2x2x2_bricks: 1176 regions, 10503 quads, 673168 B images, ledger GpuMesh live 717056 reserved 67108864, blocks 2
+merge greedy region chunk: 291 regions, 10503 quads, 672624 B images, ledger GpuMesh live 680192 reserved 67108864, blocks 2
+merge greedy region 2x2x2_chunks: 67 regions, 10503 quads, 672400 B images, ledger GpuMesh live 675072 reserved 67108864, blocks 2
+ok
+test negative_control_early_free_is_caught ... [validation error] vkDestroyBuffer(): can't be called on VkBuffer 0x70000000007 that is currently in use by VkCommandBuffer 0x2070078e0d0
+The Vulkan spec states: All submitted commands that refer to buffer, either directly or via a VkBufferView, must have completed execution (https://docs.vulkan.org/spec/latest/chapters/resources.html#VUID-vkDestroyBuffer-buffer-00922)
+planted early free: corruption detected; validation reported 1 error(s)
+ok
+test negative_controls_layout_mismatches_are_reported ... ok
+test retirement_waits_for_the_gpu ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.86s
+

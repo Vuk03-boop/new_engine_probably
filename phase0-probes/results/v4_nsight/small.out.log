@@ -1,0 +1,56 @@
+Launching process...
+Preparing to launch the GPU Trace Profiler activity on localhost...
+Launched process: rt_probe.exe (pid: 12876)
+C:/Users/Vuk Trifunovic/Documents/new-engine-starter/new-engine-proposal/phase0-probes/rust/target/release/rt_probe.exe shaders/out/slang results/v4_nsight/small.ppm
+
+Attempting to automatically connect...
+Searching for attachable processes on localhost:49152-49215...
+Attachable process detected: rt_probe.exe (pid: 12876)
+- Status: Presenting
+- Uptime: 0.83s
+Connecting to rt_probe.exe (pid: 12876)...
+Session established. Starting activity...
+Waiting for target ready...
+INFO: Sample duration = 2000ns; Warp State Sampling Interval = 16; GPU PMA Buffer Size (MB) = 4294.9; SOC PMA Buffer Size (MB) = 0 
+Waiting for generated GPU Trace report...
+ with a max duration of 5000ms...
+-- Data transfer progress (0)
+-- Data transfer progress (10)
+-- Data transfer progress (10)
+-- Data transfer progress (20)
+-- Data transfer progress (20)
+-- Data transfer progress (30)
+-- Data transfer progress (30)
+-- Data transfer progress (40)
+-- Data transfer progress (50)
+-- Data transfer progress (60)
+-- Data transfer progress (70)
+-- Data transfer progress (80)
+-- Data transfer progress (90)
+-- Data transfer progress (100)
+GPU Trace report saved to C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\results\v4_nsight\small\rt_probe_2026_09_23_00_17_19.ngfx-gputrace
+Opening generated GPU Trace report...
+-- Loading progress (100)
+-- Loading progress (100)
+-- Loading progress (100)
+-- Loading progress (100)
+-- Loading progress (10)
+-- Loading progress (20)
+-- Loading progress (30)
+-- Loading progress (40)
+-- Loading progress (50)
+-- Loading progress (60)
+-- Loading progress (70)
+-- Loading progress (80)
+-- Loading progress (90)
+-- Loading progress (100)
+{"probe":"rust","textured":false,"opaque_tris":26,"alpha_tris":0,"textures_uploaded":0,"texture_payload_mib":0.0,"texture_alloc_mib":0.0,"host_texture_ms":0.0,"scene":"small","camera":"","sun":"default","sun_dir":[0.4319,0.8639,0.2592],"fbx_lights":0,"device":"NVIDIA GeForce RTX 3050 Laptop GPU","driver_api":"1.4.351","shader_dir":"shaders/out/slang","width":1280,"height":720,"triangles":26,"vertices":52,"fbx_meshes":0,"fbx_nodes":0,"fbx_cameras":0,"fbx_textures":0,"validation":false,"validation_errors":0,"validation_warnings":0,"geometry_mib":0.00,"blas_mib":0.00,"blas_compacted_mib":0.00,"blas_scratch_mib":0.00,"tlas_bytes":2048,"vram_before_mib":10.7,"vram_resident_mib":30.3,"vram_budget_mib":3367.7,"host_scene_ms":0.0,"host_startup_to_device_ms":786.7,"host_upload_ms":2592.2,"host_as_total_ms":2599.1,"host_pipeline_create_ms":209.362,"host_total_ms":3606.3,"gpu_as_build_ms":0.148,"gpu_trace_cold_ms":0.672,"gpu_trace_warm_median_ms":0.669,"gpu_trace_warm_min_ms":0.668,"gpu_trace_warm_max_ms":0.669}
+Succeeded to export data:
+    C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\results\v4_nsight\small\ReportGeneratorTags.txt
+    C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\results\v4_nsight\small\BASE\REPRO_INFO.xls
+    C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\results\v4_nsight\small\BASE\D3DPERF_EVENTS.xls
+    C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\results\v4_nsight\small\BASE\FRAME.xls
+    C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\results\v4_nsight\small\BASE\GPUTRACE_FRAME.xls
+    C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\results\v4_nsight\small\BASE\GPUTRACE_REGIMES.xls
+Terminating process...
+Activity session destroyed, connection error encountered.

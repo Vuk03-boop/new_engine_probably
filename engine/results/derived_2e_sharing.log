@@ -1,0 +1,36 @@
+   Compiling derived v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\derived)
+    Finished `release` profile [optimized] target(s) in 1.95s
+     Running tests\memory_account.rs (target\release\deps\memory_account-02095f92d2043487.exe)
+
+running 1 test
+jobs in flight 0: live 761488 <= measured 1089704 <= reserved 1596040 (0.683 of reserved)
+one snapshot 0: live 1530380 <= measured 3031376 <= reserved 5036448 (0.602 of reserved)
+two snapshots 0: live 1661016 <= measured 3276512 <= reserved 5444992 (0.602 of reserved)
+after release 0: live 1609732 <= measured 3184896 <= reserved 5280144 (0.603 of reserved)
+publish transient peak above the pre-publish heap: 2481896 bytes; snapshot tables: one Usage { live: 1283060, reserved: 4595776 }, two Usage { live: 1398016, reserved: 4993632 }
+test reported_pipeline_memory_brackets_measured_heap ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
+     Running tests\scenarios.rs (target\release\deps\scenarios-1c7ecfe78de33878.exe)
+
+running 15 tests
+test negative_control_retiring_without_readers_is_caught ... ok
+test initial_population_matches_oracle ... ok
+test edit_batches_sharing_a_key_merge_into_one_publication ... ok
+test boundary_edit_rederives_the_neighbour_and_removes_empty_bricks ... ok
+test negative_control_missing_neighbour_dirty_is_caught ... ok
+test neighbour_interior_change_is_accepted_by_content ... ok
+test redirtied_target_cancels_the_in_flight_job ... ok
+test duplicate_completion_is_rejected ... ok
+test retirement_waits_for_readers_and_reused_slots_reject_old_handles ... ok
+test unnotified_face_change_is_rejected_as_stale ... ok
+test publication_holds_the_prior_snapshot_until_the_whole_set_is_ready ... ok
+test staged_result_is_revalidated_at_publication_after_an_unnotified_change ... ok
+test sustained_edits_defer_publication_and_recover ... ok
+test overload_is_bounded_lossless_and_deterministic ... ok
+1-voxel edit: 292 shards, 291 shared with the previous snapshot, 1 chunks touched
+test publication_shares_unchanged_shards_and_keeps_old_snapshots_intact ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+

@@ -1,0 +1,123 @@
+# 0005. Temporal reuse passes (batch 103)
+
+Date: 2026-09-18 (reconstruction batch)
+Status: Accepted (flag-gated, all six default OFF); SSR legs RETIRED 2026-09-19 after first on-hardware measurements — see "Measured outcome"
+
+## Context
+
+The measured 1080p frame spends its GPU budget in four places: the shadow ray
+family, the secondary `trace_world` legs behind glass and water, the Hi-Z
+defer/recover machinery, and two per-pixel simplex evaluations for biome tint
+in `resolve.wgsl`. All four recompute, every frame, quantities that barely
+change between frames on static terrain.
+
+## Decision
+
+Six independent, flag-gated reuse passes. Every one defaults OFF so every
+existing capture, pin, and bit-exact arm is untouched; each states its own
+contract in `--help`.
+
+1. `--hiz-temporal` — a `hiz_temporal` compute entry (march.wgsl) dispatched
+   inside the existing "hi-z" pass, after `build_hiz`, before
+   `finalize_deferred`: `hiz[i] = min(hiz[i], hiz_prev[i]); hiz_prev[i] = cur`.
+   The min keeps the blend strictly conservative (a smaller `tile_far` can only
+   *reduce* deferrals; anything wrongly deferred still leaves a hole that the
+   recover pass re-marches against fresh data). `hiz_prev` is group-0 binding
+   22. History self-heals: zeroed entries defeat the defer test.
+2. `--shadow-temporal` — `shadow_reproject` (shadow.wgsl) reprojects each
+   guide's hit through `frame.prev_view_proj` (already uploaded for TAA), reads
+   the previous frame's (blocker distance, guide depth) from a ping-pong pair
+   of Rg16F textures inside `shadow::Targets`, validates with a relative depth
+   window, and `primary_shadow` reuses validated entries in place of
+   `shadow_ray_t`. The CPU gates the dispatch on sun stability
+   (`dot(prev_sun, sun) > 0.999`); on a sun jump or after
+   `invalidate_shadow_history()` (world edits, settings changes) both history
+   textures are cleared and one full frame re-traces. Blockers are cached per
+   *receiver*; a receiver whose depth matches is assumed unchanged.
+3. `--tint-bake` — `bake_tint` (resolve.wgsl) renders the same `biome_noise`
+   evaluations into a 256×256 LUT (8-block cells, 2048-block extent, packed
+   u16 temp/humid, group-0 binding 23) anchored at `frame.tint_bake_origin`;
+   `biome_tint` samples it bilinearly and feeds the unchanged
+   `biome_palette`. Rebaked when the camera travels 256 blocks. Quantization:
+   ±1/65535 on the noise value — far below the BIOME_BLEND band.
+4. `--probe-nearest` — `probe_field` takes one `textureLoad` at the nearest
+   probe cell instead of a hardware trilinear gather. A deliberate quality
+   knob, not a bit-exact control.
+5. `--glass-ssr` / `--water-ssr` — `ssr_world` (common.wgsl) marches the leg
+   ray in screen space against the per-pixel visibility keys (coarse 48-step
+   sweep, 16-step fine re-march of the crossing interval, plane projection for
+   the exact leg distance, front-face-only latching). On ANY miss — including
+   leaving the frustum — the leg falls back to the original `trace_world`
+   call, which stays textually in place at all five historic sites. Glass
+   transmit legs are deliberately NOT converted: the visibility buffer only
+   holds the pane itself for pixels behind glass, so SSR cannot see the room.
+
+## Consequences
+
+- The five `trace_world(` call sites and `primary_shadow`'s single
+  `shadow_ray_t(` are pinned by `tests/glass.rs` / `tests/split_passes.rs` and
+  survive unchanged; `tests/batch103.rs` pins the new machinery.
+- Bind group 0 grew by two read-write slots (22 `hiz_prev`, 23 `tint_lut`);
+  `BIND_GROUP_0_ENTRIES` is 24 and `ENTRY_POINTS` is 14.
+- GpuFrame ends with `tint_bake_origin` (8 bytes of pad keep the 16-byte
+  stride); the struct is 368 bytes.
+- Shadow history correctness rests on: static-sun gating, receiver-depth
+  validation, and clear-on-edit. Animated foliage shadows on a *static
+  receiver* will lag one frame within the validation window — accepted, the
+  window is tight (max(0.5, 8% of depth)).
+- Deferred (future) work: SSR for transmit legs via the TAA history color;
+  planar-mirror water reflections (a second march from a mirrored camera —
+  the screen-space reflect legs above cover the measured cost first).
+
+## Measured outcome (RTX 3050 Laptop, 1600x900, 2026-09-19)
+
+First on-hardware runs of the six flags, per-feature A/B with pinned seed:
+
+- `--hiz-temporal`: neutral on a static camera with settled Hi-Z (previous
+  and current tiles agree; marched pairs move only by world-seed noise) at
+  +0.05 ms of min-blend cost. Its win case is camera motion / LOD churn,
+  where a stale-shallow tile lets the defer stand instead of re-marching.
+  Strictly conservative either way.
+- `--tint-bake` / `--probe-nearest`: pending a same-seed flags-only A/B
+  (early cross-world comparisons were invalid — resolve content alone swings
+  +-40% between worlds).
+- `--glass-ssr` / `--water-ssr`: **0.0 ms**, and the water leg is a visual
+  regression. Root cause is structural, not tunable: the vis-buffer latch is
+  the surface the *camera* sees at the hit pixel, so the mirror shades the
+  camera-facing side of the world instead of the surface the mirrored ray
+  actually strikes — upright ghost terrain painted across open water. The
+  fallback-on-any-miss design also means every non-latching pixel pays SSR
+  plus the full original leg. And the target itself was misdiagnosed: the
+  glasshouse premium is ~1 ms under a controlled same-seed comparison, not
+  the 17 ms of the original cross-scene report.
+
+**Retirement:** both reflect legs now pass a literal `false` enable into
+`ssr_world` (resolve.wgsl `water_reflect_leg` and the glass reflect arm), so
+they always take the historic `trace_world` path. `--glass-ssr` /
+`--water-ssr` still parse and set their config/scene bits but are inert —
+same convention as the pre-existing EXPECTED-INERT arms. `ssr_world` and the
+vis-buffer probes remain for a future transmit-leg/history approach, and the
+batch103 structural pins still hold (legs reference both `ssr_world` and
+`trace_world`; transmit sites untouched).
+
+## Bit-collision correction (2026-09-19, after first on-hardware benches)
+
+The original implementation placed the four live feature flags in the MAIN
+flag word at bits 24-27. Those bits were already owned by
+`FLAG_PROBE_TAP`/`FLAG_PROBE_AMBIENT`/`FLAG_PROBE_CUBE`/`FLAG_PROBE_BOUNCE`,
+and bits 28/29 by `FLAG_LIGHT_RGB`/`FLAG_PROBE_SUN` — with `probe_cube`,
+`probe_bounce`, `light_rgb`, and `probe_sun` defaulting ON. Consequences:
+`--tint-bake` and `--probe-nearest` were silently ALWAYS ON (the measured
+"A/B" compared the feature against itself), and the no-flag defaults were no
+longer bit-exact with the pre-batch-103 renderer. The SSR bits additionally
+aliased `FLAG_LIGHT_RGB`/`FLAG_PROBE_SUN` whenever the flags were passed.
+
+**Fix:** the four live flags moved to a second word, `frame.flags_hi`
+(bits 28-31, above `SPEC_HI_MASK`, which tops out at 1<<27 — no pipeline
+forks), carved out of `GpuFrame`'s tail padding (size stays 368). Wired
+through `FrameParams.flags_hi` (`scene::flags_hi_from`), the frame upload,
+and three in-shader read sites (`resolve.wgsl` probe/tint, `shadow.wgsl`
+reuse). The SSR consts are deleted outright; their config arms remain
+parse-only. `--hiz-temporal` and `--shadow-temporal` had clean bits
+(`probe_tap`/`probe_ambient` default OFF) and their earlier measurements
+stand; tint/probe measurements before this fix are void and must be re-run.

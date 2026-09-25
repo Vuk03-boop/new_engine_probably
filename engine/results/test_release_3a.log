@@ -1,0 +1,270 @@
+﻿cargo :     Finished `release` profile [optimized] target(s) in 0.08s
+At line:1 char:302
++ ...  = 'PlainText' } catch {} } }; cargo test --release -j 2 2>&1 | Tee-O ...
++                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Finished `r...get(s) in 0.08s:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+     Running unittests src\lib.rs (target\release\deps\derived-45514549cb0d9c85.exe)
+
+running 12 tests
+test mesh::tests::faces_hidden_by_a_neighbour_brick_are_not_emitted ... ok
+test mesh::tests::diagonal_edge_ray_is_the_documented_difference ... ok
+test slots::tests::exhausted_generation_retires_the_slot ... ok
+test mesh::tests::single_voxel_gives_six_unit_quads_facing_out ... ok
+test slots::tests::free_slots_are_reused_lowest_first ... ok
+test slots::tests::double_free_and_stale_free_are_rejected ... ok
+test slots::tests::freed_handle_stops_resolving_and_reuse_gets_a_new_generation ... ok
+test mesh::tests::greedy_merges_a_slab_but_never_across_materials ... ok
+test surface::tests::affected_keys_interior_edge_and_corner ... ok
+test surface::tests::single_and_adjacent_voxels ... ok
+test surface::tests::neighbour_brick_hides_boundary_faces ... ok
+test surface::tests::dependency_check_is_exact_not_brick_granular ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\perf_phase1.rs (target\release\deps\perf_phase1-c4617c6f4cd9500a.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\memory_account.rs (target\release\deps\memory_account-02095f92d2043487.exe)
+
+running 1 test
+test reported_pipeline_memory_brackets_measured_heap ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests\mesh.rs (target\release\deps\mesh-7b43507c5dd9597a.exe)
+
+running 8 tests
+test pipeline_publishes_meshes_equal_to_direct_extraction_in_both_modes ... ok
+test negative_controls_coverage_checker_reports_planted_defects ... ok
+test rays_agree_with_the_voxel_dda_across_chunk_boundaries ... ok
+test negative_control_ray_checker_reports_a_shifted_face ... ok
+test rays_agree_with_the_voxel_dda_on_the_street ... ok
+test coverage_is_exact_on_the_street_and_random_worlds ... ok
+test negative_control_unsplit_greedy_has_t_junctions ... ok
+test watertight_triangulation_shares_every_edge ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.08s
+
+     Running tests\persisted.rs (target\release\deps\persisted-6dd1b298dee89495.exe)
+
+running 1 test
+test reloaded_world_publishes_the_oracle_and_commits_feed_edit_batches ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+
+     Running tests\scenarios.rs (target\release\deps\scenarios-1c7ecfe78de33878.exe)
+
+running 15 tests
+test negative_control_missing_neighbour_dirty_is_caught ... ok
+test publication_holds_the_prior_snapshot_until_the_whole_set_is_ready ... ok
+test redirtied_target_cancels_the_in_flight_job ... ok
+test duplicate_completion_is_rejected ... ok
+test boundary_edit_rederives_the_neighbour_and_removes_empty_bricks ... ok
+test negative_control_retiring_without_readers_is_caught ... ok
+test staged_result_is_revalidated_at_publication_after_an_unnotified_change ... ok
+test edit_batches_sharing_a_key_merge_into_one_publication ... ok
+test neighbour_interior_change_is_accepted_by_content ... ok
+test retirement_waits_for_readers_and_reused_slots_reject_old_handles ... ok
+test initial_population_matches_oracle ... ok
+test unnotified_face_change_is_rejected_as_stale ... ok
+test sustained_edits_defer_publication_and_recover ... ok
+test overload_is_bounded_lossless_and_deterministic ... ok
+test publication_shares_unchanged_shards_and_keeps_old_snapshots_intact ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests\stress.rs (target\release\deps\stress-d13a1b054737ec7f.exe)
+
+running 5 tests
+test stress_is_deterministic ... ok
+test negative_controls_each_guard_is_needed ... ok
+test threaded_workers_with_random_delays ... ok
+test random_interleavings_keep_every_invariant ... ok
+test cancellation_and_stale_check_are_independent_guards ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.51s
+
+     Running unittests src\lib.rs (target\release\deps\light-7f4d920c4e93ae78.exe)
+
+running 16 tests
+test atmosphere::tests::diagnostic_step_dependence_at_twilight ... ignored
+test atmosphere::tests::ground_blocks_a_set_sun ... ok
+test atmosphere::tests::step_layout_covers_the_segment_in_order ... ok
+test reference::tests::albedos_outside_the_unit_range_are_refused ... ok
+test sun::tests::sun_radiance_times_solid_angle_is_the_irradiance ... ok
+test sample::tests::phases_integrate_to_one ... ok
+test sample::tests::basis_is_orthonormal ... ok
+test atmosphere::tests::zenith_transmittance_matches_the_closed_form ... ok
+test reference::tests::point_sun_on_a_plane_matches_the_closed_form ... ok
+test sun::tests::equinox_path_at_45_degrees ... ok
+test sample::tests::rng_is_uniform_and_deterministic ... ok
+test reference::tests::white_furnace_is_one ... ok
+test sample::tests::samplers_match_their_pdfs ... ok
+test atmosphere::tests::multiple_scattering_adds_light_and_the_sky_is_blue ... ok
+test atmosphere::tests::one_event_monte_carlo_matches_single_scattering_quadrature ... ok
+test atmosphere::tests::default_step_count_is_converged_within_one_percent ... ok
+
+test result: ok. 15 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 7.94s
+
+     Running unittests src\lib.rs (target\release\deps\memory-37052cae68783e06.exe)
+
+running 9 tests
+test ledger::tests::foreign_grants_and_overfull_live_are_rejected ... ok
+test ledger::tests::device_budget_takes_the_smaller_ceiling_minus_headroom ... ok
+test tests::category_names_are_unique ... ok
+test tests::report_sums_rows_and_splits_host_from_device ... ok
+test ledger::tests::report_lists_used_categories ... ok
+test tests::container_bounds_hold_live_below_reserved ... ok
+test ledger::tests::grants_track_live_reserved_high_water_and_peak ... ok
+test ledger::tests::refusal_is_deterministic_and_changes_nothing_but_the_counter ... ok
+test tests::tracker_keeps_high_water_per_category_and_total ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\release\deps\walk-568ebadedad0ba87.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\collision.rs (target\release\deps\collision-a07bfc462e3f263a.exe)
+
+running 13 tests
+test resolve_start_lifts_out_of_solid ... ok
+test snaps_down_a_curb_instead_of_falling ... ok
+test thin_walls_and_floors_do_not_tunnel ... ok
+test slides_along_walls_without_snagging ... ok
+test inside_corner_holds ... ok
+test step_up_needs_headroom ... ok
+test lands_and_rests_exactly_on_the_floor ... ok
+test overlap_check_detects_penetration ... ok
+test frame_rate_does_not_change_the_path ... ok
+test street_block_curb_and_shop_front ... ok
+test ceilings_stop_a_jump ... ok
+test step_height_sweep ... ok
+test random_walks_never_overlap_the_street_block ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.57s
+
+     Running unittests src\lib.rs (target\release\deps\world-64852749106c4ec2.exe)
+
+running 34 tests
+test coords::tests::brick_origin_and_offset_cross_chunk_edges ... ok
+test material::tests::ids_are_stable_and_in_registration_order ... ok
+test persist::codec::tests::reader_round_trips_and_reports_truncation ... ok
+test reference::tests::exact_edge_graze_is_not_a_hit ... ok
+test edit::tests::transaction_with_an_unknown_material_changes_nothing ... ok
+test coords::tests::negative_voxels_use_floor_division ... ok
+test edit::tests::apply_matches_direct_writes_including_versions ... ok
+test material::tests::duplicate_name_is_rejected_without_side_effects ... ok
+test coords::tests::neighbouring_voxels_across_brick_and_chunk_edges_get_distinct_slots ... ok
+test material::tests::unknown_id_is_not_contained ... ok
+test persist::codec::tests::crc32_matches_the_standard_check_value ... ok
+test reference::tests::hits_from_each_axis_direction_with_correct_face ... ok
+test coords::tests::split_join_round_trip_including_negatives_and_boundaries ... ok
+test edit::tests::empty_and_no_op_transactions_keep_the_version ... ok
+test reference::tests::half_open_faces ... ok
+test reference::tests::misses_and_empty_world ... ok
+test reference::tests::negative_coordinates_hit ... ok
+test reference::tests::origin_inside_hits_at_zero_without_face ... ok
+test reference::tests::t_max_is_inclusive ... ok
+test reference::tests::zero_direction_is_rejected - should panic ... ok
+test world::tests::material_identity_is_exact_and_overwrite_replaces_it ... ok
+test world::tests::recreated_brick_never_reuses_an_old_version ... ok
+test world::tests::empty_world_reads_empty_and_stores_nothing ... ok
+test world::tests::clearing_empty_space_allocates_nothing ... ok
+test world::tests::same_edits_give_identical_worlds_and_order_independent_content ... ok
+test world::tests::payload_estimate_scales_with_stored_bricks_only ... ok
+test world::tests::unknown_material_is_rejected_and_changes_nothing ... ok
+test world::tests::set_get_round_trip_across_brick_and_chunk_edges ... ok
+test world::tests::bounds_are_chunk_granular_and_cover_all_voxels ... ok
+test world::tests::versions_advance_only_on_real_changes_and_only_for_the_touched_brick ... ok
+test world::tests::clearing_last_voxel_frees_brick_then_chunk ... ok
+test material::tests::registry_capacity_is_the_full_u16_range ... ok
+test scene::tests::scene_contains_every_registered_material ... ok
+test scene::tests::generator_is_deterministic ... ok
+
+test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+
+     Running unittests src\bin\persist_cost.rs (target\release\deps\persist_cost-8e6e96c5da8f05d1.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\ref_render.rs (target\release\deps\ref_render-b14f151735bd09b3.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\memory_account.rs (target\release\deps\memory_account-e8e7643fee648be5.exe)
+
+running 1 test
+test reported_world_memory_brackets_measured_heap ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests\persist.rs (target\release\deps\persist-a7c2863b8e12ff23.exe)
+
+running 14 tests
+test journal_must_continue_the_snapshot ... ok
+test every_single_byte_flip_in_a_journal_is_detected_or_dropped_as_the_tail ... ok
+test snapshot_plus_journal_replay_equals_the_live_world ... ok
+test format_matches_the_checked_in_fixture ... ok
+test every_single_byte_flip_in_a_snapshot_is_detected ... ok
+test torn_tail_at_every_offset_drops_only_the_last_transaction ... ok
+test unknown_major_version_is_refused_and_unknown_sections_are_skipped ... ok
+test materials_map_by_name_and_missing_names_fail_loudly ... ok
+test random_and_empty_worlds_round_trip_exactly ... ok
+test store_open_repairs_a_torn_tail_and_continues ... ok
+test remapped_store_requires_a_snapshot_before_commits ... ok
+test crash_between_snapshot_and_journal_restart_loads_and_continues ... ok
+test store_commits_snapshots_and_reopens_exactly ... ok
+test street_block_round_trips_exactly ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests\reference_agreement.rs (target\release\deps\reference_agreement-ea94d54c8af06f72.exe)
+
+running 2 tests
+test comparison_detects_a_single_missing_voxel ... ok
+test dda_matches_brute_force_exactly ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.82s
+
+   Doc-tests derived
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests light
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests memory
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests walk
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests world
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

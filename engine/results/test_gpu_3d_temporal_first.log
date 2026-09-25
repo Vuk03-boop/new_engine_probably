@@ -1,0 +1,72 @@
+﻿cargo :    Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+At line:1 char:514
++ ... ext($p,$c); cargo test --release -j 2 -p gpu --test temporal -- --tes ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling gp...sal\engine\gpu):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `release` profile [optimized] target(s) in 2.21s
+     Running tests\temporal.rs (target\release\deps\temporal-01ad16d9f3221158.exe)
+
+running 5 tests
+convergence: accumulated [0.21616219275343324, 0.17263632969416193, 0.11997316714028976] reference 
+[0.21615852771646174, 0.17263693728322269, 0.11997662194750537] relative [1.6955319830369575e-5, 
+-3.519461537759838e-6, -2.8795670019121644e-5]
+validation: 0 errors, 0 warnings
+test accumulation_converges_to_the_reference ... ok
+edit: 1 regions rebuilt; 295 px in them, 286 reset as edited; 42993 px elsewhere, 42987 kept their history, 0 marked 
+edited; others ["material 6"]
+validation: 0 errors, 0 warnings
+
+thread 'an_edit_resets_only_its_regions' (12312) panicked at gpu\tests\temporal.rs:537:5:
+rebuilt regions: 286 of 295 edited
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test an_edit_resets_only_its_regions ... FAILED
+slow sun: cause ResetCause { first: false, cut: false, light: false, forced: false }, 43288 of 43288 accepted
+light jump: cause ResetCause { first: false, cut: false, light: true, forced: false }, 43288 of 43288 reset
+camera cut: cause ResetCause { first: false, cut: true, light: false, forced: false }, 39918 of 39918 reset
+validation: 0 errors, 0 warnings
+test global_resets ... ok
+move ok dx 4 yaw 0: 57600 of 57600 reasons agree (100.000%), host rejects 202, motion off by > 0.01 px on 0 of 43211; 
+disagreements []
+move ok dx -6 yaw 3: 57600 of 57600 reasons agree (100.000%), host rejects 7964, motion off by > 0.01 px on 0 of 
+36604; disagreements []
+move ok dx 0 yaw 8: 57600 of 57600 reasons agree (100.000%), host rejects 8603, motion off by > 0.01 px on 0 of 37585; 
+disagreements []
+move never_reject dx 4 yaw 0: 57398 of 57600 reasons agree (99.649%), host rejects 202, motion off by > 0.01 px on 0 
+of 43211; disagreements ["host disoccluded gpu accepted: 8", "host normal gpu accepted: 75", "host material gpu 
+accepted: 119"]
+move never_reject dx -6 yaw 3: 57396 of 57600 reasons agree (99.646%), host rejects 7964, motion off by > 0.01 px on 0 
+of 36604; disagreements ["host disoccluded gpu accepted: 12", "host normal gpu accepted: 67", "host material gpu 
+accepted: 125"]
+move never_reject dx 0 yaw 8: 57406 of 57600 reasons agree (99.663%), host rejects 8603, motion off by > 0.01 px on 0 
+of 37585; disagreements ["host disoccluded gpu accepted: 8", "host normal gpu accepted: 75", "host material gpu 
+accepted: 110", "host no previous surface gpu accepted: 1"]
+validation: 0 errors, 0 warnings
+
+thread 'moving_camera_decisions_match_the_host' (19544) panicked at gpu\tests\temporal.rs:486:5:
+failed: ["fault never_reject not caught dx 4 yaw 0", "fault never_reject not caught dx -6 yaw 3", "fault never_reject 
+not caught dx 0 yaw 8"]
+test moving_camera_decisions_match_the_host ... FAILED
+temporal pipeline with the shade reflection refused: 13 errors
+static ok: 43288 surface px; 6073 off the running mean by more than 1e-4; 0 with state other than (age 24, accepted)
+static reset_always: 43288 surface px; 43089 off the running mean by more than 1e-4; 43288 with state other than (age 
+24, accepted)
+static no_fresh: 43288 surface px; 43097 off the running mean by more than 1e-4; 0 with state other than (age 24, 
+accepted)
+validation: 0 errors, 0 warnings
+
+thread 'static_history_is_the_running_mean' (11932) panicked at gpu\tests\temporal.rs:322:5:
+failed: ["ok"]
+test static_history_is_the_running_mean ... FAILED
+
+failures:
+
+failures:
+    an_edit_resets_only_its_regions
+    moving_camera_decisions_match_the_host
+    static_history_is_the_running_mean
+
+test result: FAILED. 2 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.53s
+
+error: test failed, to rerun pass `-p gpu --test temporal`

@@ -1,0 +1,21 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 1.92s
+     Running tests\shade.rs (target\release\deps\shade-6ab1221a363a4a32.exe)
+
+running 1 test
+test shade_cost_at_1080p ... cost street merge greedy region chunk 1920x1080 (validation false): gbuffer median 0.331 p90 0.331 ms | shade (sun + sky, 2 rays) median 1.065 p90 1.069 ms | with the bounce (up to 4 rays) median 1.838 p90 1.841 ms (40 reps, interleaved)
+cost low merge greedy region chunk 1920x1080 (validation false): gbuffer median 0.253 p90 0.254 ms | shade (sun + sky, 2 rays) median 0.758 p90 0.762 ms | with the bounce (up to 4 rays) median 1.169 p90 1.176 ms (40 reps, interleaved)
+cost overhead merge greedy region chunk 1920x1080 (validation false): gbuffer median 0.252 p90 0.253 ms | shade (sun + sky, 2 rays) median 0.591 p90 0.594 ms | with the bounce (up to 4 rays) median 0.898 p90 0.901 ms (40 reps, interleaved)
+cost street merge greedy region 2x2x2_chunks 1920x1080 (validation false): gbuffer median 0.282 p90 0.284 ms | shade (sun + sky, 2 rays) median 0.916 p90 0.925 ms | with the bounce (up to 4 rays) median 1.599 p90 1.608 ms (40 reps, interleaved)
+cost low merge greedy region 2x2x2_chunks 1920x1080 (validation false): gbuffer median 0.217 p90 0.219 ms | shade (sun + sky, 2 rays) median 0.664 p90 0.666 ms | with the bounce (up to 4 rays) median 1.037 p90 1.039 ms (40 reps, interleaved)
+cost overhead merge greedy region 2x2x2_chunks 1920x1080 (validation false): gbuffer median 0.262 p90 0.263 ms | shade (sun + sky, 2 rays) median 0.578 p90 0.580 ms | with the bounce (up to 4 rays) median 0.869 p90 0.871 ms (40 reps, interleaved)
+cost street merge greedy region brick 1920x1080 (validation false): gbuffer median 0.300 p90 0.308 ms | shade (sun + sky, 2 rays) median 1.020 p90 1.023 ms | with the bounce (up to 4 rays) median 1.942 p90 1.945 ms (40 reps, interleaved)
+cost low merge greedy region brick 1920x1080 (validation false): gbuffer median 0.240 p90 0.245 ms | shade (sun + sky, 2 rays) median 0.760 p90 0.763 ms | with the bounce (up to 4 rays) median 1.282 p90 1.286 ms (40 reps, interleaved)
+cost overhead merge greedy region brick 1920x1080 (validation false): gbuffer median 0.252 p90 0.253 ms | shade (sun + sky, 2 rays) median 0.653 p90 0.654 ms | with the bounce (up to 4 rays) median 1.046 p90 1.048 ms (40 reps, interleaved)
+cost street merge none region chunk 1920x1080 (validation false): gbuffer median 0.467 p90 0.470 ms | shade (sun + sky, 2 rays) median 1.008 p90 1.011 ms | with the bounce (up to 4 rays) median 2.082 p90 2.085 ms (40 reps, interleaved)
+cost low merge none region chunk 1920x1080 (validation false): gbuffer median 0.432 p90 0.434 ms | shade (sun + sky, 2 rays) median 0.750 p90 0.751 ms | with the bounce (up to 4 rays) median 1.307 p90 1.310 ms (40 reps, interleaved)
+cost overhead merge none region chunk 1920x1080 (validation false): gbuffer median 0.444 p90 0.446 ms | shade (sun + sky, 2 rays) median 0.615 p90 0.617 ms | with the bounce (up to 4 rays) median 1.069 p90 1.071 ms (40 reps, interleaved)
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 5.19s
+

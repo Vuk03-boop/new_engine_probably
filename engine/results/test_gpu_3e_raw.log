@@ -1,0 +1,105 @@
+warning: unused import: `reason`
+  --> gpu\tests\denoise.rs:24:21
+   |
+24 | use gpu::temporal::{reason, History, Relight, Temporal, TemporalBindings, TemporalFaults, TemporalSettings};
+   |                     ^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `percentile`
+  --> gpu\tests\denoise.rs:25:19
+   |
+25 | use gpu::timing::{percentile, GpuTimer};
+   |                   ^^^^^^^^^^
+
+warning: unused import: `GpuError`
+  --> gpu\tests\denoise.rs:26:16
+   |
+26 | use gpu::{Gpu, GpuError, Timeline};
+   |                ^^^^^^^^
+
+warning: function `moved_camera` is never used
+  --> gpu\tests\denoise.rs:62:4
+   |
+62 | fn moved_camera(dx: f64, yaw_deg: f64, w: u32, h: u32) -> Camera {
+   |    ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `filtered` is never used
+   --> gpu\tests\denoise.rs:108:8
+    |
+103 | impl Step {
+    | --------- associated function in this implementation
+...
+108 |     fn filtered(max_age: u32, d: DenoiseSettings) -> Step {
+    |        ^^^^^^^^
+
+warning: fields `world` and `pipeline` are never read
+   --> gpu\tests\denoise.rs:125:5
+    |
+120 | struct Rig {
+    |        --- fields in this struct
+...
+125 |     world: World,
+    |     ^^^^^
+126 |     pipeline: Pipeline,
+    |     ^^^^^^^^
+
+warning: associated items `for_timing`, `state`, and `edit` are never used
+   --> gpu\tests\denoise.rs:153:8
+    |
+147 | impl Rig {
+    | -------- associated items in this implementation
+...
+153 |     fn for_timing(w: u32, h: u32) -> Rig {
+    |        ^^^^^^^^^^
+...
+296 |     fn state(&mut self) -> Vec<(u32, u32)> {
+    |        ^^^^^
+...
+302 |     fn edit(&mut self, lo: [i32; 3], hi: [i32; 3], material: Option<world::MaterialId>) -> BTreeSet<RegionKey> {
+    |        ^^^^
+
+warning: `gpu` (test "denoise") generated 7 warnings (run `cargo fix --test "denoise" -p gpu` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running tests\denoise.rs (target\release\deps\denoise-cba05e17b2083eac.exe)
+
+running 1 test
+test measure_raw_input ... hour 8: 43288 surface px, 13197 edge px; target vs target rel_mse 1.19e-3 bias -1.4e-5
+  raw age 1: rel_mse 1.2547 bias +0.0064 edge rel_mse 2.0377
+  raw age 2: rel_mse 0.6113 bias +0.0023 edge rel_mse 0.9805
+  raw age 4: rel_mse 0.3113 bias +0.0004 edge rel_mse 0.5054
+  raw age 8: rel_mse 0.1550 bias +0.0021 edge rel_mse 0.2531
+  raw age 16: rel_mse 0.0761 bias +0.0015 edge rel_mse 0.1215
+  raw age 32: rel_mse 0.0382 bias +0.0009 edge rel_mse 0.0617
+  raw age 64: rel_mse 0.0194 bias +0.0005 edge rel_mse 0.0307
+hour 12: 43288 surface px, 13197 edge px; target vs target rel_mse 1.24e-3 bias -6.2e-5
+  raw age 1: rel_mse 1.3478 bias +0.0071 edge rel_mse 2.2989
+  raw age 2: rel_mse 0.6432 bias +0.0011 edge rel_mse 1.0685
+  raw age 4: rel_mse 0.3308 bias -0.0008 edge rel_mse 0.5591
+  raw age 8: rel_mse 0.1641 bias +0.0016 edge rel_mse 0.2759
+  raw age 16: rel_mse 0.0800 bias +0.0015 edge rel_mse 0.1310
+  raw age 32: rel_mse 0.0401 bias +0.0006 edge rel_mse 0.0661
+  raw age 64: rel_mse 0.0203 bias +0.0003 edge rel_mse 0.0329
+hour 17.75: 43288 surface px, 13197 edge px; target vs target rel_mse 1.48e-3 bias +6.2e-5
+  raw age 1: rel_mse 1.4386 bias +0.0092 edge rel_mse 2.0600
+  raw age 2: rel_mse 0.7622 bias +0.0073 edge rel_mse 1.1792
+  raw age 4: rel_mse 0.3775 bias +0.0036 edge rel_mse 0.5714
+  raw age 8: rel_mse 0.2007 bias +0.0038 edge rel_mse 0.2949
+  raw age 16: rel_mse 0.0963 bias +0.0021 edge rel_mse 0.1427
+  raw age 32: rel_mse 0.0477 bias +0.0015 edge rel_mse 0.0696
+  raw age 64: rel_mse 0.0248 bias +0.0005 edge rel_mse 0.0370
+hour 18.25: 43288 surface px, 13197 edge px; target vs target rel_mse 1.71e-3 bias +4.3e-6
+  raw age 1: rel_mse 1.7764 bias +0.0071 edge rel_mse 2.4127
+  raw age 2: rel_mse 0.9011 bias +0.0073 edge rel_mse 1.2653
+  raw age 4: rel_mse 0.4442 bias +0.0030 edge rel_mse 0.6136
+  raw age 8: rel_mse 0.2286 bias +0.0039 edge rel_mse 0.3222
+  raw age 16: rel_mse 0.1106 bias +0.0016 edge rel_mse 0.1529
+  raw age 32: rel_mse 0.0559 bias +0.0018 edge rel_mse 0.0771
+  raw age 64: rel_mse 0.0286 bias +0.0003 edge rel_mse 0.0400
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 37.24s
+

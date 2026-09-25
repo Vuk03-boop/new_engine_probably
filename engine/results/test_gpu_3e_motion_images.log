@@ -1,0 +1,16 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 3.94s
+     Running tests\denoise.rs (target\release\deps\denoise-cba05e17b2083eac.exe)
+
+running 1 test
+test motion_images ... still filtered: rel_mse 0.0069
+moving raw: rel_mse 0.0341
+moving filtered: rel_mse 0.0208
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\motion_3e_noisy.ppm
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\motion_3e_noisy_error.ppm
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\motion_3e_hard.ppm
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 38.68s
+

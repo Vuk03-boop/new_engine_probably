@@ -1,0 +1,80 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\denoise.rs (target\release\deps\denoise-cba05e17b2083eac.exe)
+
+running 2 tests
+test stills_meet_the_budget ... denoise pipeline with the temporal reflection refused: 23 errors
+hour 8 age 1: filtered rel_mse 0.0839 (raw 1.2547, raw at age 8 0.1550: gain met) bias +0.0026 (raw +0.0064) energy ok
+hour 8 age 4: filtered rel_mse 0.0263 (raw 0.3113, raw at age 16 0.0761: gain met) bias -0.0017 (raw +0.0004) energy ok
+hour 8 age 16: filtered rel_mse 0.0120 (raw 0.0761, raw at age 64 0.0194: gain met) bias +0.0026 (raw +0.0015) energy ok
+hour 8 age 64: filtered rel_mse 0.0063 (raw 0.0194, raw at age 64 0.0194: gain met) bias +0.0021 (raw +0.0005) energy ok
+hour 8 edges at 64: filtered 0.0159 raw 0.0307 | ignore_guides 0.8842 (all surfaces 0.3726, bias -0.0029)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\denoise_3e_8.ppm
+hour 12 age 1: filtered rel_mse 0.0949 (raw 1.3478, raw at age 8 0.1641: gain met) bias +0.0048 (raw +0.0071) energy ok
+hour 12 age 4: filtered rel_mse 0.0295 (raw 0.3308, raw at age 16 0.0800: gain met) bias -0.0020 (raw -0.0008) energy ok
+hour 12 age 16: filtered rel_mse 0.0115 (raw 0.0800, raw at age 64 0.0203: gain met) bias +0.0029 (raw +0.0015) energy ok
+hour 12 age 64: filtered rel_mse 0.0058 (raw 0.0203, raw at age 64 0.0203: gain met) bias +0.0021 (raw +0.0003) energy ok
+hour 12 edges at 64: filtered 0.0145 raw 0.0329 | ignore_guides 0.8152 (all surfaces 0.3166, bias -0.0031)
+hour 17.75 age 1: filtered rel_mse 0.0814 (raw 1.4386, raw at age 8 0.2007: gain met) bias -0.0018 (raw +0.0092) ENERGY OFF
+hour 17.75 age 4: filtered rel_mse 0.0375 (raw 0.3775, raw at age 16 0.0963: gain met) bias -0.0044 (raw +0.0036) energy ok
+hour 17.75 age 16: filtered rel_mse 0.0242 (raw 0.0963, raw at age 64 0.0248: gain met) bias +0.0026 (raw +0.0021) energy ok
+hour 17.75 age 64: filtered rel_mse 0.0117 (raw 0.0248, raw at age 64 0.0248: gain met) bias +0.0024 (raw +0.0005) energy ok
+hour 17.75 edges at 64: filtered 0.0300 raw 0.0370 | ignore_guides 1.3352 (all surfaces 0.7272, bias -0.0009)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\denoise_3e_17.75.ppm
+hour 18.25 age 1: filtered rel_mse 0.0792 (raw 1.7764, raw at age 8 0.2286: gain met) bias -0.0116 (raw +0.0071) ENERGY OFF
+hour 18.25 age 4: filtered rel_mse 0.0292 (raw 0.4442, raw at age 16 0.1106: gain met) bias -0.0114 (raw +0.0030) ENERGY OFF
+hour 18.25 age 16: filtered rel_mse 0.0202 (raw 0.1106, raw at age 64 0.0286: gain met) bias -0.0001 (raw +0.0016) energy ok
+hour 18.25 age 64: filtered rel_mse 0.0116 (raw 0.0286, raw at age 64 0.0286: gain met) bias +0.0014 (raw +0.0003) energy ok
+hour 18.25 edges at 64: filtered 0.0289 raw 0.0400 | ignore_guides 1.7344 (all surfaces 0.9681, bias -0.0048)
+validation: 0 errors, 0 warnings
+
+thread 'stills_meet_the_budget' (4800) panicked at gpu\tests\denoise.rs:596:5:
+failed: ["D2 hour 17.75 age 1", "D2 hour 18.25 age 1", "D2 hour 18.25 age 4"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test sweep_sliders ... hour 8 unfiltered / temporal only: @1 1.2547 (edge 2.0377, bias +0.0064) | @4 0.3113 (edge 0.5054, bias +0.0004) | @64 0.0194 (edge 0.0307, bias +0.0005)
+hour 8 spatial only (max_age 1): @1 0.0839 (edge 0.2178, bias +0.0026) | @4 0.1002 (edge 0.2579, bias -0.0053) | @64 0.0888 (edge 0.2392, bias +0.0009)
+hour 8 levels 0 sigma 4: @1 1.2547 (edge 2.0377, bias +0.0064) | @4 0.3113 (edge 0.5054, bias +0.0004) | @64 0.0194 (edge 0.0307, bias +0.0005)
+hour 8 levels 1 sigma 4: @1 0.1907 (edge 0.3973, bias +0.0084) | @4 0.0509 (edge 0.1056, bias -0.0003) | @64 0.0047 (edge 0.0104, bias +0.0007)
+hour 8 levels 2 sigma 4: @1 0.1011 (edge 0.2404, bias +0.0049) | @4 0.0285 (edge 0.0677, bias -0.0027) | @64 0.0047 (edge 0.0119, bias +0.0010)
+hour 8 levels 3 sigma 4: @1 0.0836 (edge 0.2106, bias +0.0028) | @4 0.0252 (edge 0.0633, bias -0.0031) | @64 0.0054 (edge 0.0139, bias +0.0015)
+hour 8 levels 4 sigma 4: @1 0.0825 (edge 0.2127, bias +0.0023) | @4 0.0254 (edge 0.0647, bias -0.0024) | @64 0.0059 (edge 0.0151, bias +0.0019)
+hour 8 levels 5 sigma 4: @1 0.0839 (edge 0.2178, bias +0.0026) | @4 0.0263 (edge 0.0670, bias -0.0017) | @64 0.0063 (edge 0.0159, bias +0.0021)
+hour 8 levels 6 sigma 4: @1 0.0853 (edge 0.2214, bias +0.0033) | @4 0.0269 (edge 0.0686, bias -0.0013) | @64 0.0065 (edge 0.0162, bias +0.0022)
+hour 8 levels 5 sigma 1: @1 0.1532 (edge 0.3405, bias -0.0008) | @4 0.0477 (edge 0.1035, bias -0.0086) | @64 0.0047 (edge 0.0103, bias +0.0005)
+hour 8 levels 5 sigma 2: @1 0.0915 (edge 0.2269, bias -0.0030) | @4 0.0295 (edge 0.0703, bias -0.0066) | @64 0.0046 (edge 0.0109, bias +0.0011)
+hour 8 levels 5 sigma 8: @1 0.0916 (edge 0.2399, bias +0.0069) | @4 0.0335 (edge 0.0883, bias +0.0023) | @64 0.0097 (edge 0.0254, bias +0.0031)
+hour 8 levels 5 sigma 16: @1 0.1081 (edge 0.2816, bias +0.0090) | @4 0.0507 (edge 0.1354, bias +0.0048) | @64 0.0151 (edge 0.0402, bias +0.0042)
+hour 8 levels 5 sigma 1000000: @1 0.3448 (edge 0.5028, bias +0.0100) | @4 0.3149 (edge 0.4194, bias +0.0040) | @64 0.3018 (edge 0.3871, bias +0.0033)
+hour 8 prefilter off: @1 0.0845 (edge 0.2097, bias -0.0403) | @4 0.0258 (edge 0.0632, bias -0.0192) | @64 0.0058 (edge 0.0147, bias +0.0010)
+hour 8 max_age 16: @16 0.0120 (edge 0.0309, bias +0.0026) | @64 0.0107 (edge 0.0279, bias +0.0029) | @128 0.0103 (edge 0.0269, bias +0.0010)
+hour 8 max_age 32: @16 0.0120 (edge 0.0309, bias +0.0026) | @64 0.0079 (edge 0.0204, bias +0.0026) | @128 0.0080 (edge 0.0206, bias +0.0019)
+hour 8 max_age 128: @16 0.0120 (edge 0.0309, bias +0.0026) | @64 0.0063 (edge 0.0159, bias +0.0021) | @128 0.0046 (edge 0.0113, bias +0.0021)
+hour 18.25 unfiltered / temporal only: @1 1.7764 (edge 2.4127, bias +0.0071) | @4 0.4442 (edge 0.6136, bias +0.0030) | @64 0.0286 (edge 0.0400, bias +0.0003)
+hour 18.25 spatial only (max_age 1): @1 0.0792 (edge 0.1834, bias -0.0116) | @4 0.0824 (edge 0.1940, bias -0.0150) | @64 0.0896 (edge 0.2136, bias -0.0121)
+hour 18.25 levels 0 sigma 4: @1 1.7764 (edge 2.4127, bias +0.0071) | @4 0.4442 (edge 0.6136, bias +0.0030) | @64 0.0286 (edge 0.0400, bias +0.0003)
+hour 18.25 levels 1 sigma 4: @1 0.2315 (edge 0.4069, bias +0.0125) | @4 0.0617 (edge 0.1100, bias +0.0002) | @64 0.0071 (edge 0.0146, bias +0.0002)
+hour 18.25 levels 2 sigma 4: @1 0.0957 (edge 0.1984, bias +0.0027) | @4 0.0321 (edge 0.0684, bias -0.0075) | @64 0.0084 (edge 0.0199, bias +0.0001)
+hour 18.25 levels 3 sigma 4: @1 0.0724 (edge 0.1631, bias -0.0051) | @4 0.0277 (edge 0.0633, bias -0.0109) | @64 0.0100 (edge 0.0243, bias +0.0006)
+hour 18.25 levels 4 sigma 4: @1 0.0748 (edge 0.1724, bias -0.0098) | @4 0.0276 (edge 0.0645, bias -0.0115) | @64 0.0110 (edge 0.0271, bias +0.0011)
+hour 18.25 levels 5 sigma 4: @1 0.0792 (edge 0.1834, bias -0.0116) | @4 0.0292 (edge 0.0688, bias -0.0114) | @64 0.0116 (edge 0.0289, bias +0.0014)
+hour 18.25 levels 6 sigma 4: @1 0.0811 (edge 0.1883, bias -0.0113) | @4 0.0304 (edge 0.0719, bias -0.0108) | @64 0.0119 (edge 0.0295, bias +0.0016)
+hour 18.25 levels 5 sigma 1: @1 0.1565 (edge 0.2986, bias -0.0129) | @4 0.0484 (edge 0.0921, bias -0.0244) | @64 0.0065 (edge 0.0140, bias -0.0015)
+hour 18.25 levels 5 sigma 2: @1 0.0783 (edge 0.1728, bias -0.0221) | @4 0.0300 (edge 0.0651, bias -0.0216) | @64 0.0072 (edge 0.0173, bias -0.0003)
+hour 18.25 levels 5 sigma 8: @1 0.1003 (edge 0.2334, bias -0.0019) | @4 0.0430 (edge 0.1023, bias -0.0027) | @64 0.0203 (edge 0.0498, bias +0.0029)
+hour 18.25 levels 5 sigma 16: @1 0.1399 (edge 0.3220, bias +0.0038) | @4 0.0748 (edge 0.1748, bias +0.0025) | @64 0.0348 (edge 0.0833, bias +0.0041)
+hour 18.25 levels 5 sigma 1000000: @1 0.4393 (edge 0.9696, bias +0.0118) | @4 0.4165 (edge 0.9156, bias +0.0080) | @64 0.4069 (edge 0.8934, bias +0.0050)
+hour 18.25 prefilter off: @1 0.0739 (edge 0.1563, bias -0.0980) | @4 0.0268 (edge 0.0597, bias -0.0537) | @64 0.0106 (edge 0.0263, bias -0.0014)
+hour 18.25 max_age 16: @16 0.0202 (edge 0.0494, bias -0.0001) | @64 0.0205 (edge 0.0504, bias +0.0019) | @128 0.0192 (edge 0.0472, bias +0.0019)
+hour 18.25 max_age 32: @16 0.0202 (edge 0.0494, bias -0.0001) | @64 0.0153 (edge 0.0379, bias +0.0021) | @128 0.0148 (edge 0.0367, bias +0.0030)
+hour 18.25 max_age 128: @16 0.0202 (edge 0.0494, bias -0.0001) | @64 0.0116 (edge 0.0289, bias +0.0014) | @128 0.0078 (edge 0.0194, bias +0.0026)
+validation: 0 errors, 0 warnings
+ok
+
+failures:
+
+failures:
+    stills_meet_the_budget
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 51.49s
+
+error: test failed, to rerun pass `-p gpu --test denoise`

@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = ["memory", "world", "derived", "walk", "light", "gpu", "viewer"]
+# `gpu` needs the Vulkan SDK and a GPU; run it explicitly (`cargo test -p gpu`). `viewer` also needs a display
+# (`cargo run -p viewer`). Plain `cargo test` stays pure CPU.
+default-members = ["memory", "world", "derived", "walk", "light"]
+
+[workspace.package]
+edition = "2021"
+publish = false
+
+[profile.release]
+debug = false

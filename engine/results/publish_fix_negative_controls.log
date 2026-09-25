@@ -1,0 +1,11 @@
+P1 publish never revalidates staged results: exit 101, compiled True -> DETECTED
+    thread 'staged_result_is_revalidated_at_publication_after_an_unnotified_change' (6140) panicked at derived\tests\scenarios.rs:112:5:
+    test result: FAILED. 13 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+P2 completion does not mark its group touched: exit 101, compiled True -> DETECTED
+    thread 'edit_batches_sharing_a_key_merge_into_one_publication' (21320) panicked at derived\tests\common\mod.rs:80:5:
+    thread 'retirement_waits_for_readers_and_reused_slots_reject_old_handles' (3308) panicked at derived\tests\common\mod.rs:80:5:
+    thread 'negative_control_missing_neighbour_dirty_is_caught' (18828) panicked at derived\tests\common\mod.rs:80:5:
+    thread 'initial_population_matches_oracle' (18744) panicked at derived\tests\common\mod.rs:80:5:
+P3 revalidated entries keep their old stamp (control: must stay correct, only slower): exit 0, compiled True -> NOT DETECTED
+    test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+    test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s

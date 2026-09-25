@@ -1,0 +1,6 @@
+device "NVIDIA GeForce RTX 3050 Laptop GPU", validation true
+meshes: merge greedy region chunk: 291 regions, 10503 quads, 275890 triangles, 6791664 B device, snapshot 1, built in 0.11 s
+swapchain B8G8R8A8_SRGB SRGB_NONLINEAR, 3 images 1280x720, present FIFO (asked FIFO); ~11059200 B driver-owned, not in the ledger
+ledger live: GpuMesh 6819376 B, GpuMaterial 272 B, GpuTemporal 17694720 B (targets 17694720 B), Staging 16777216 B
+{"run":"viewer_2c2","device":"NVIDIA GeForce RTX 3050 Laptop GPU","merge":"greedy","region":"chunk","present":"FIFO","extent":[1600,900],"frames":600,"frames_in_flight":2,"swapchain_recreates":2,"scripted":true,"cycle_views":true,"triangles":275890,"snapshot":1,"frame_ms":{"n":599,"p50":6.934,"p99":14.766,"max":27.792},"gpu_ms":{"gbuffer":{"n":598,"p50":0.177,"p99":0.234,"max":0.236},"debug_view":{"n":598,"p50":0.042,"p99":0.057,"max":0.059}},"validation_errors":0,"validation_warnings":0,"readers_held_at_exit":2}
+exit 0

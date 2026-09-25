@@ -1,0 +1,28 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 2.74s
+     Running tests\gate.rs (target\release\deps\gate-a2734e9011721b8f.exe)
+
+running 1 test
+test diagnose_q2 ... reference low_midday: cached
+low_midday: 1068265 surface px, 49057 lighting-edge px
+  raw                          age 16: rel_mse 0.0290 = edges 0.0034 + rest 0.0256
+  raw                          age 64: rel_mse 0.0077 = edges 0.0009 + rest 0.0068
+  filter default               age 16: rel_mse 0.0098 = edges 0.0087 + rest 0.0011
+  filter default               age 64: rel_mse 0.0090 = edges 0.0084 + rest 0.0006
+  prefilter_levels 0           age 16: rel_mse 0.0018 = edges 0.0005 + rest 0.0012
+  prefilter_levels 0           age 64: rel_mse 0.0009 = edges 0.0003 + rest 0.0007
+  variance_blur off            age 16: rel_mse 0.0095 = edges 0.0084 + rest 0.0011
+  variance_blur off            age 64: rel_mse 0.0089 = edges 0.0083 + rest 0.0006
+  sigma_l 2                    age 16: rel_mse 0.0094 = edges 0.0080 + rest 0.0014
+  sigma_l 2                    age 64: rel_mse 0.0084 = edges 0.0077 + rest 0.0007
+  sigma_l 1                    age 16: rel_mse 0.0094 = edges 0.0070 + rest 0.0024
+  sigma_l 1                    age 64: rel_mse 0.0076 = edges 0.0066 + rest 0.0009
+  levels 1                     age 16: rel_mse 0.0117 = edges 0.0089 + rest 0.0027
+  levels 1                     age 64: rel_mse 0.0094 = edges 0.0084 + rest 0.0010
+  levels 0 (control: = raw)    age 16: rel_mse 0.0290 = edges 0.0034 + rest 0.0256
+  levels 0 (control: = raw)    age 64: rel_mse 0.0077 = edges 0.0009 + rest 0.0068
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 10.07s
+

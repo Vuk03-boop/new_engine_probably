@@ -1,0 +1,49 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 3.19s
+     Running tests\edit.rs (target\release\deps\edit-0dccd5e577abf12b.exe)
+
+running 2 tests
+test debug_views_read_ray_outputs_like_the_gbuffer ... view edit_close material: 211795 identical-value pixels agree, 0 differ (18605 pixels hold different values)
+view edit_close normal: 211795 identical-value pixels agree, 0 differ (18605 pixels hold different values)
+view edit_close region hash: 211795 identical-value pixels agree, 0 differ (18605 pixels hold different values)
+view edit_close brick hash: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view edit_close surface-id hash: 211795 identical-value pixels agree, 0 differ (18605 pixels hold different values)
+view edit_close linear depth: 20161 identical-value pixels agree, 0 differ (210239 pixels hold different values)
+view edit_close snapshot version: 211795 identical-value pixels agree, 0 differ (18605 pixels hold different values)
+view edit_close lit: 211795 identical-value pixels agree, 0 differ (18605 pixels hold different values)
+view street_view material: 172843 identical-value pixels agree, 0 differ (57557 pixels hold different values)
+view street_view normal: 172843 identical-value pixels agree, 0 differ (57557 pixels hold different values)
+view street_view region hash: 172843 identical-value pixels agree, 0 differ (57557 pixels hold different values)
+view street_view brick hash: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+view street_view surface-id hash: 172843 identical-value pixels agree, 0 differ (57557 pixels hold different values)
+view street_view linear depth: 58878 identical-value pixels agree, 0 differ (171522 pixels hold different values)
+view street_view snapshot version: 172843 identical-value pixels agree, 0 differ (57557 pixels hold different values)
+view street_view lit: 172843 identical-value pixels agree, 0 differ (57557 pixels hold different values)
+validation: 0 errors, 0 warnings
+ok
+test refused_update_keeps_the_previous_snapshot ... A_total_budget: update refused: OverBudget { category: GpuAccel, requested: 2097152, category_reserved: 85983232, total_reserved: 517996544, limit: 517996544, limit_is_total: true }
+check A_total_budget refused edit_close: raster pixels 230400 ref_hits 212047 gpu_hits 212048 checked 185259 near_edge 26806 (12.64% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.4878
+check A_total_budget refused edit_close: ray    pixels 230400 ref_hits 212047 gpu_hits 212047 checked 185259 near_edge 26806 (12.64% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.0037
+check A_total_budget refused edit_close: agree  pixels 230400 both_hit 212047 same_id 211752 | non-edge: hit_miss 0 differ 0 depth 0 | near-edge: hit_miss 1 differ 140 | max depth diff/tol 0.3286
+check A_total_budget refused street_view: raster pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5089
+check A_total_budget refused street_view: ray    pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.0063
+check A_total_budget refused street_view: agree  pixels 230400 both_hit 173137 same_id 172821 | non-edge: hit_miss 0 differ 0 depth 0 | near-edge: hit_miss 0 differ 151 | max depth diff/tol 0.5965
+check A_total_budget retried edit_close: raster pixels 230400 ref_hits 212047 gpu_hits 212048 checked 193079 near_edge 18986 (8.95% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.4319
+check A_total_budget retried edit_close: ray    pixels 230400 ref_hits 212047 gpu_hits 212047 checked 193079 near_edge 18986 (8.95% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.0030
+check A_total_budget retried edit_close: agree  pixels 230400 both_hit 212047 same_id 211836 | non-edge: hit_miss 0 differ 0 depth 0 | near-edge: hit_miss 1 differ 87 | max depth diff/tol 0.3068
+check A_total_budget retried street_view: raster pixels 230400 ref_hits 176779 gpu_hits 176779 checked 151245 near_edge 25563 (14.46% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5089
+check A_total_budget retried street_view: ray    pixels 230400 ref_hits 176779 gpu_hits 176779 checked 151245 near_edge 25563 (14.46% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.0063
+check A_total_budget retried street_view: agree  pixels 230400 both_hit 176779 same_id 176519 | non-edge: hit_miss 0 differ 0 depth 0 | near-edge: hit_miss 0 differ 109 | max depth diff/tol 0.3670
+validation: 0 errors, 0 warnings
+B_accel_limit: update refused: OverBudget { category: GpuAccel, requested: 2097152, category_reserved: 85983232, total_reserved: 249561088, limit: 85983232, limit_is_total: false }
+check B_accel_limit refused edit_close: raster pixels 230400 ref_hits 212047 gpu_hits 212048 checked 185259 near_edge 26806 (12.64% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.4878
+check B_accel_limit refused edit_close: ray    pixels 230400 ref_hits 212047 gpu_hits 212047 checked 185259 near_edge 26806 (12.64% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.0037
+check B_accel_limit refused edit_close: agree  pixels 230400 both_hit 212047 same_id 211752 | non-edge: hit_miss 0 differ 0 depth 0 | near-edge: hit_miss 1 differ 140 | max depth diff/tol 0.3286
+check B_accel_limit refused street_view: raster pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.5089
+check B_accel_limit refused street_view: ray    pixels 230400 ref_hits 173137 gpu_hits 173137 checked 142318 near_edge 30848 (17.82% of hits) | crack 0 material 0 normal 0 face 0 depth 0 extra 0 bad_id 0 | plane_depth 0 | max depth err/tol 0.0063
+check B_accel_limit refused street_view: agree  pixels 230400 both_hit 173137 same_id 172821 | non-edge: hit_miss 0 differ 0 depth 0 | near-edge: hit_miss 0 differ 151 | max depth diff/tol 0.5965
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 23.65s
+

@@ -1,0 +1,39 @@
+Computer Name	DESKTOP-0SEDUN0
+Operating System	Windows 11 (25H2)
+Operating System Build	10.0.26200
+Processor	12th Gen Intel(R) Core(TM) i5-12500H
+RAM Usage	14206 MiB / 16002 MiB (88.8%)
+Device Name	NVIDIA GeForce RTX 3050 Laptop GPU
+Chip Name	GA107
+Driver Version	616.92
+Hardware Scheduling	Enabled
+VRAM Requested	41 MiB / 3367 MiB (1.2%)
+VRAM Committed	43 MiB / 3367 MiB (1.3%)
+VRAM Bytes Demoted	0 MiB
+Product Version	2026.3.1.0 (build 38722833) (public-release)
+Process File Name	C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\rust\target\release\rt_probe.exe
+Command Line	"C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\phase0-probes\rust\target\release\rt_probe.exe" shaders/out/slang results/v4_nsight/small.ppm
+API	Vulkan
+Troubleshooting Collection Controls	API Timestamps, metrics, sampling oldest, instrumented, CB timestamps, FECS, warp state sampling control=31
+Start After	Elapsed Time 0 ms
+Max Duration 	5000 ms
+Limited To	Max Duration
+Allocated Event Buffer Memory (kB)	20000
+Allocated Timestamps	100000
+V-Sync Mode	Enforced Off
+GPU Clocks	Locked to Base
+Force Repaint	No
+Force D3D12 Background Optimizations	No
+Max Vulkan SC Internal CBs per Queue	24
+Max Vulkan SC Internal CB Memory (kB)	16
+Collect Screenshot	Yes
+Time Every Action	No
+Trace Shader Bindings	Yes
+Collect Shader Pipelines	Yes
+Collect External Shader Debug Info	Yes
+Warp State Sampling Interval	N/A (Warp State Sampling Disabled)
+Enable NVTX Ranges	Yes
+Recompile Cached Vulkan Shader Modules	Yes
+Metric Set	Async Compute Triage
+Real-Time Shader Profiler	Disabled
+Multi-Pass Metrics	Disabled

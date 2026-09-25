@@ -1,0 +1,60 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 6.73s
+     Running unittests src\lib.rs (target\release\deps\gpu-6012e4063b37d12a.exe)
+
+running 8 tests
+test alloc::tests::first_fit_aligns_splits_and_coalesces ... ok
+test layout::tests::f16_integers_are_exact ... ok
+test layout::tests::image_sections_are_aligned_and_indices_follow_adr_0004 ... ok
+test layout::tests::negative_coordinates_group_into_the_right_region ... ok
+test layout::tests::pack_round_trips_and_fields_do_not_overlap ... ok
+test layout::tests::regions_preserve_every_quad_in_world_position ... ok
+test reflect::tests::parses_nested_values_and_rejects_garbage ... ok
+test timeline::tests::retirement_releases_in_order_only_after_completion ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests\device.rs (target\release\deps\device-7981311e0dc98936.exe)
+
+running 8 tests
+test a_refused_grant_changes_nothing_and_old_meshes_stay_valid ... SUPPLEMENTAL RUN on a non-RT device (Intel(R) Iris(R) Xe Graphics): not the P-001 device gate
+ok
+test device_budget_follows_adr_0003 ... SUPPLEMENTAL RUN on a non-RT device (Intel(R) Iris(R) Xe Graphics): not the P-001 device gate
+device "Intel(R) Iris(R) Xe Graphics", driver device-local budget Some(7701987328) B, engine budget 3150000000 B
+ok
+test frame_readers_keep_1c_snapshots_alive_until_the_gpu_is_done ... SUPPLEMENTAL RUN on a non-RT device (Intel(R) Iris(R) Xe Graphics): not the P-001 device gate
+ok
+test gpu_decode_agrees_with_the_host_layout ... SUPPLEMENTAL RUN on a non-RT device (Intel(R) Iris(R) Xe Graphics): not the P-001 device gate
+merge none region brick: 520540 quads decoded on the GPU, all equal
+merge none region 2x2x2_chunks: 520540 quads decoded on the GPU, all equal
+merge greedy region brick: 10503 quads decoded on the GPU, all equal
+merge greedy region 2x2x2_chunks: 10503 quads decoded on the GPU, all equal
+ok
+test mesh_uploads_read_back_bit_exact_for_every_setting ... SUPPLEMENTAL RUN on a non-RT device (Intel(R) Iris(R) Xe Graphics): not the P-001 device gate
+merge none region brick: 5103 regions, 520540 quads, 33321920 B images, ledger GpuMesh live 33321920 reserved 67108864, blocks 2
+merge none region 2x2x2_bricks: 1176 regions, 520540 quads, 33320128 B images, ledger GpuMesh live 33320128 reserved 67108864, blocks 2
+merge none region chunk: 291 regions, 520540 quads, 33317888 B images, ledger GpuMesh live 33317888 reserved 67108864, blocks 2
+merge none region 2x2x2_chunks: 67 regions, 520540 quads, 33315776 B images, ledger GpuMesh live 33315776 reserved 67108864, blocks 2
+merge greedy region brick: 5103 regions, 10503 quads, 1153984 B images, ledger GpuMesh live 1153984 reserved 67108864, blocks 2
+merge greedy region 2x2x2_bricks: 1176 regions, 10503 quads, 721216 B images, ledger GpuMesh live 721216 reserved 67108864, blocks 2
+merge greedy region chunk: 291 regions, 10503 quads, 682368 B images, ledger GpuMesh live 682368 reserved 67108864, blocks 2
+merge greedy region 2x2x2_chunks: 67 regions, 10503 quads, 674240 B images, ledger GpuMesh live 674240 reserved 67108864, blocks 2
+ok
+test negative_control_early_free_is_caught ... SUPPLEMENTAL RUN on a non-RT device (Intel(R) Iris(R) Xe Graphics): not the P-001 device gate
+[validation error] vkDestroyBuffer(): can't be called on VkBuffer 0x70000000007 that is currently in use by VkCommandBuffer 0x2545df071f8
+The Vulkan spec states: All submitted commands that refer to buffer, either directly or via a VkBufferView, must have completed execution (https://docs.vulkan.org/spec/latest/chapters/resources.html#VUID-vkDestroyBuffer-buffer-00922)
+planted early free: corruption detected; validation reported 1 error(s)
+ok
+test negative_controls_layout_mismatches_are_reported ... SUPPLEMENTAL RUN on a non-RT device (Intel(R) Iris(R) Xe Graphics): not the P-001 device gate
+ok
+test retirement_waits_for_the_gpu ... SUPPLEMENTAL RUN on a non-RT device (Intel(R) Iris(R) Xe Graphics): not the P-001 device gate
+ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.32s
+
+   Doc-tests gpu
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

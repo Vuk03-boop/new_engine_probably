@@ -1,0 +1,16 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\device.rs (target\release\deps\device-39d6ccc4ee7829c7.exe)
+
+running 9 tests
+test a_refused_grant_changes_nothing_and_old_meshes_stay_valid ... ok
+test device_budget_follows_adr_0003 ... ok
+test formats_assumed_by_adr_0003_and_0004_are_supported ... ok
+test frame_readers_keep_1c_snapshots_alive_until_the_gpu_is_done ... ok
+test gpu_decode_agrees_with_the_host_layout ... ok
+test mesh_uploads_read_back_bit_exact_for_every_setting ... ok
+test negative_control_early_free_is_caught ... ok
+test negative_controls_layout_mismatches_are_reported ... ok
+test retirement_waits_for_the_gpu ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.84s
+

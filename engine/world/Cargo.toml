@@ -1,0 +1,10 @@
+[package]
+name = "world"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+# Authoritative sparse voxel world (Phase 1A) and its CPU reference ray query (Phase 1E).
+# No external dependencies (`memory` is a workspace crate).
+[dependencies]
+memory = { path = "../memory" }

@@ -1,0 +1,20 @@
+F1 snapshot section CRC not checked: exit 101 -> DETECTED
+    thread 'every_single_byte_flip_in_a_snapshot_is_detected' (19076) panicked at world\tests\persist.rs:237:9:
+    flip at byte 32 of 1350 went undetected
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+F2 journal: mid-file CRC failure treated as torn tail: exit 101 -> DETECTED
+    thread 'every_single_byte_flip_in_a_journal_is_detected_or_dropped_as_the_tail' (6088) panicked at world\tests\persist.rs:265:17:
+    flip at byte 40 (before the final record) loaded
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+F3 replay: version_after not checked: exit 101 -> DETECTED
+    thread 'journal_must_continue_the_snapshot' (20412) panicked at world\tests\persist.rs:298:5:
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+F4 format minor bumped silently: exit 101 -> DETECTED
+    thread 'format_matches_the_checked_in_fixture' (9684) panicked at world\tests\persist.rs:455:5:
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+F5 open does not truncate a torn tail: exit 101 -> DETECTED
+    thread 'store_open_repairs_a_torn_tail_and_continues' (400) panicked at world\tests\persist.rs:223:66:
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.02s
+F6 apply without material pre-validation: exit 101 -> DETECTED
+    thread 'edit::tests::transaction_with_an_unknown_material_changes_nothing' (20920) panicked at world\src\edit.rs:77:47:
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s

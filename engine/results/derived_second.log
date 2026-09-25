@@ -1,0 +1,69 @@
+﻿cargo :    Compiling derived v0.1.0 (C:\Users\Vuk 
+Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\derived)
+At line:1 char:388
++ ... al\engine"; cargo test --release -j 2 -p derived -- --nocapture *> re ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling de...engine\derived):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `release` profile [optimized] target(s) in 9.90s
+     Running unittests src\lib.rs (target\release\deps\derived-9ea8b217060ea9a5.exe)
+
+running 8 tests
+test slots::tests::exhausted_generation_retires_the_slot ... ok
+test surface::tests::single_and_adjacent_voxels ... ok
+test slots::tests::freed_handle_stops_resolving_and_reuse_gets_a_new_generation ... ok
+test surface::tests::dependency_check_is_exact_not_brick_granular ... ok
+test surface::tests::neighbour_brick_hides_boundary_faces ... ok
+test slots::tests::free_slots_are_reused_lowest_first ... ok
+test slots::tests::double_free_and_stale_free_are_rejected ... ok
+test surface::tests::affected_keys_interior_edge_and_corner ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\scenarios.rs (target\release\deps\scenarios-cd0c931edce2ad54.exe)
+
+running 11 tests
+test initial_population_matches_oracle ... ok
+test boundary_edit_rederives_the_neighbour_and_removes_empty_bricks ... ok
+test unnotified_face_change_is_rejected_as_stale ... ok
+test negative_control_missing_neighbour_dirty_is_caught ... ok
+test negative_control_retiring_without_readers_is_caught ... ok
+test neighbour_interior_change_is_accepted_by_content ... ok
+test publication_holds_the_prior_snapshot_until_the_whole_set_is_ready ... ok
+test redirtied_target_cancels_the_in_flight_job ... ok
+test retirement_waits_for_readers_and_reused_slots_reject_old_handles ... ok
+test duplicate_completion_is_rejected ... ok
+test overload_is_bounded_lossless_and_deterministic ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\stress.rs (target\release\deps\stress-a5de3bbd37402f39.exe)
+
+running 5 tests
+test stress_is_deterministic ... ok
+seed 0x1: Stats { dirtied: 6081, coalesced: 4083, overflow_deferred: 2005, max_queue: 8, max_overflow: 297, groups_merged: 546, max_group_len: 419, dispatched: 2013, accepted: 1910, accepted_by_content: 94, rejected_cancelled: 88, rejected_stale: 15, rejected_stale_at_publish: 0, rejected_unknown: 0, staged_discarded: 1491, publish_deferred: 679, published: 1, groups_published: 1, retired: 0, freed: 0 }, publishes checked 1, reader reads checked 182064, batches checked 547
+
+thread 'random_interleavings_keep_every_invariant' (6072) panicked at derived\tests\stress.rs:215:9:
+seed 0x1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test random_interleavings_keep_every_invariant ... FAILED
+skip_neighbour_dirty: detected on 4 of 4 seeds; first: Some("snapshot SnapshotId(1) published an edit batch half-way; unpublished keys [BrickKey { chunk: ChunkCoord { x: 0, y: -1, z: 0 }, brick: BrickIndex(1) }]")
+test cancellation_and_stale_check_are_independent_guards ... ok
+retire_without_readers: detected on 0 of 4 seeds; first: None
+
+thread 'negative_controls_each_guard_is_needed' (12736) panicked at derived\tests\stress.rs:241:9:
+retire_without_readers: the invariants never failed, so they cannot detect this fault
+test negative_controls_each_guard_is_needed ... FAILED
+threaded: Stats { dirtied: 1162, coalesced: 54, overflow_deferred: 262, max_queue: 16, max_overflow: 200, groups_merged: 47, max_group_len: 231, dispatched: 1108, accepted: 1104, accepted_by_content: 7, rejected_cancelled: 4, rejected_stale: 0, rejected_stale_at_publish: 0, rejected_unknown: 0, staged_discarded: 63, publish_deferred: 739, published: 271, groups_published: 285, retired: 731, freed: 731 }, publishes checked 271
+test threaded_workers_with_random_delays ... ok
+
+failures:
+
+failures:
+    negative_controls_each_guard_is_needed
+    random_interleavings_keep_every_invariant
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s
+
+error: test failed, to rerun pass `-p derived --test stress`

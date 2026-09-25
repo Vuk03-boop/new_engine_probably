@@ -1,0 +1,29 @@
+﻿cargo :    Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+At line:1 char:793
++ ... ext($p,$c); cargo test --release -j 2 -p gpu --test sky -- --test-thr ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling gp...sal\engine\gpu):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `release` profile [optimized] target(s) in 1.91s
+     Running tests\sky.rs (target\release\deps\sky-28f337d5260131ec.exe)
+
+running 2 tests
+host sky tables built in 0.26 s
+sky pipeline with the shade reflection refused: 12 errors
+sky table dawn: 62208 values, worst relative 9.84e-5 at texel (4, 54), 0 over 0.5%
+sky table morning: 62208 values, worst relative 2.91e-5 at texel (4, 54), 0 over 0.5%
+sky table midday: 62208 values, worst relative 1.19e-5 at texel (19, 6), 0 over 0.5%
+sky table dusk: 62208 values, worst relative 9.84e-5 at texel (4, 54), 0 over 0.5%
+sky table twilight: 62208 values, worst relative 6.03e-5 at texel (189, 5), 0 over 0.5%
+validation: 0 errors, 0 warnings
+test gpu_sky_table_equals_the_host_table ... ok
+host sky tables built in 0.26 s
+uniform sky street: 3 of 129600 mismatched (0.002%), 95093 lit, bad 0
+uniform sky low: 1 of 129600 mismatched (0.001%), 112361 lit, bad 0
+uniform sky overhead: 3 of 129600 mismatched (0.002%), 117383 lit, bad 0
+validation: 0 errors, 0 warnings
+test uniform_sky_term_equals_the_reference_per_pixel ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 3.67s
+

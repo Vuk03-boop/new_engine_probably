@@ -1,0 +1,113 @@
+{
+  "date": "2026-09-22",
+  "sources": [
+    {
+      "snapshot": "old-lessons.txt",
+      "original_workspace_path": "recovered-codebase/docs/lessons.md",
+      "sha256": "b50634de8f2b7d88fbdd62f709656f732337ec279ce7ca71ab91ffa90db61f88",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "old-dlss-open-questions.txt",
+      "original_workspace_path": "recovered-codebase/docs/dlss-open-questions.md",
+      "sha256": "6bdf6ac3c4eeeb25b1c86032a550fda3e7aecf71a0000f3e8e485e32a24348c2",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "old-testing.txt",
+      "original_workspace_path": "recovered-codebase/docs/testing.md",
+      "sha256": "752ada635d25945b3bdc146c4258138fcd9eb9ae7f8cede06a4d34236d904664",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "old-adr-0010-compilation.txt",
+      "original_workspace_path": "recovered-codebase/docs/adr/0010-compile-pipelines-off-the-main-thread.md",
+      "sha256": "3f126f94f6aaf84e497c35405afcff9cc0aab2a1c11a4568b802486dfe9fa9a1",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "old-adr-0005-temporal.txt",
+      "original_workspace_path": "recovered-codebase/docs/adr/0005-temporal-reuse-passes.md",
+      "sha256": "263569b653a2435df6f9cde54d29eb31f15950becba2d3bc889a1fbe6de6b320",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "old-adr-0002-water.txt",
+      "original_workspace_path": "recovered-codebase/docs/adr/0002-water-variance-filtering.md",
+      "sha256": "cb4dcc9051823db53d0e7111fedc9cdb875cb3fa64ecb211dafcb7ebafb4cc37",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "old-adr-0008-rr-guides.txt",
+      "original_workspace_path": "recovered-codebase/docs/adr/0008-ray-reconstruction-material-guides.md",
+      "sha256": "1fabfdcdf3ad50d7d3c1d6fc0fefb85126776dfb928ca6b9869ef4200a3f5f6c",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "old-adr-0011-ao.txt",
+      "original_workspace_path": "recovered-codebase/docs/adr/0011-directional-ambient-occlusion.md",
+      "sha256": "b28964650fd308ac617380743b887efd5bbea5a7783a90b2e7301bde672cac18",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "old-adr-0012-foam.txt",
+      "original_workspace_path": "recovered-codebase/docs/adr/0012-continuous-shore-foam.md",
+      "sha256": "013c277f83c33751d90062ba4259df8cc1963b0322d509491fd5cc1a5a0a7d2d",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "audit-corrections.txt",
+      "original_workspace_path": "research-review/cross-audit-other-ai.md",
+      "sha256": "ec1a0412db786cd69857533d13e531ba37a7631c7df4c8858312742862679554",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    },
+    {
+      "snapshot": "shader-organization-review.txt",
+      "original_workspace_path": "research-review/batch-05-textures-shader-organization.md",
+      "sha256": "3ecfa498018f66067f41a08e5710ea7ed07a0c3c4646d26b6b3588126bf02764",
+      "status": "Historical verbatim reference; not fresh execution or active instructions"
+    }
+  ],
+  "fresh_source_checks": [
+    {
+      "path": "recovered-codebase/src/render/mod.rs",
+      "symbol": "Renderer::ensure_spec",
+      "sha256": "3ff29db4cb8565fbc90683a519bb132cb631ba1148c1779192856c8511ea743e",
+      "tokens_checked": [
+        "std::thread::Builder::new()",
+        ".name(\"pipeline-compile\".into())"
+      ],
+      "scope": "Fresh lexical inspection only; shader text tokens are not canonical module validation"
+    },
+    {
+      "path": "recovered-codebase/src/render/mod.rs",
+      "symbol": "Renderer::render_ready temporal lifecycle",
+      "sha256": "3ff29db4cb8565fbc90683a519bb132cb631ba1148c1779192856c8511ea743e",
+      "tokens_checked": [
+        "self.history_valid = taa_on || dlss_ran || rr_ran;"
+      ],
+      "scope": "Fresh lexical inspection only; shader text tokens are not canonical module validation"
+    },
+    {
+      "path": "recovered-codebase/src/render/shaders/resolve.wgsl",
+      "symbol": "retired SSR reflect call-site lexical pins",
+      "sha256": "1dba4f74ce25e1403b6d9bc456001000e4f1a898d6ee1b512bb7ff04d65fdbff",
+      "tokens_checked": [
+        "ssr_world(ro3, mirror_t, WATER_REFLECT_DIST, true, false)",
+        "ssr_world(origin,mirror,max(GLASS_TRANSMIT_DIST,frame.far),false,false)"
+      ],
+      "scope": "Fresh lexical inspection only; shader text tokens are not canonical module validation"
+    },
+    {
+      "path": "recovered-codebase/tests/shore_foam.rs",
+      "symbol": "foam_shader_matches_the_continuity_model_and_validates",
+      "sha256": "94663f5c8ac84d569ba98e88a7f5db790b82e77dafaec87be2c424576124d091",
+      "tokens_checked": [
+        "render::shader_source()",
+        "naga::front::wgsl::parse_str"
+      ],
+      "scope": "Fresh lexical inspection only; shader text tokens are not canonical module validation"
+    }
+  ],
+  "runtime_tests_run": false
+}

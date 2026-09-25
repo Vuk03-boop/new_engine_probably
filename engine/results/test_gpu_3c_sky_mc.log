@@ -1,0 +1,79 @@
+﻿cargo :     Finished `release` profile [optimized] target(s) in 0.06s
+At line:1 char:302
++ ... tch {} } }; cargo test --release -j 2 -p gpu --test sky -- --test-thr ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Finished `r...get(s) in 0.06s:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+     Running tests\sky.rs (target\release\deps\sky-28f337d5260131ec.exe)
+
+running 2 tests
+host sky tables built in 0.26 s
+surface sky dawn street: real time 1.0551e-2 6.1813e-3 4.6187e-3 reference 1.0882e-2 6.4574e-3 4.8953e-3 relative 
+[-0.0304, -0.0428, -0.0565]
+surface sky dawn low: real time 8.4840e-3 6.7545e-3 6.5649e-3 reference 8.8007e-3 7.0836e-3 6.9391e-3 relative 
+[-0.036, -0.0465, -0.0539]
+surface sky morning street: real time 1.3187e-2 1.6295e-2 2.1607e-2 reference 1.3460e-2 1.6820e-2 2.2580e-2 relative 
+[-0.0203, -0.0313, -0.0431]
+surface sky morning low: real time 1.5112e-2 2.0303e-2 2.9300e-2 reference 1.5355e-2 2.0891e-2 3.0522e-2 relative 
+[-0.0158, -0.0281, -0.04]
+surface sky midday street: real time 1.0279e-2 1.4486e-2 2.2827e-2 reference 1.0287e-2 1.4654e-2 2.3207e-2 relative 
+[-0.0007, -0.0115, -0.0164]
+surface sky midday low: real time 1.6344e-2 2.3241e-2 3.6360e-2 reference 1.6321e-2 2.3449e-2 3.6894e-2 relative 
+[0.0014, -0.0089, -0.0145]
+surface sky dusk street: real time 4.2117e-3 3.8038e-3 3.8585e-3 reference 4.4109e-3 4.0122e-3 4.0938e-3 relative 
+[-0.0451, -0.0519, -0.0575]
+surface sky dusk low: real time 5.5128e-3 5.3349e-3 5.8329e-3 reference 5.7557e-3 5.6121e-3 6.1634e-3 relative 
+[-0.0422, -0.0494, -0.0536]
+surface sky twilight street: real time 3.5983e-4 1.8729e-4 2.9696e-4 reference 3.5572e-4 1.7007e-4 2.5704e-4 relative 
+[0.0116, 0.1012, 0.1553]
+surface sky twilight low: real time 4.9746e-4 2.8216e-4 4.7259e-4 reference 4.9061e-4 2.5634e-4 4.1038e-4 relative 
+[0.014, 0.1007, 0.1516]
+validation: 0 errors, 0 warnings
+
+thread 'surface_sky_term_converges_to_the_reference' (19212) panicked at gpu\tests\sky.rs:349:5:
+failed: ["dawn/street", "dawn/low", "dusk/street", "dusk/low", "twilight/street", "twilight/low"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test surface_sky_term_converges_to_the_reference ... FAILED
+host sky tables built in 0.26 s
+  dawn camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  dawn camera away: 5184 px compared, 0 skipped (no sky)
+  dawn camera across: 5184 px compared, 0 skipped (no sky)
+  dawn camera up: 5184 px compared, 0 skipped (no sky)
+sky dawn (4096 spp): luminance raw mean 0.0424 p50 0.0418 p95 0.0826 max 0.1490; beyond 3 se p95 0.0181; channel 
+beyond 3 se p95 0.0236
+  morning camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  morning camera away: 5184 px compared, 0 skipped (no sky)
+  morning camera across: 5184 px compared, 0 skipped (no sky)
+  morning camera up: 5184 px compared, 0 skipped (no sky)
+sky morning (4096 spp): luminance raw mean 0.0213 p50 0.0136 p95 0.0587 max 0.1310; beyond 3 se p95 0.0091; channel 
+beyond 3 se p95 0.0140
+  midday camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  midday camera away: 5184 px compared, 0 skipped (no sky)
+  midday camera across: 5184 px compared, 0 skipped (no sky)
+  midday camera up: 5184 px compared, 0 skipped (no sky)
+sky midday (4096 spp): luminance raw mean 0.0134 p50 0.0062 p95 0.0445 max 0.1386; beyond 3 se p95 0.0000; channel 
+beyond 3 se p95 0.0000
+  dusk camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  dusk camera away: 5184 px compared, 0 skipped (no sky)
+  dusk camera across: 5184 px compared, 0 skipped (no sky)
+  dusk camera up: 5184 px compared, 0 skipped (no sky)
+sky dusk (4096 spp): luminance raw mean 0.0424 p50 0.0419 p95 0.0830 max 0.1448; beyond 3 se p95 0.0181; channel 
+beyond 3 se p95 0.0237
+  twilight camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  twilight camera away: 5184 px compared, 0 skipped (no sky)
+  twilight camera across: 5184 px compared, 0 skipped (no sky)
+  twilight camera up: 5184 px compared, 0 skipped (no sky)
+sky twilight (65536 spp): luminance raw mean 0.0783 p50 0.0687 p95 0.1442 max 0.6634; beyond 3 se p95 0.0806; channel 
+beyond 3 se p95 0.1855
+validation: 0 errors, 0 warnings
+test table_sky_matches_the_monte_carlo_sky ... ok
+
+failures:
+
+failures:
+    surface_sky_term_converges_to_the_reference
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 68.09s
+
+error: test failed, to rerun pass `-p gpu --test sky`

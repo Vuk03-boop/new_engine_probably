@@ -1,0 +1,18 @@
+   Compiling light v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\light)
+    Finished `release` profile [optimized] target(s) in 2.02s
+     Running unittests src\lib.rs (target\release\deps\light-7f4d920c4e93ae78.exe)
+
+running 4 tests
+test sky_ref::tests::grid_directions_map_to_their_texels ... ok
+sky reference: wrong magic
+sky reference: 811331 bytes, expected 811332
+sun >= 0°: 82944 values, relative se p50 0.00117 p95 0.00311 max 0.01019
+sun < 0°: 18432 values, relative se p50 0.00332 p95 0.00734 max 0.01220
+samples per texel by slice [67108864, 33554432, 16777216, 4194304, 2097152, 2097152, 2097152, 2097152, 2097152, 2097152, 2097152, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576], seed 0x5c0
+test sky_ref::tests::baked_reference_noise_is_within_budget ... ok
+test sky_ref::tests::file_round_trips_and_refuses_mismatches ... ok
+CorrectionStats { min: 2.0, max: 2.0, clamped: 0, dark: 0 }
+test sky_ref::tests::correction_is_one_when_uncorrected_and_matches_at_grid_points ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.70s
+

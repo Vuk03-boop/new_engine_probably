@@ -1,0 +1,38 @@
+﻿cargo :     Finished `release` profile [optimized] target(s) in 0.06s
+At line:1 char:329
++ ... DATION='1'; cargo test --release -j 2 -p gpu --test shade -- --test-t ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Finished `r...get(s) in 0.06s:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+     Running tests\shade.rs (target\release\deps\shade-6ab1221a363a4a32.exe)
+
+running 1 test
+cost street merge greedy region chunk 1920x1080 (validation false): gbuffer median 0.330 p90 0.331 ms | shade (sun, 1 
+shadow ray) median 0.528 p90 0.529 ms (40 reps)
+cost low merge greedy region chunk 1920x1080 (validation false): gbuffer median 0.253 p90 0.255 ms | shade (sun, 1 
+shadow ray) median 0.411 p90 0.412 ms (40 reps)
+cost overhead merge greedy region chunk 1920x1080 (validation false): gbuffer median 0.296 p90 0.298 ms | shade (sun, 
+1 shadow ray) median 0.353 p90 0.353 ms (40 reps)
+cost street merge greedy region 2x2x2_chunks 1920x1080 (validation false): gbuffer median 0.283 p90 0.283 ms | shade 
+(sun, 1 shadow ray) median 0.482 p90 0.483 ms (40 reps)
+cost low merge greedy region 2x2x2_chunks 1920x1080 (validation false): gbuffer median 0.217 p90 0.218 ms | shade 
+(sun, 1 shadow ray) median 0.368 p90 0.369 ms (40 reps)
+cost overhead merge greedy region 2x2x2_chunks 1920x1080 (validation false): gbuffer median 0.262 p90 0.263 ms | shade 
+(sun, 1 shadow ray) median 0.309 p90 0.310 ms (40 reps)
+cost street merge greedy region brick 1920x1080 (validation false): gbuffer median 0.299 p90 0.307 ms | shade (sun, 1 
+shadow ray) median 0.507 p90 0.509 ms (40 reps)
+cost low merge greedy region brick 1920x1080 (validation false): gbuffer median 0.238 p90 0.240 ms | shade (sun, 1 
+shadow ray) median 0.401 p90 0.402 ms (40 reps)
+cost overhead merge greedy region brick 1920x1080 (validation false): gbuffer median 0.252 p90 0.253 ms | shade (sun, 
+1 shadow ray) median 0.338 p90 0.339 ms (40 reps)
+cost street merge none region chunk 1920x1080 (validation false): gbuffer median 0.467 p90 0.469 ms | shade (sun, 1 
+shadow ray) median 0.460 p90 0.461 ms (40 reps)
+cost low merge none region chunk 1920x1080 (validation false): gbuffer median 0.429 p90 0.431 ms | shade (sun, 1 
+shadow ray) median 0.369 p90 0.370 ms (40 reps)
+cost overhead merge none region chunk 1920x1080 (validation false): gbuffer median 0.441 p90 0.442 ms | shade (sun, 1 
+shadow ray) median 0.310 p90 0.311 ms (40 reps)
+test shade_cost_at_1080p ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.82s
+

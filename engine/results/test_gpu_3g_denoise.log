@@ -1,0 +1,96 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\denoise.rs (target\release\deps\denoise-c7317801a1103d3d.exe)
+
+running 11 tests
+test a_moving_sun_does_not_lag ... sun motion cap: age cap 8, filtered rel_mse 0.0130 bias -0.0080
+sun motion no cap: age cap 64, filtered rel_mse 0.0695 bias -0.0504
+still sun, filtered at age 8: 0.0165
+validation: 0 errors, 0 warnings
+ok
+test denoise_cost_at_1080p ... cost 1080p (validation true): temporal median 1.445 p90 1.481 ms | denoise (2 levels) median 3.487 p90 3.618 ms (60 reps)
+validation: 0 errors, 0 warnings
+
+thread 'denoise_cost_at_1080p' (4532) panicked at gpu\tests\denoise.rs:1071:5:
+C1: denoise median 3.487 ms over 3.0 ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test denoise_cost_breakdown ... ignored
+test diagnose_motion_edges ... ignored
+test edits_relight_what_they_change ... lighting: ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false }
+edit: 538 shadowed samples with a distant occluder; removing [[318, 94, 172], [326, 102, 180]) around VoxelCoord { x: 322, y: 98, z: 176 } at distance 277 frees 5 of them
+R1 relight: 920 px relit, 0 of 57600 decisions differ from the host rule (passes)
+R1 none: 0 px relit, 920 of 57600 decisions differ from the host rule (fails)
+R2: 172 changed px; 4 frames after the edit: relight 0.0319, none 0.3120, reset 0.0319
+validation: 0 errors, 0 warnings
+ok
+test edits_relight_what_they_change_with_the_bounce ... lighting: ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: true }
+edit: 538 shadowed samples with a distant occluder; removing [[318, 94, 172], [326, 102, 180]) around VoxelCoord { x: 322, y: 98, z: 176 } at distance 277 frees 5 of them
+R1 relight: 920 px relit, 0 of 57600 decisions differ from the host rule (passes)
+R1 none: 0 px relit, 920 of 57600 decisions differ from the host rule (fails)
+R2: 171 changed px; 4 frames after the edit: relight 0.0300, none 0.2996, reset 0.0300
+validation: 0 errors, 0 warnings
+ok
+test measure_raw_input ... ignored
+test motion_images ... ignored
+test motion_path_meets_the_budget ... motion frame 8: filtered rel_mse 0.0238 bias +0.0010 | raw 0.0940 bias +0.0019 MISSED
+  age 1-3 interior: 324 px, filtered 0.0002 raw 0.0048 (shares of the frame's mean)
+  age 1-3 edge    : 155 px, filtered 0.0019 raw 0.0064 (shares of the frame's mean)
+  age 4-15 interior: 30141 px, filtered 0.0024 raw 0.0403 (shares of the frame's mean)
+  age 4-15 edge    : 13152 px, filtered 0.0193 raw 0.0426 (shares of the frame's mean)
+  age 16+ interior: 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+  age 16+ edge    : 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+motion frame 16: filtered rel_mse 0.0210 bias +0.0027 | raw 0.0523 bias +0.0029 MISSED
+  age 1-3 interior: 326 px, filtered 0.0002 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 148 px, filtered 0.0015 raw 0.0071 (shares of the frame's mean)
+  age 4-15 interior: 856 px, filtered 0.0001 raw 0.0019 (shares of the frame's mean)
+  age 4-15 edge    : 353 px, filtered 0.0006 raw 0.0012 (shares of the frame's mean)
+  age 16+ interior: 29597 px, filtered 0.0019 raw 0.0162 (shares of the frame's mean)
+  age 16+ edge    : 12971 px, filtered 0.0166 raw 0.0207 (shares of the frame's mean)
+motion frame 32: filtered rel_mse 0.0208 bias +0.0014 | raw 0.0341 bias +0.0011 MISSED
+  age 1-3 interior: 326 px, filtered 0.0001 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 118 px, filtered 0.0008 raw 0.0032 (shares of the frame's mean)
+  age 4-15 interior: 970 px, filtered 0.0001 raw 0.0017 (shares of the frame's mean)
+  age 4-15 edge    : 229 px, filtered 0.0003 raw 0.0009 (shares of the frame's mean)
+  age 16+ interior: 30125 px, filtered 0.0011 raw 0.0067 (shares of the frame's mean)
+  age 16+ edge    : 13505 px, filtered 0.0184 raw 0.0164 (shares of the frame's mean)
+validation: 0 errors, 0 warnings
+
+thread 'motion_path_meets_the_budget' (8572) panicked at gpu\tests\denoise.rs:649:5:
+D4 missed at frames [8, 16, 32]
+FAILED
+test stills_meet_the_budget ... denoise pipeline with the temporal reflection refused: 24 errors
+hour 8 age 1: filtered rel_mse 0.1011 (raw 1.2547, raw at age 8 0.1550: gain met) bias +0.0049 (raw +0.0064) energy ok
+hour 8 age 4: filtered rel_mse 0.0370 (raw 0.3113, raw at age 16 0.0761: gain met) bias +0.0012 (raw +0.0004) energy ok
+hour 8 age 16: filtered rel_mse 0.0099 (raw 0.0761, raw at age 64 0.0194: gain met) bias +0.0012 (raw +0.0015) energy ok
+hour 8 age 64: filtered rel_mse 0.0047 (raw 0.0194, raw at age 64 0.0194: gain met) bias +0.0010 (raw +0.0005) energy ok
+hour 8 edges at 64: filtered 0.0119 raw 0.0307 | ignore_guides 0.8376 (all surfaces 0.3554, bias -0.0033)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\denoise_3e_8.ppm
+hour 12 age 1: filtered rel_mse 0.1355 (raw 1.3478, raw at age 8 0.1641: gain met) bias +0.0058 (raw +0.0071) energy ok
+hour 12 age 4: filtered rel_mse 0.0556 (raw 0.3308, raw at age 16 0.0800: gain met) bias +0.0003 (raw -0.0008) energy ok
+hour 12 age 16: filtered rel_mse 0.0098 (raw 0.0800, raw at age 64 0.0203: gain met) bias +0.0014 (raw +0.0015) energy ok
+hour 12 age 64: filtered rel_mse 0.0044 (raw 0.0203, raw at age 64 0.0203: gain met) bias +0.0010 (raw +0.0003) energy ok
+hour 12 edges at 64: filtered 0.0108 raw 0.0329 | ignore_guides 0.7710 (all surfaces 0.3023, bias -0.0034)
+hour 17.75 age 1: filtered rel_mse 0.0889 (raw 1.4386, raw at age 8 0.2007: gain met) bias +0.0063 (raw +0.0092) energy ok
+hour 17.75 age 4: filtered rel_mse 0.0383 (raw 0.3775, raw at age 16 0.0963: gain met) bias +0.0047 (raw +0.0036) energy ok
+hour 17.75 age 16: filtered rel_mse 0.0177 (raw 0.0963, raw at age 64 0.0248: gain met) bias +0.0012 (raw +0.0021) energy ok
+hour 17.75 age 64: filtered rel_mse 0.0088 (raw 0.0248, raw at age 64 0.0248: gain met) bias +0.0010 (raw +0.0005) energy ok
+hour 17.75 edges at 64: filtered 0.0222 raw 0.0370 | ignore_guides 1.2536 (all surfaces 0.6831, bias -0.0027)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\denoise_3e_17.75.ppm
+hour 18.25 age 1: filtered rel_mse 0.0957 (raw 1.7764, raw at age 8 0.2286: gain met) bias +0.0027 (raw +0.0071) energy ok
+hour 18.25 age 4: filtered rel_mse 0.0356 (raw 0.4442, raw at age 16 0.1106: gain met) bias +0.0029 (raw +0.0030) energy ok
+hour 18.25 age 16: filtered rel_mse 0.0152 (raw 0.1106, raw at age 64 0.0286: gain met) bias -0.0005 (raw +0.0016) energy ok
+hour 18.25 age 64: filtered rel_mse 0.0084 (raw 0.0286, raw at age 64 0.0286: gain met) bias +0.0001 (raw +0.0003) energy ok
+hour 18.25 edges at 64: filtered 0.0199 raw 0.0400 | ignore_guides 1.6082 (all surfaces 0.9007, bias -0.0062)
+validation: 0 errors, 0 warnings
+ok
+test sweep_sliders ... ignored
+
+failures:
+
+failures:
+    denoise_cost_at_1080p
+    motion_path_meets_the_budget
+
+test result: FAILED. 4 passed; 2 failed; 5 ignored; 0 measured; 0 filtered out; finished in 97.08s
+
+error: test failed, to rerun pass `-p gpu --test denoise`

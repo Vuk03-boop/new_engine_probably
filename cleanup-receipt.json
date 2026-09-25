@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-22",
+  "scope": "User-selected workspace-only cleanup",
+  "deleted": [
+    {
+      "path": "research-review/experiments/__pycache__/inspect_shader_source.cpython-313.pyc",
+      "sha256": "317e4dd198b537a09a844e1e14273bbb0a9d116ec327f3d8eab54d16f3fda757",
+      "bytes": 4064,
+      "reason": "Generated Python bytecode; reproducible, not in historical review baseline or final artifact hashes"
+    }
+  ],
+  "deleted_files": 1,
+  "deleted_bytes": 4064,
+  "removed_empty_directories": [
+    "research-review/experiments/__pycache__"
+  ],
+  "retained": "Engine, papers, research reports/models/receipts, uploads, historical archive and reconstruction provenance",
+  "status": "PASS: cleanup complete and all 1,148 retained pre-existing files byte-identical at document closeout"
+}

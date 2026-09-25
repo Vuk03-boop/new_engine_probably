@@ -1,0 +1,208 @@
+# Batch 05 — Texture access and shader organization
+
+**Date:** 2026-09-22 · **Scope:** P04 and P15 only · **Mode:** read-only research
+
+Baseline: engine `a65f6f8295c1dc01fc1a2eb5f03add5edf045a95`; unchanged Plan revision 1. No engine, retained-paper or dependency changes, branches or pushes.
+
+## 1. Decision summary
+
+| ID | Original proposal | Disposition | Confidence and decisive evidence |
+| --- | --- | --- | --- |
+| **P04** | Use `subgroupBroadcastFirst` to share atlas lookups across planar faces/quads; up to 65% fewer sampler taps | **REJECTED as stated** | High: coplanarity does not establish identical texture requests or filtered values. The paper distributes **individual texel production**, then reconstructs each lane's own filter. The engine uses native sRGB textures and nearest magnification; a shader call is not four expensive software texel evaluations. **SALVAGED H04:** profile exact request redundancy and sampler cost before considering strictly agreement-gated sample reuse. |
+| **P15** | Consolidate four `shade_hit` variants behind `CACHE_BIT/COMPACT_BIT` routing and compiler folding; large compilation/I-cache gains | **REJECTED as stated** | High: sparse learned expert routing is not a shader consolidation method. Cached/uncached paths have different receivers, compact/legacy paths deliberately have different schedules, and the project explicitly protects the four bodies. Specialization already exists; compiled code size and I-cache pressure are unmeasured. **SALVAGED H15:** measure compilation costs, then consider an independent pipeline-cache experiment without merging shaders. |
+
+These are not rejections merely because a GPU is unavailable. Each original has an unsupported algorithmic transfer or incomplete correctness premise. Carefully designed texel sharing or function refactoring is **not intrinsically impossible**; neither is established by these proposals, and refactoring the protected bodies is not authorized.
+
+**Completed reading:** all 16 pages of *Collaborative Texture Filtering*, including the supplement; all 19 pages of the original sparse-MoE v1 paper; relevant pinned API/compiler source and engine paths. **Executed:** deterministic Python counterexamples and eight lexical shader views. **Not executed:** Rust, canonical shader assembly, Naga/SPIR-V generation, driver compilation, GPU rendering or profiling. No engine speedup is claimed.
+
+[Source/access record](sources/batch-05/README.md) · [CPU/source results](sources/batch-05/model-results.json) · [Integrity record](sources/batch-05/integrity.json)
+
+## 2. Sources and early feasibility gates
+
+### Sources actually examined
+
+- **T. Akenine-Möller, P. Ebelin, M. Pharr, B. Wronski, *Collaborative Texture Filtering*, HPG 2025**, retained arXiv **2506.17770v1**. All PDF pp1–16 read; method/quality/code pages 4, 6, 7, 10 and 11 also viewed. [Retained PDF](../papers/03_Texture_filtering/2506.17770v1.pdf).
+- **Noam Shazeer and coauthors, *Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer*, arXiv 1701.06538v1**, dated 2017-01-23 and marked “Under review as a conference paper at ICLR 2017.” All pp1–19 read, including appendices A–G; Figure 1 viewed. This report identifies the exact preprint, not a different final version. [Acquired PDF](sources/batch-05/moe-v1.pdf); [verified-TLS acquisition record](sources/batch-05/retrieval.json).
+- Reused **wgpu/types/core/hal and Naga 30.0.1**, from the already lock-matched archives. Targeted reading: subgroup features/operations; Vulkan `compile_stage` override processing; Naga compaction and constant evaluation; SPIR-V function emission; public pipeline-cache contracts.
+- Reused the WGSL snapshot identifying **CR Draft 2026-09-21**: subgroup calls, broadcast-first, constant-index broadcast, shuffle and ballot. [Saved control-flow passage](sources/batch-05/subgroup-control-flow.txt).
+
+The proposal also names DeepSeek-V3 without identifying a shader-consolidation algorithm. The original Shazeer source resolves the pertinent sparse-routing analogy. A separate DeepSeek architecture review was not needed or performed; no claim about its particular kernels or compiler is inferred.
+
+### Gates that apply before a prototype
+
+1. **Subgroups exist in the pinned API, but are not requested by the inspected engine device setup.** `adapter_requirements`, native initialization and DLSS initialization do not enable `Features::SUBGROUP`. A new implementation requires a capability check and feature request on the relevant device paths, plus a non-subgroup fallback. This is absent enablement, not proof the hardware cannot support it.
+2. **Wave shape is not screen topology.** The paper's illustrative 32-lane 8×4 wave is not an established mapping for the engine's compute invocations. The pinned Vulkan backend permits varying subgroup size when the feature is enabled. Group dimensions alone prove neither subgroup size nor quad adjacency.
+3. **Broadcast is a value operation, not an automatic optimization of its argument.** Sampling in every lane and then calling `subgroupBroadcastFirst(texel)` does not itself prevent those samples. A correct work-sharing algorithm needs designated producers, agreement/coverage tests and participating consumers.
+4. **Keep all four shading bodies.** `glmPrune/PLAN.md`, “Do not touch — hard stop list,” explicitly forbids merging them. `docs/testing.md` classifies compact-shade-hit as an EXACT control; tests pin the schedules and cached-shadow semantics. A report cannot silently waive those contracts.
+5. **Existing specialization is real, but its final effectiveness is unmeasured.** The CPU sets pipeline overrides, and the pinned Vulkan path replaces overrides with constants before SPIR-V generation. Neither “the compiler cannot fold overrides” nor “all duplication surely disappears” is a supported blanket conclusion.
+
+Retained-paper coverage after this batch: **8/13 groups, 9/16 PDFs, 133 canonical pages**. External MoE reading is additional, not a change to the original corpus.
+
+## 3. P04 — What collaborative filtering actually transfers
+
+### 3.1 Paper mechanism, exactness and performance scope
+
+CTF addresses overlapping **discrete filter footprints**, especially when producing a texel is expensive, such as on-demand decompression. Its three stages are:
+
+1. Determine the texels collectively needed by active lanes.
+2. Assign distinct texels to producer lanes and evaluate them.
+3. For **each consumer**, gather its footprint's texels and apply **its own weights**.
+
+List Merge explicitly merges texel lists but is too costly for the later performance evaluation. Box Sampling uses an axis-aligned bounding box and a lane/texel bijection; it may include unnecessary texels. Mask Sampling encodes the union of needed texels and uses rank/select mappings, avoiding those box holes at additional bookkeeping cost. Neither algorithm means “all lanes use the first lane's filtered color.” See §§3.1–3.3 and Figure 2.
+
+The main exposition assumes appropriate low-numbered lanes are active. Supplement **S2** remaps a needed-texel rank to an actually active lane using the active-lane mask. A sufficient count of active lanes is not sufficient if the producer mapping still points at inactive IDs. S1's illustrative listings omit coordinate clamping and contain apparent bound/name inconsistencies; the v1 listing is not treated as tested drop-in code. The algorithmic text and S2 participation requirements are the reference for this review, not an assertion that the published implementation was executed.
+
+Exact filtering requires **complete footprint coverage and the intended weights/filter**. If the one-texel-per-lane budget cannot cover the footprint union, the method falls back. The C/C+ fallbacks are explicitly biased; S3.4–S3.5 discuss convergence/quality, including denoising effects. A high perceptual score is not bit-exactness.
+
+Important qualifications to the numbers:
+
+- The reported magnification thresholds **1.59** for Mask and **2.35** for Box come from the rotated, head-on textured-quad setup and 32-lane budget. They are not universal guarantees for arbitrary projected voxel faces, layer changes or silhouettes.
+- Evaluation uses Falcor on an **RTX 5090**, normally DLSS **DLAA** for the denoised comparisons; reported algorithm costs exclude DLSS runtime. This is not the project's native-headless or DLSS-windowed control.
+- In the main evaluation, waves containing **any minification** use trilinear filtering instead. §5 discusses but does not include the proposed minification/fractional-filter extensions in those results; they are not established replacements for this engine's fractional-LOD path.
+- Figure 7 **does use ordinary RGBA lookup** to measure algorithm overhead. It would be wrong to dismiss the paper as containing only neural-texture benchmarks. Those results nevertheless do not benchmark this atlas against its existing hardware sampler.
+- §4.3.1's zoomed FlightHelmet NTC experiment reports **93 µs/Mpixel** for Box plus fallback versus **516 µs/Mpixel** for four-decompression bilinear filtering at equal quality; one-tap STF is **89 µs/Mpixel**, with noise, and no texel evaluation is **7.7 µs/Mpixel**. This is an expensive-decoder comparison, not a transferable atlas speedup.
+- §4.3.2's **1.64×/2.5×** results distribute DCT channel-decompression work under stated magnification conditions. They are not general sampler-throughput gains.
+
+No result establishes the proposal's **“up to 65% fewer sampler taps” for this engine**. Texels produced, sampling instructions, active-lane sample requests, cache transactions, DRAM bytes and whole-frame time are different quantities.
+
+### 3.2 Actual atlas, UVs and shading
+
+Source anchors: `src/render/mod.rs::make_atlas`; `src/textures.rs::{build_atlas,downsample}`; pack image loading; `resolve.wgsl::{face_uv,perm_key,permute_uv,shade_hit_*}`.
+
+| Property | Current implementation | Consequence |
+| --- | --- | --- |
+| Storage | 16×16 layers, four mip levels, `Rgba8UnormSrgb`, `D2Array` | Native texture sampling; no per-fetch neural/DCT decompressor to remove. Pack images are also required to be 16×16 RGBA. |
+| Mip construction | CPU downsamples RGB in linear light, re-encodes sRGB; averages alpha separately | RGB transfer function, stored mip values and alpha are part of the control. |
+| Sampler | **Nearest magnification**, linear minification and mip interpolation, clamp-to-edge U/V | Replacing magnification with the paper's bilinear reconstruction changes the intended filter, not just work placement. |
+| UVs | Hit-relative local coordinates, face-dependent projection/flips, optional hashed face permutation | Coplanar or neighboring voxels need not have matching UVs, permutation or addressed texels. Actual `face_uv` and `permute_uv` are in **resolve**, not the proposal's `common.wgsl` target. |
+| Layer | `block_faces[id * 8 + normal_id]` → `face_layer` | Same plane does not imply the same material/array layer. |
+| LOD | Distance, FOV, resolution, voxel size, grazing angle, mip bias; `log2` result clamped to 0…3 | Fractional mip mixtures can differ between lanes, including on one surface. |
+| Post-sample work | Alpha/tint mask, position-dependent biome tint, wetness, foliage variation, canopy relief, lighting | Even equal sampled RGBA does not justify broadcasting final albedo or shaded radiance. |
+
+Each of the four terrain-shading bodies contains one explicit `textureSampleLevel(atlas, ...)` site. That is a **source-site count**, not a dynamic instruction/tap count. Other atlas accesses remain; in particular `common.wgsl` samples cutout alpha during traversal, where changing a sample can change the accepted hit, not merely its color.
+
+### 3.3 Concrete counterexamples and a positive control
+
+The [Python check](experiments/batch05_checks.py) deliberately uses invented texels and rational filters, not a GPU sampler emulator:
+
+- **Same face, different nearest texels:** on a 16-wide alternating black/white row, U values **9/64 and 13/64** address texels 2 and 3, producing **0 and 1**. A leader-color broadcast is wrong for one consumer despite a shared plane/layer/mip.
+- **Same bilinear footprint, different colors:** four lanes requiring the same four texels have weights yielding **1/8, 3/8, 5/8, 7/8**. Sharing the input texels is valid; sharing one filtered result is not.
+- **Positive CTF control:** a constructed magnified 8×4 packet has 128 naive logical texel demands but only **six unique texels**. Sharing those six and preserving individual weights reconstructs all 32 ideal bilinear outputs exactly. This supports the real mechanism, not equivalence to nearest magnification or any hardware traffic/speed claim.
+- **Layer identity matters:** identical coordinates in 32 different layers require **128 distinct bilinear texels**, not four. Mip identity likewise belongs in the key.
+- **Participation matters:** needed ranks 0…3 cannot be used as source IDs when the active IDs are `[1,4,7,20]`; explicit remapping works.
+- **Box versus union:** a constructed two-cluster packet needs eight unique texels, while its bounding box contains 256. This illustrates fallback/bookkeeping tradeoffs without claiming an observed engine distribution.
+
+### 3.4 API, correctness, costs and invalidation
+
+A genuine port needs more than `subgroupBroadcastFirst`:
+
+- WGSL broadcast-first selects the **lowest active invocation**, not a material/face group. A mixed subgroup requires partitioning or a fallback, not an assumed shared surface.
+- The paper's dynamic `WaveReadLaneAt` mapping corresponds more closely to **`subgroupShuffle`**: WGSL `subgroupBroadcast` requires a constant source index. An inactive shuffle source yields an indeterminate result; an inactive constant-broadcast source is a dynamic error. Ballot returns four u32 words, not universally only `.x`.
+- The saved WGSL specification triggers a subgroup-uniformity diagnostic when uniform control flow cannot be proved. Existing hit/material branches and early returns cannot simply be ignored. Pinned Naga has subgroup lowering/capability checks; inspecting them is not an executed validation result or proof of the entire specification's diagnostic behavior.
+- Preserve the native control's nearest/linear/mipmap choice, clamp behavior, layer, sRGB decode, alpha and fractional LOD. A software bilinear filter can be mathematically exact yet differ from a hardware sampler's precision/rounding. Paper “zero error” does not prove engine bit-exactness.
+- Charge agreement tests, ballots, reductions, mapping, shuffles, explicit loads/filter arithmetic, extra live values/registers, fallback execution and any lost texture-cache efficiency. One hardware filtered instruction is not equivalent to four independent costly software decodes.
+- Intra-invocation-group reuse needs no persistent history **only if** the atlas, material descriptors and frame/geometry inputs remain the same dispatch snapshot. Any persistent reuse needs invalidation on texture/pack/resource replacement, material/UV mapping changes, edits, LoD changes and sampler changes. No persistent cache is proposed here.
+
+**Verdict:** REJECTED as stated. The unconditional face/quad sharing premise is insufficient, the named intrinsic does not implement CTF, and the percentage has no relevant baseline.
+
+**SALVAGED H04:** investigate **exact sample-request reuse**, not a filter replacement. First measure equal-request frequency and whether sampling is material to runtime. A conservative identity includes resource/sampler state, layer and exact UV/LOD arguments; a coarser nearest-texel identity requires a separate proof of applicable sampling mode and boundary behavior. Do not quantize UV/LOD and call that exact. General CTF remains a different project if expensive texel production is later introduced.
+
+## 4. P15 — MoE, four schedules and existing specialization
+
+### 4.1 What the MoE paper says
+
+Shazeer et al. define `y = Σ G(x)i Ei(x)`: a learned sparse gate selects a small number of separately parameterized feed-forward experts **per input**. Noisy top-k gating, load-balancing losses, large combined batches and distributed placement make the capacity/computation tradeoff practical. §§2–4 and appendices A, B and F describe the routing and balancing mechanisms; the experiments measure model quality and training efficiency, not shader compilation or instruction-cache behavior.
+
+The paper does not merge four alternative shader schedules into one body, prove compiler folding, or deduplicate native instructions. Its warning about shrinking per-expert batches also makes “routing is free” a poor extrapolation. Deterministic selection of one existing shader arm is at most a broad conditional-computation analogy. The engine already does that; it does **not** eagerly evaluate all four variants for every hit.
+
+### 4.2 The four variants are not interchangeable dead copies
+
+| Body | Material/lighting schedule | Local sun visibility |
+| --- | --- | --- |
+| `shade_hit_legacy` | Atlas/material before lighting and surface-debug early returns | `shadow_ray` at this hit |
+| `shade_hit_compact` | Lighting in a scope, then material after surface-debug early returns; early specular computation retained | `shadow_ray` at this hit |
+| `shade_hit_legacy_cached` | Legacy schedule | `textureLoad(primary_sun, pixel, 0)` |
+| `shade_hit_compact_cached` | Compact schedule | `textureLoad(primary_sun, pixel, 0)` |
+
+Both wrappers already select on **`SPEC_COMPACT_SHADE_HIT`**. The CPU maps `FLAG_HI_COMPACT_SHADE_HIT` into the pipeline constants and specialization key. `CACHE_BIT` and `COMPACT_BIT` are proposed names, not existing shader selectors.
+
+- Opaque primary `resolve` calls **`shade_hit_cached`**, with `frame.shadow_dist,true,true,pix`.
+- `water_refract_leg`, `water_reflect_leg`, `glass_transmit_leg` and `glass_reflect_leg` call the **uncached `shade_hit`** with their actual secondary receiver, shadow distance, `secondary_smooth()` and `do_spec=false`.
+- `secondary_smooth` uses an override, not a duplicate runtime flag decision; `tests/secondary.rs` protects that distinction.
+- Cached variants retain distant terrain shading, cloud shading and the subsequent lighting computation. “Cached” does not mean all illumination is interchangeable with a screen-space value.
+- RR-selected bodies store final material guides and can take RR-debug returns. `rr_pixel` is invocation-private, secondary legs inherit the owning screen pixel, and later owning-surface stores overwrite the secondary guides. Preserve call/dispatch/store ordering, not just final color.
+
+A synthetic primary visibility of 0 and a secondary receiver's visibility of 1 become `[0,0]` instead of `[0,1]` under a **global** cache decision. This falsifies treating cachedness as a universal frame/material property; it does **not** falsify a correctly parameterized per-call implementation.
+
+The lexical checks cover all four bodies in RR-off and RR-on views. After accounting for function name, the added pixel parameter, whitespace and the explicit sun-visibility expression, each cached body matches its same-schedule uncached counterpart. That is useful maintenance evidence. It does not equate compact and legacy schedules, prove floating-point equivalence of a rewrite, or establish native code identity.
+
+### 4.3 Historical constraints, with superseded diagnoses separated
+
+Three pieces of history must not be conflated:
+
+1. **Live no-merge constraint:** `glmPrune/PLAN.md` explicitly protects the four bodies. `tests/experiments.rs`, `tests/split_passes.rs` and `tests/secondary.rs` pin material ordering, shadow source and literal/override routing; `docs/testing.md` requires exact compact-control images.
+2. **Live code is not dead:** `docs/audit-triage.md` §10.5 rejects deleting `shade_hit_legacy_cached`; the present call sites support that rejection. An arm may be unused for a particular specialization without being dead across supported configurations.
+3. **Superseded compile-crash diagnosis:** the “must not be merged” wording in the retained §10.2 reproducer paragraph concerns a separate `underwater_body` edit and is explicitly superseded. `docs/lessons.md` and **ADR 0010** resolve that incident as a long compilation blocking the Windows message pump, not a demonstrated hard compiler size limit. Compilation was moved to workers, and the separate edit landed. This does not repeal the four-body protection.
+
+The recorded **4.8s → 133s** comparison is historical project evidence for a same-key one-line edit, not a benchmark run in this audit. It demonstrates why source deletion is not a reliable compile-time estimator; it does not predict what any future consolidation would cost.
+
+### 4.4 What the pinned compiler actually does
+
+`shader_source()` assembles the modules and applies RR/content-pack selection. The raw on-disk combined alternatives are not a standalone WGSL module. Renderer construction creates the shader module; `ensure_spec` asynchronously builds missing specialization keys and retains completed pipelines. Current `PIPES_PER_SPEC` is **10**, including AO; older ADR prose describing nine is historical.
+
+For the pinned Vulkan WGSL route:
+
+1. `wgpu-hal::vulkan::Device::compile_stage` calls Naga **`process_overrides`** with the selected entry point and pipeline constants.
+2. `process_overrides` retains that entry point and compacts objects unreachable from it, then replaces overrides with constants and evaluates expressions, followed by revalidation.
+3. The inspected block-processing code retains `If` structure while updating expressions; this is **not proof of complete post-specialization branch/callee elimination**. Compaction precedes override evaluation. The SPIR-V writer and downstream driver still participate in the final result.
+4. Therefore ADR 0010's broad explanation that an override necessarily reaches the driver as an override and every specialization compiles the whole original module is **not an accurate general description of the current pinned route**. Preserve the historical observation, but use current source for the mechanism. No engine/ADR edit was made.
+
+Consequently:
+
+- A runtime frame bit is not a pipeline override or literal. Replacing static selection with runtime routing can retain work rather than remove it.
+- A unified function with literal arguments **could** specialize after inlining; it might also be cloned, increase live ranges, retain branches or shift optimizer costs. None of those outcomes has been measured here.
+- Four source functions do not prove four executed functions or four copies resident in the final hot I-cache. Frontend parsing/validation, pipeline-specific transformation, driver compilation, compiled instruction footprint, register allocation and runtime I-cache stalls need separate measurements.
+
+**Verdict:** REJECTED as stated. MoE does not establish the claimed compiler optimization, existing selection is overlooked, correctness/scheduling obligations remain, and large gains are unsupported. The prohibition is not a theorem that all possible refactorings change images; it is an explicit project contract this audit preserves.
+
+**SALVAGED H15:** a **compile-cost census**, followed only if warranted by a separate **application-managed pipeline-cache** experiment. `make_spec` currently passes `cache: None`; the pinned API exposes `PIPELINE_CACHE` on Vulkan. This is a real alternative route, not a MoE adaptation or an accepted gain. The API itself warns that desktop driver-managed caches can make the additional benefit small. No new cache can eliminate its own first-time compilation of a genuinely unseen pipeline.
+
+## 5. Minimal falsification ladders — future authorization required
+
+### H04 — Is exact atlas-request reuse worth pursuing?
+
+- **Hypothesis:** a representative workload contains enough identical eligible sample requests, and enough exposed sampler cost, to amortize agreement/communication overhead without changing images.
+- **First test/control:** unmodified engine profiling plus a separately instrumented trace/census, with instrumentation excluded from reported production timings. Record call path, active participation, resource/layer, UV, LOD, permutation and subgroup configuration. Do not assume the CPU packet's topology is the GPU topology.
+- **Workloads:** close planar terrain; textured/permuted adjacent faces; grazing/minified terrain; foliage/cutout silhouettes; glass/water secondary receivers; partial image tiles; LoD transitions and block edits; built-in and pack textures.
+- **Next isolated variable:** only if justified, one exact-agreement-gated sample-sharing path versus the same native sampler. Keep tint/lighting/RR stores per invocation; use the unchanged native path for disagreement, unsupported devices and all unproved cases.
+- **Oracle:** zero differing pixels for documented exact controls, including alpha-dependent hits and RR guide outputs, not just a perceptual metric. Verify capability enablement and shader validation on both applicable device paths. Inspect actual sample requests/instructions and register/spill data where available.
+- **Performance:** repeated paired kernel/pass and frame timings; count agreement/fallback rates, sampler activity and cache behavior separately. A reduction in theoretical texel demands is not success by itself.
+- **Stop/reset:** stop if redundancy is negligible, the sampler is not a meaningful cost, validation fails, any exact output changes, or overhead cancels savings. Disable the experiment to restore byte-identical control paths; no temporal cache/history is introduced.
+
+This is initially a profiling experiment. Designing safe cooperation across the present divergent shading paths is **not promised as an afternoon integration**.
+
+### H15 — Compilation measurement and optional pipeline cache, no body merge
+
+- **Hypothesis:** repeated application launches/spec-key reconstruction incur avoidable pipeline-creation cost not already hidden by the driver's persistent cache.
+- **First test/control:** unchanged shaders and worker compilation. Record source/module creation separately from every `create_compute_pipeline`, keyed by entry, overrides, RR/pack/build configuration, adapter/backend/driver and warm/cold cache state. Time loading-to-ready as well as individual calls; preserve the responsive progress screen.
+- **Workloads:** the actual saved-settings specialization family, alternate compact/surface-debug configurations, relevant water/glass lanes, emitter sibling and pack/RR configurations. Confirm keys with `VOXELCRAFT_TRACE_FRAME`; do not blindly reuse a historical flag list or assume native headless is the DLSS device.
+- **Next isolated variable:** if repetition is costly and the adapter advertises support, enable `PIPELINE_CACHE` and compare an application-owned cache against `cache: None` **without modifying WGSL bodies, overrides or math**. Empty, populated, absent and incompatible caches are separate cases. Keep shader/control hashes fixed.
+- **API/safety:** pinned `create_pipeline_cache` is unsafe when supplying data: supplied bytes must originate from `PipelineCache::get_data`, not arbitrary backend/cache downloads. Respect `pipeline_cache_key`, driver/wgpu compatibility handling, fallback, atomic persistence, storage growth and worker/resource lifetime. Native Vulkan support does not imply DX12/Metal support or support on this unqueried adapter.
+- **Metrics/oracle:** repeated paired wall-clock pipeline creation and total readiness, cache bytes/load/save overhead, resident memory, responsiveness and identical render/guide outputs. This hypothesis predicts **startup/recreation** benefit, not an I-cache or steady-frame win. Keep desktop driver-cache effects controlled and explicitly labeled; never treat a warm second run as a code improvement.
+- **Stop/reset:** stop if driver caching already removes the cost, no useful compatible reuse exists, cache overhead dominates, or outputs/validation differ. Missing/incompatible caches must safely fall back to ordinary compilation. Roll back the cache experiment alone; the four shading bodies remain unchanged.
+
+Both ladders require repeated paired measurements, matching seed/camera/settings/frozen animation, and **`-j 2`** for future laptop builds. Native headless does not establish DLSS-windowed image equivalence. No experiment in this section was implemented or run.
+
+## 6. Interactions, limits and next step
+
+- **P09/P16/P14:** more aggressive scheduling or lane refill may reduce the UV/material coherence P04 depends on. Combining reuse/scheduling hypotheses requires new packet statistics, not multiplying their proposed speedups.
+- **P19:** altered arithmetic may change UV/LOD boundaries or compiler scheduling even when an unrelated integer-domain transformation is exact. Keep that separate from texture/filter changes.
+- **P18:** sharing sample inputs does not remove producer/consumer synchronization; an optional pipeline cache changes pipeline construction, not GPU queue scheduling.
+- **P05/P08 and P06/P07:** neighboring shading values are not automatically compatible shadow/path samples, and “cached” screen-space visibility is not a generic receiver-independent reservoir. The next batches must establish their estimators and invalidation rules independently.
+- **Edits/resources:** within-dispatch texture reuse must use the current immutable input snapshot. Pipeline-cache compatibility is a compilation/resource-description issue; it must not be confused with stale scene-lighting or image history.
+
+The [model](experiments/batch05_checks.py) passed and reproduced byte-identical results. Full closing hashes cover the clean engine, retained PDFs, unchanged plan and prior immutable artifacts. The documentation gate remains **Batch 00's actual exit 1 with three historical quotation failures**; it was not rerun or repaired. These CPU/hash checks do not turn it green or substitute for the unrun Rust/GPU gates.
+
+**Progress:** 14 proposals reviewed, 7 PENDING. P04/P15 are now reviewed; no later proposal receives a verdict here.
+
+**Next authorized continuation:** Batch **06**, P05 compatibility-guided ReSTIR neighbor selection and P08 ReSTIR PT Enhanced. Fully review their assigned retained papers/copy equivalence, establish the actual shadow estimator and history contracts, and leave another Markdown report. Do not start implementation or advance beyond the agreed batch automatically.

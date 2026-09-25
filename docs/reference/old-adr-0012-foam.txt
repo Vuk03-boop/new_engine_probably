@@ -1,0 +1,39 @@
+# 0012. Continuous animated shore-foam gain
+
+Status: Accepted (implementation; GPU acceptance pending)
+
+## Context
+
+`src/render/shaders/resolve.wgsl::foam_mottle` multiplied continuous value
+noise by an animated gain seeded only from the current cell. The gain jumped
+at 0.7-block cell boundaries. The user's fixed-pose GPU ablation returning
+only base noise removed rectangular edges while retaining foam, identifying
+this mechanism; a slant-to-vertical depth change did not remove the artifact.
+
+## Decision
+
+Evaluate the existing animated gain at the four shared lattice corners,
+interpolate those gains with the existing smooth weights, then multiply by
+the unchanged base noise. Interpolate gains, not wrapped phase angles.
+Neighboring cells now agree at their common edge at every animation time.
+Keep hash seeds, integer casts, constants, depth/light gates and routing.
+This records a local formula correction; it does not supersede WA01 or the
+water-look ripple filtering decision.
+
+## Alternatives considered
+
+- Return only base noise — useful diagnostic, but removes temporal modulation.
+- Interpolate wrapped phase angles — wrong interpolation across phase wrapping.
+- Reseed hashes or alter casts — does not make a cell-local gain continuous.
+- Project slant depth vertically — GPU-refuted as a fix for these squares.
+
+## Consequences
+
+On-arm appearance changes and requires rebaselining. The formula adds three
+phase hashes and three sine evaluations per `foam_mottle` call; performance
+must be measured. `tests/shore_foam.rs` binds an f32 continuity model to the
+assembled shader and validates that shader with Naga. It covers both axes,
+negative coordinates, cell vertices, several times, the known old jump and
+retained time variation. Tests do not establish GPU bit identity. Rust/Naga
+execution, fixed-pose and running-animation captures, shallow/deep coverage,
+paired `--no-shore-foam` bit-exactness and paired timings remain pending.

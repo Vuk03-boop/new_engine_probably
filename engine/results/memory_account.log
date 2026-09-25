@@ -1,0 +1,10 @@
+street_block 0: live 5830902 <= measured 5924240 <= reserved 6119920 (0.968 of reserved)
+random seed 1: live 6449488 <= measured 6574644 <= reserved 6895276 (0.953 of reserved)
+random seed 2: live 6607880 <= measured 6742852 <= reserved 7093068 (0.951 of reserved)
+random seed 3: live 6538208 <= measured 6640452 <= reserved 7014292 (0.947 of reserved)
+random seed 4: live 6674452 <= measured 6806644 <= reserved 7151068 (0.952 of reserved)
+jobs in flight 0: live 760968 <= measured 1089104 <= reserved 1595440 (0.683 of reserved)
+one snapshot 0: live 1514032 <= measured 2746216 <= reserved 3913824 (0.702 of reserved)
+two snapshots 0: live 2865720 <= measured 5213360 <= reserved 7643208 (0.682 of reserved)
+after release 0: live 1594624 <= measured 2866800 <= reserved 4107056 (0.698 of reserved)
+publish transient peak above the pre-publish heap: 4747504 bytes

@@ -1,0 +1,39 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\gate.rs (target\release\deps\gate-a2734e9011721b8f.exe)
+
+running 1 test
+test diagnose_q2 ... reference street_twilight: cached
+street_twilight: 1558103 surface px, 62420 lighting-edge px
+  raw                          age  1: rel_mse 1.4716 = edges 0.1214 + rest 1.3502, bias -0.0079
+  raw                          age  4: rel_mse 0.3739 = edges 0.0315 + rest 0.3424, bias -0.0077
+  raw                          age 16: rel_mse 0.0962 = edges 0.0081 + rest 0.0882, bias -0.0077
+  raw                          age 64: rel_mse 0.0270 = edges 0.0022 + rest 0.0248, bias -0.0077
+  prefilter_age 2              age  1: rel_mse 0.0414 = edges 0.0076 + rest 0.0338, bias -0.0143
+  prefilter_age 2              age  4: rel_mse 0.0163 = edges 0.0026 + rest 0.0137, bias -0.0420
+  prefilter_age 2              age 16: rel_mse 0.0075 = edges 0.0012 + rest 0.0063, bias -0.0214
+  prefilter_age 2              age 64: rel_mse 0.0051 = edges 0.0008 + rest 0.0043, bias -0.0112
+  prefilter_age 4              age  1: rel_mse 0.0414 = edges 0.0076 + rest 0.0338, bias -0.0143
+  prefilter_age 4              age  4: rel_mse 0.0163 = edges 0.0026 + rest 0.0137, bias -0.0420
+  prefilter_age 4              age 16: rel_mse 0.0075 = edges 0.0012 + rest 0.0063, bias -0.0214
+  prefilter_age 4              age 64: rel_mse 0.0051 = edges 0.0008 + rest 0.0043, bias -0.0112
+  prefilter_age 8              age  1: rel_mse 0.0414 = edges 0.0076 + rest 0.0338, bias -0.0143
+  prefilter_age 8              age  4: rel_mse 0.0141 = edges 0.0027 + rest 0.0114, bias -0.0095
+  prefilter_age 8              age 16: rel_mse 0.0075 = edges 0.0012 + rest 0.0063, bias -0.0214
+  prefilter_age 8              age 64: rel_mse 0.0051 = edges 0.0008 + rest 0.0043, bias -0.0112
+  prefilter_age 16             age  1: rel_mse 0.0414 = edges 0.0076 + rest 0.0338, bias -0.0143
+  prefilter_age 16             age  4: rel_mse 0.0141 = edges 0.0027 + rest 0.0114, bias -0.0095
+  prefilter_age 16             age 16: rel_mse 0.0075 = edges 0.0012 + rest 0.0063, bias -0.0214
+  prefilter_age 16             age 64: rel_mse 0.0051 = edges 0.0008 + rest 0.0043, bias -0.0112
+  prefilter_age 32             age  1: rel_mse 0.0414 = edges 0.0076 + rest 0.0338, bias -0.0143
+  prefilter_age 32             age  4: rel_mse 0.0141 = edges 0.0027 + rest 0.0114, bias -0.0095
+  prefilter_age 32             age 16: rel_mse 0.0070 = edges 0.0013 + rest 0.0057, bias -0.0102
+  prefilter_age 32             age 64: rel_mse 0.0051 = edges 0.0008 + rest 0.0043, bias -0.0112
+  prefilter_age 4294967295     age  1: rel_mse 0.0414 = edges 0.0076 + rest 0.0338, bias -0.0143
+  prefilter_age 4294967295     age  4: rel_mse 0.0141 = edges 0.0027 + rest 0.0114, bias -0.0095
+  prefilter_age 4294967295     age 16: rel_mse 0.0070 = edges 0.0013 + rest 0.0057, bias -0.0102
+  prefilter_age 4294967295     age 64: rel_mse 0.0051 = edges 0.0008 + rest 0.0042, bias -0.0083
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 10.29s
+

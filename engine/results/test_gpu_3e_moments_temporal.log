@@ -1,0 +1,21 @@
+﻿cargo :    Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+At line:1 char:302
++ ... tch {} } }; cargo test --release -j 2 -p gpu --test temporal -- --tes ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling gp...sal\engine\gpu):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `release` profile [optimized] target(s) in 13.35s
+     Running tests\temporal.rs (target\release\deps\temporal-01ad16d9f3221158.exe)
+
+running 7 tests
+test accumulated_images ... ok
+test accumulation_converges_to_the_reference ... ok
+test an_edit_resets_only_its_regions ... ok
+test global_resets ... ok
+test moving_camera_decisions_match_the_host ... ok
+test static_history_is_the_running_mean ... ok
+test temporal_cost_at_1080p ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 66.44s
+

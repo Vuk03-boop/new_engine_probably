@@ -1,0 +1,356 @@
+{
+  "status": "PASS",
+  "date": "2026-09-22",
+  "scope": "Workspace-only cleanup and Markdown design proposition; no engine implementation",
+  "opening_regular_files": 1149,
+  "deleted_files": 1,
+  "deleted_bytes": 4064,
+  "retained_preexisting_files_byte_identical": 1148,
+  "engine_files_unchanged": 295,
+  "retained_pdfs_unchanged": 16,
+  "prior_batch09_artifact_hashes_preserved": 37,
+  "new_markdown_documents": 9,
+  "local_file_links_checked": 80,
+  "all_new_document_links_resolve": true,
+  "original_technique_ids_accounted_for": 21,
+  "new_engine_code_files": 0,
+  "builds_or_gpu_tests_run": false,
+  "existing_files_moved": 0,
+  "existing_files_modified": 0,
+  "git_metadata_created": false,
+  "new_document_and_record_sha256": {
+    "README.md": "81238e7e59018ba5bbe601e7ef14d92139c1f4fe793924f65881abebc629f06b",
+    "new-engine-proposal/BUILD-ROADMAP.md": "c22215a7c6ba04f3c030fe143a821ab29065d42144a5148aff8340efcdebb23b",
+    "new-engine-proposal/CONTEXT-AND-CONSTRAINTS.md": "469b617fffd25854e7f9307b161cf567013b8acca393d22943eaef76d42fc844",
+    "new-engine-proposal/ENGINEERING-LESSONS.md": "da1468b070934997eaf4be179317f4ec35ef4fbf5251bfb69f4bd286b16f06f4",
+    "new-engine-proposal/PROPOSITION.md": "c919abede0ae85e68e518b35c1c41928d747657efa0b39d820325a2bc3123862",
+    "new-engine-proposal/README.md": "359bb30453a64357673b801cb10f6046826d54bfb4ce097920ada6420ede3d18",
+    "new-engine-proposal/TECHNIQUE-MAP.md": "9c0250f0510de31bbda07faa23c5e7666e456fc6013b005707ace583eb8f7f7d",
+    "new-engine-proposal/VALIDATION-AND-BUDGETS.md": "6604ccfbac12ce2f03f6466afc1a89fd4779c71ca598357fa845f2f00a469cf9",
+    "new-engine-proposal/WORKSPACE-CLEANUP.md": "a72f1365a7cf0326552587542883fde101a3eeb9a549540f726a0b627b239bc8",
+    "new-engine-proposal/cleanup-receipt.json": "70316584accefa5c4deff58c6764de781c0940e492861714cb9f8f209895e508",
+    "new-engine-proposal/preservation-baseline.json": "84446176e493ee7ee879519cf26d27243943494296773657fbd6bcfbb3a7e600"
+  },
+  "local_links": [
+    {
+      "document": "new-engine-proposal/CONTEXT-AND-CONSTRAINTS.md",
+      "target": "../research-review/batch-09-synthesis.md"
+    },
+    {
+      "document": "new-engine-proposal/CONTEXT-AND-CONSTRAINTS.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/AGENTS.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/adr/0011-directional-ambient-occlusion.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../research-review/batch-06-restir-spatial-reuse.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/adr/0010-compile-pipelines-off-the-main-thread.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../research-review/batch-05-textures-shader-organization.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/AGENTS.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/lessons.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../research-review/batch-04-scheduling-queues.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../research-review/batch-06-restir-spatial-reuse.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/adr/0008-ray-reconstruction-material-guides.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../recovered-codebase/docs/adr/0012-continuous-shore-foam.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "new-engine-proposal/ENGINEERING-LESSONS.md",
+      "target": "../reconstruction/README.md"
+    },
+    {
+      "document": "new-engine-proposal/PROPOSITION.md",
+      "target": "CONTEXT-AND-CONSTRAINTS.md"
+    },
+    {
+      "document": "new-engine-proposal/PROPOSITION.md",
+      "target": "VALIDATION-AND-BUDGETS.md"
+    },
+    {
+      "document": "new-engine-proposal/PROPOSITION.md",
+      "target": "TECHNIQUE-MAP.md"
+    },
+    {
+      "document": "new-engine-proposal/PROPOSITION.md",
+      "target": "BUILD-ROADMAP.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "PROPOSITION.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "CONTEXT-AND-CONSTRAINTS.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "TECHNIQUE-MAP.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "BUILD-ROADMAP.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "ENGINEERING-LESSONS.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "VALIDATION-AND-BUDGETS.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "WORKSPACE-CLEANUP.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "../research-review/batch-09-synthesis.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "../recovered-codebase/"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "../archive/"
+    },
+    {
+      "document": "new-engine-proposal/README.md",
+      "target": "../reconstruction/"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-01-representation.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-02-streaming-memory.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-01-representation.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-05-textures-shader-organization.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-06-restir-spatial-reuse.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-07-temporal-lod-continuity.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-07-temporal-lod-continuity.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-06-restir-spatial-reuse.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-03-coherent-traversal.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-01-representation.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-08-lighting-neural-heightfield.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-08-lighting-neural-heightfield.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-02-streaming-memory.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-04-scheduling-queues.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-05-textures-shader-organization.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-03-coherent-traversal.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-08-lighting-neural-heightfield.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-04-scheduling-queues.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-04-scheduling-queues.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-02-streaming-memory.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/batch-03-coherent-traversal.md"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/sources/batch-09/coverage.csv"
+    },
+    {
+      "document": "new-engine-proposal/TECHNIQUE-MAP.md",
+      "target": "../research-review/sources/INDEX.md"
+    },
+    {
+      "document": "new-engine-proposal/WORKSPACE-CLEANUP.md",
+      "target": "cleanup-receipt.json"
+    },
+    {
+      "document": "new-engine-proposal/WORKSPACE-CLEANUP.md",
+      "target": "preservation-baseline.json"
+    },
+    {
+      "document": "new-engine-proposal/WORKSPACE-CLEANUP.md",
+      "target": "../research-review/sources/batch-09/historical-link-audit.json"
+    },
+    {
+      "document": "new-engine-proposal/WORKSPACE-CLEANUP.md",
+      "target": "../README.md"
+    },
+    {
+      "document": "new-engine-proposal/WORKSPACE-CLEANUP.md",
+      "target": "verification.json"
+    },
+    {
+      "document": "README.md",
+      "target": "new-engine-proposal/PROPOSITION.md"
+    },
+    {
+      "document": "README.md",
+      "target": "new-engine-proposal/README.md"
+    },
+    {
+      "document": "README.md",
+      "target": "recovered-codebase/"
+    },
+    {
+      "document": "README.md",
+      "target": "research-review/batch-09-synthesis.md"
+    },
+    {
+      "document": "README.md",
+      "target": "research-review/cross-audit-other-ai.md"
+    },
+    {
+      "document": "README.md",
+      "target": "papers/INDEX.md"
+    },
+    {
+      "document": "README.md",
+      "target": "uploads/"
+    },
+    {
+      "document": "README.md",
+      "target": "archive/"
+    },
+    {
+      "document": "README.md",
+      "target": "reconstruction/README.md"
+    },
+    {
+      "document": "README.md",
+      "target": "ARENA-AI-HANDOFF-2026-09-22.md"
+    },
+    {
+      "document": "README.md",
+      "target": "new-engine-proposal/WORKSPACE-CLEANUP.md"
+    },
+    {
+      "document": "README.md",
+      "target": "new-engine-proposal/verification.json"
+    }
+  ]
+}

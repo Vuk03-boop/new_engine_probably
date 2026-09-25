@@ -1,0 +1,21 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\gate.rs (target\release\deps\gate-a2734e9011721b8f.exe)
+
+running 1 test
+test motion_against_the_reference ... reference motion_morning_8: 4096 spp in 101.1 s
+reference motion_morning_16: 4096 spp in 102.3 s
+reference motion_morning_32: 4096 spp in 103.4 s
+motion morning frame  8: filtered rel_mse 0.0048 bias +0.0001 | raw 0.0631 bias +0.0018 | reference noise 1.03e-3 | Q3 pass
+motion morning frame 16: filtered rel_mse 0.0036 bias +0.0009 | raw 0.0290 bias +0.0016 | reference noise 1.04e-3 | Q3 pass
+motion morning frame 32: filtered rel_mse 0.0032 bias +0.0015 | raw 0.0163 bias +0.0017 | reference noise 1.06e-3 | Q3 pass
+reference motion_dusk_8: 4096 spp in 99.9 s
+reference motion_dusk_16: 4096 spp in 103.2 s
+reference motion_dusk_32: 4096 spp in 102.8 s
+motion dusk frame  8: filtered rel_mse 0.0070 bias -0.0003 | raw 0.0806 bias +0.0033 | reference noise 2.01e-3 | Q3 pass
+motion dusk frame 16: filtered rel_mse 0.0052 bias +0.0014 | raw 0.0374 bias +0.0029 | reference noise 2.02e-3 | Q3 pass
+motion dusk frame 32: filtered rel_mse 0.0044 bias +0.0021 | raw 0.0203 bias +0.0028 | reference noise 2.03e-3 | Q3 pass
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 648.63s
+

@@ -1,0 +1,13 @@
+    Finished `release` profile [optimized] target(s) in 2.06s
+     Running tests\memory_account.rs (target\release\deps\memory_account-02095f92d2043487.exe)
+
+running 1 test
+jobs in flight 0: live 761480 <= measured 1089616 <= reserved 1595952 (0.683 of reserved)
+one snapshot 0: live 1512912 <= measured 2810880 <= reserved 3978400 (0.707 of reserved)
+two snapshots 0: live 2862384 <= measured 5284352 <= reserved 7714112 (0.685 of reserved)
+after release 0: live 1591544 <= measured 2935768 <= reserved 4175936 (0.703 of reserved)
+publish transient peak above the pre-publish heap: 4762632 bytes
+test reported_pipeline_memory_brackets_measured_heap ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+

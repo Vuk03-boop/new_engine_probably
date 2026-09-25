@@ -1,0 +1,30 @@
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running tests\bounce.rs (target\release\deps\bounce-77410b77f157cbdb.exe)
+
+running 1 test
+test one_bounce_converges_to_the_reference ... dawn street: image -0.0327 -0.0440 -0.0450 | indirect -0.0197 -0.0354 -0.0403 (bounce share of the reference 7.7%, 10811 px with indirect) bad 0 (data)
+dawn low: image -0.0233 -0.0362 -0.0397 | indirect -0.0240 -0.0379 -0.0441 (bounce share of the reference 5.9%, 7430 px with indirect) bad 0 (data)
+  noise dawn street direct: 1-sample relMSE 0.601, mean luminance 7.0851e-3
+  noise dawn street bounce: 1-sample relMSE 0.500, mean luminance 7.1613e-3
+morning street: image -0.0075 -0.0199 -0.0308 | indirect +0.0018 -0.0081 -0.0218 (bounce share of the reference 9.2%, 10811 px with indirect) bad 0 pass
+morning low: image -0.0032 -0.0095 -0.0186 | indirect -0.0086 -0.0148 -0.0246 (bounce share of the reference 4.6%, 7430 px with indirect) bad 0 pass
+  noise morning street direct: 1-sample relMSE 0.570, mean luminance 1.6796e-2
+  noise morning street bounce: 1-sample relMSE 0.460, mean luminance 1.7152e-2
+midday street: image +0.0026 -0.0056 -0.0101 | indirect +0.0048 +0.0004 -0.0043 (bounce share of the reference 11.5%, 10811 px with indirect) bad 0 pass
+midday low: image +0.0004 -0.0018 -0.0038 | indirect -0.0010 -0.0036 -0.0067 (bounce share of the reference 4.2%, 7430 px with indirect) bad 0 pass
+  noise midday street direct: 1-sample relMSE 0.740, mean luminance 1.4738e-2
+  noise midday street bounce: 1-sample relMSE 0.609, mean luminance 1.5329e-2
+dusk street: image -0.0272 -0.0403 -0.0447 | indirect -0.0175 -0.0328 -0.0397 (bounce share of the reference 7.4%, 10811 px with indirect) bad 0 (data)
+dusk low: image -0.0168 -0.0310 -0.0391 | indirect -0.0176 -0.0347 -0.0440 (bounce share of the reference 4.9%, 7430 px with indirect) bad 0 (data)
+  noise dusk street direct: 1-sample relMSE 0.833, mean luminance 4.1097e-3
+  noise dusk street bounce: 1-sample relMSE 0.653, mean luminance 4.1929e-3
+twilight street: image -0.0049 +0.0526 +0.1057 | indirect -0.0011 +0.0469 +0.0954 (bounce share of the reference 6.8%, 10811 px with indirect) bad 0 (data)
+twilight low: image -0.0033 +0.0515 +0.1033 | indirect -0.0063 +0.0438 +0.0906 (bounce share of the reference 5.2%, 7430 px with indirect) bad 0 (data)
+  noise twilight street direct: 1-sample relMSE 1.214, mean luminance 2.3194e-4
+  noise twilight street bounce: 1-sample relMSE 0.996, mean luminance 2.3747e-4
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 82.87s
+
+exit 0

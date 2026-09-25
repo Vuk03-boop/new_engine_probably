@@ -1,0 +1,128 @@
+﻿cargo :    Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+At line:1 char:302
++ ... tch {} } }; cargo test --release -j 2 -p gpu -- --test-threads=1 2>&1 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling gp...sal\engine\gpu):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `release` profile [optimized] target(s) in 12.74s
+     Running unittests src\lib.rs (target\release\deps\gpu-68ceee8ec9eb66f1.exe)
+
+running 12 tests
+test alloc::tests::first_fit_aligns_splits_and_coalesces ... ok
+test equivalence::tests::axis_normals_encode_to_exact_snorm_bits ... ok
+test equivalence::tests::camera_rays_have_unit_forward_component ... ok
+test equivalence::tests::resolve_picks_the_voxel_behind_the_face ... ok
+test layout::tests::f16_integers_are_exact ... ok
+test layout::tests::image_sections_are_aligned_and_hold_the_triangulation ... ok
+test layout::tests::negative_coordinates_group_into_the_right_region ... ok
+test layout::tests::pack_round_trips_and_fields_do_not_overlap ... ok
+test layout::tests::regions_preserve_every_quad_in_world_position ... ok
+test reflect::tests::parses_nested_values_and_rejects_garbage ... ok
+test timeline::tests::retirement_releases_in_order_only_after_completion ... ok
+test timing::tests::nearest_rank_percentiles ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+
+     Running unittests src\bin\ref_light.rs (target\release\deps\ref_light-a55e0f7240f4a944.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\device.rs (target\release\deps\device-39d6ccc4ee7829c7.exe)
+
+running 9 tests
+test a_refused_grant_changes_nothing_and_old_meshes_stay_valid ... ok
+test device_budget_follows_adr_0003 ... ok
+test formats_assumed_by_adr_0003_and_0004_are_supported ... ok
+test frame_readers_keep_1c_snapshots_alive_until_the_gpu_is_done ... ok
+test gpu_decode_agrees_with_the_host_layout ... ok
+test mesh_uploads_read_back_bit_exact_for_every_setting ... ok
+test negative_control_early_free_is_caught ... ok
+test negative_controls_layout_mismatches_are_reported ... ok
+test retirement_waits_for_the_gpu ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.47s
+
+     Running tests\edit.rs (target\release\deps\edit-558dc916f5dea8d1.exe)
+
+running 4 tests
+test debug_views_read_ray_outputs_like_the_gbuffer ... ok
+test edits_reach_raster_and_ray_for_every_setting ... ok
+test planted_edit_faults_are_caught ... ok
+test refused_update_keeps_the_previous_snapshot ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 97.93s
+
+     Running tests\raster.rs (target\release\deps\raster-f2d5d97666feec82.exe)
+
+running 5 tests
+test debug_views_show_the_stored_gbuffer_values_and_the_timer_measures ... ok
+test negative_control_unsplit_greedy_cracks_again ... ok
+test planted_faults_are_caught ... ok
+test raster_matches_the_voxel_reference_for_every_setting ... ok
+test targets_take_ledger_grants_and_a_refusal_changes_nothing ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.91s
+
+     Running tests\ray.rs (target\release\deps\ray-d1f635862ceff471.exe)
+
+running 4 tests
+test accel_build_is_all_or_nothing_on_refusal ... ok
+test planted_accel_faults_are_caught ... ok
+test ray_query_matches_the_reference_and_raster_for_every_setting ... ok
+test trace_and_raster_cost_at_1080p ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.43s
+
+     Running tests\reference.rs (target\release\deps\reference-ad287ed89f69275e.exe)
+
+running 5 tests
+test diagnostic_tail_rate_of_the_pixel_metric ... ignored
+test gpu_reference_matches_the_cpu_statistically ... ok
+test layout_is_checked_and_atmosphere_constants_agree ... ok
+test point_sun_matches_the_cpu_per_pixel ... ok
+test white_furnace_is_one_and_a_wrong_pdf_is_caught ... ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 81.49s
+
+     Running tests\shade.rs (target\release\deps\shade-6ab1221a363a4a32.exe)
+
+running 4 tests
+test light_view_images ... ok
+test real_time_sun_equals_the_reference_sample_per_pixel ... ok
+test shade_cost_at_1080p ... ok
+test shade_layout_is_checked ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.18s
+
+     Running tests\sky.rs (target\release\deps\sky-28f337d5260131ec.exe)
+
+running 4 tests
+test gpu_sky_table_equals_the_host_table ... ok
+test surface_sky_term_converges_to_the_reference ... ignored, known failure: sky-table bias just over the declared surface budget (3C record)
+test table_sky_matches_the_monte_carlo_sky ... ok
+test uniform_sky_term_equals_the_reference_per_pixel ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 39.44s
+
+     Running tests\temporal.rs (target\release\deps\temporal-01ad16d9f3221158.exe)
+
+running 7 tests
+test accumulated_images ... ok
+test accumulation_converges_to_the_reference ... ok
+test an_edit_resets_only_its_regions ... ok
+test global_resets ... ok
+test moving_camera_decisions_match_the_host ... ok
+test static_history_is_the_running_mean ... ok
+test temporal_cost_at_1080p ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 89.46s
+
+   Doc-tests gpu
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

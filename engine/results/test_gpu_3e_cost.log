@@ -1,0 +1,20 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\denoise.rs (target\release\deps\denoise-cba05e17b2083eac.exe)
+
+running 1 test
+test denoise_cost_at_1080p ... cost 1080p (validation false): temporal median 2 p90 1.454 ms | denoise (1.48992 levels) median 4.468 p90 4.651 ms (60 reps)
+validation: 0 errors, 0 warnings
+
+thread 'denoise_cost_at_1080p' (9960) panicked at gpu\tests\denoise.rs:1077:5:
+C1: denoise median 4.468 ms over 3.0 ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    denoise_cost_at_1080p
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 16.60s
+
+error: test failed, to rerun pass `-p gpu --test denoise`

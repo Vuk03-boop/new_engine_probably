@@ -1,0 +1,26 @@
+warning: manual implementation of `.is_multiple_of()`
+  --> world\src\dims.rs:26:23
+   |
+26 | const _: () = assert!(BRICK_VOXELS % 64 == 0, "occupancy mask must be whole u64 words");
+   |                       ^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `BRICK_VOXELS.is_multiple_of(64)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#manual_is_multiple_of
+   = note: `#[warn(clippy::manual_is_multiple_of)]` on by default
+
+warning: the loop variable `a` is used to index `c`
+  --> world\src\reference.rs:74:14
+   |
+74 |     for a in 0..3 {
+   |              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#needless_range_loop
+   = note: `#[warn(clippy::needless_range_loop)]` on by default
+help: consider using an iterator and enumerate()
+   |
+74 -     for a in 0..3 {
+74 +     for (a, <item>) in c.iter().enumerate() {
+   |
+
+warning: `world` (lib) generated 2 warnings (run `cargo clippy --fix --lib -p world -- ` to apply 1 suggestion)
+    Checking gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 0.53s

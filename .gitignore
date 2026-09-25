@@ -1,0 +1,13 @@
+# Build output (regenerable).
+target/
+phase0-probes/cpp/build/
+
+# Phase 0 third-party assets and tools (Bistro scene, RenderDoc): large, not ours, kept locally.
+phase0-probes/assets/
+phase0-probes/tools/
+
+# GPU captures (RenderDoc, Nsight): up to ~1 GB each, over GitHub's file limit; kept locally.
+*.rdc
+*.ngfx-gputrace
+
+__pycache__/

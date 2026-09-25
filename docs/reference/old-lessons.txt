@@ -1,0 +1,599 @@
+# Lessons and fumbles log
+
+Living log of pitfalls and agent mistakes. Rule: when the agent (or a human)
+wastes a loop on a wrong assumption, append the entry that would have
+prevented it. Keep entries to one line plus a pointer.
+
+## Format
+
+`- YYYY-MM-DD — what happened -> what to do instead (pointer)`
+
+## Entries
+
+- 2026-09-18 — Bulk edit rewrote every file's line endings -> the tree is
+  deliberately mixed-EOL and `.gitattributes` pins `* -text`; detect per-file
+  EOL and preserve it before rewriting a file. (`.gitattributes`)
+- 2026-09-18 — Assumed `.gitattributes`' prose about which files are CRLF was
+  current -> that comment is stale prose describing an older tree (it names
+  long-gone docs); measure the bytes, never trust the comment.
+- 2026-09-18 — Comment-stripping naively with regex would have eaten `//`
+  inside string literals (several tests do `l.split("//")` on shader source)
+  -> tokenize; strings/raw strings/char literals first. (`tests/support/mod.rs`)
+- 2026-09-18 — `tests/bins.rs` looks like it pins `src/bin/*` tools, but no
+  `src/bin/` exists and the suite early-returns on missing files -> it is
+  vacuous in this tree; it is not evidence those binaries exist.
+- 2026-09-18 — `--water-mottle` accepts a value and silently discards it
+  (stderr notice, fixed 0.0) -> do not "fix" the plumbing; the pin is
+  deliberate (ADR 0002).
+- Standing — citing line numbers in docs/comments goes stale silently -> cite
+  paths and symbols only. (`docs/README.md` rule 3)
+- 2026-09-20 — `grep -c $'\r$'` was used to detect CRLF and returned the file's
+  full line count for LF and CRLF files alike -> it is not a CRLF probe; compare
+  the count of CRLF pairs with the count of newlines. The tracked tree is
+  uniformly LF today; only the untracked `codebase_dump.txt` is CRLF.
+
+## Source-text pins can pass on narration
+
+`water_seen_through_a_pane_is_shaded_as_water` matched `WATER_BODY` and
+`schlick(` inside the search window that spanned a *comment* above the call
+site. The comment strip of 2026-09 flipped the test red while the code was
+byte-identical: for years the pin had been reading the comment, not the
+code. Source-text pins must anchor on the mechanism (route into the shared
+entry, then assert each load-bearing word where it actually lives), and the
+failure message should name *what* the invariant protects so the next
+refactor sees the intent.
+
+## A zero-pixel arm is a question, not an answer
+
+The first full run of `validation/upload_report.py` produced sixteen
+"zero-pixel" arms; every single one was the *scene* failing to reach the
+feature, not the feature being dead: a value clamped on the CPU (`tint`), a
+diagnostic that only applies to another diagnostic (`probe-noise` needs
+`--probe-fill`), an underwater-only path sampled from the air (`snell`), a
+window size that needs its switch on (`sun-softness` under `--soft-shadows`),
+and demo structures buried inside the hill 14 blocks in front of the default
+camera. Benchmark truth: pairing beats screenshots. Each arm now ships with
+the vantage that exercises it (the same catalogue `src/harness/vantage.rs`
+curates), or with an explicit "expected inert in this scene, because ..."
+note. Never green-light a feature from one camera.
+
+## A diff against a different camera measures the camera, not the flag
+
+The first repaired run of `validation/upload_report.py` paired scene-context
+arms with their curated vantages but still diffed them against the *default*
+baseline — so every paired arm "passed" at 100% of frame by construction and
+said nothing about the feature it was meant to watch. Any diff-based guard
+needs an explicit statement of what baseline removes what variable; here the
+answer is a cached context baseline per distinct context (same pins, flag
+left off), and an import-time assert that every CTX arm's args end with its
+declared context. SUSPECT lost teeth for exactly one run; caught by reading
+the diffs instead of celebrating the green. Also closed by the same run:
+the water-sec perf anomalies were thermal ordering all along (drift ±5.4%
+with corrected re-run; scale-1.25's real number is +31%, expected).
+
+## "Zero pixels" twice: read the plumbing before renaming the test
+
+Two `SUSPECT` rows from the first paired-context run taught opposite lessons
+in the same hour. `isolate-glass` looked like dead plumbing — flag bit set,
+override declared, zero pixels — but the lane-split lives in `RESOLVE_LANE`
+wiring in `render/mod.rs` (a sed window had cut off the pair list) and the
+zero pixels *are* the contract: it is an output-preserving A/B pipeline, so
+it belongs in EXACT with `compact-shade-hit`, with a perf arm to say why it
+exists. `no-snell` was genuinely scene-gated, but by a constant, not a
+camera: `SNELL_MIN_DEPTH = 3.0` blocks makes a one-block-deep periscope
+identical on and off; the context needed submerge 5, not a new test. The
+guard against the first failure mode now lives in tests/spec_hi.rs: every
+`SPEC_` override with a `FLAG_HI_` sibling must be wired, and every wired
+name must exist — dead by construction is the failure regexes find quietest.
+
+## A fork-guard needs the flag's prerequisites, not just the flag
+
+Proving `--soft-shadow-hq` still forks after the SOFT_TAPS removal (ADR 0007)
+read zero-delta twice before it read 63 pixels. Two wrong assumptions: the
+flag requires `--soft-shadows` (off by default, so the first "guard" diffed
+two identical no-op runs), and even with shadows on, `SHADOW_RADIUS_LIMIT`
+only binds when the penumbra radius `distance * SUN_ANGLE * SOFT_PENUMBRA /
+depth` exceeds the default 4 — with `SUN_ANGLE = 0.0093` the default scene
+never gets there. `--soft-shadows --sun-softness wide --soft-shadow-hq` vs
+the same without hq is the smallest arm that shows the fork. When a
+behavioral A/B guard reads zero, diff the *pre-change* binary against itself
+first: if that is also zero, the scene is wrong, not the change.
+
+## A test that asserts a string is absent proves nothing
+
+`tests/dlss_prep.rs` asserted the prep shader did not contain `frame.jitter`, to
+prove its rays were un-jittered. It passed for hours while the rays were fully
+jittered, because `ray_dir` adds `frame.jitter` *itself*, one call away. The
+false confidence was worse than no test: it sent the search elsewhere while the
+real bug sat under the assertion meant to catch it. Assert the compensating
+behaviour is present, and pin the upstream assumption separately, so the guard
+breaks when the thing it depends on moves.
+
+## A native crash leaves no Rust evidence — reach for validation layers
+
+DLSS died with no panic, no message, and `RUST_BACKTRACE` did nothing, because
+nothing panicked: NGX was allocating with `VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT`
+on a device where `bufferDeviceAddress` was never enabled. Vulkan validation
+named the exact VUID in two lines, after several rounds of guessing. When a Rust
+program dies silently in GPU or FFI code, a backtrace is the wrong tool; the
+API's own validation is the right one, and the Vulkan SDK is already installed.
+
+## Read the vendor spec sitting on disk before inferring from crate source
+
+Three DLSS conventions (depth range, motion-vector direction, jitter units) were
+reverse-engineered from `dlss_wgpu` source across several failed rounds. All three
+are stated plainly in `DLSS_Programming_Guide_Release.pdf`, which had been in the
+SDK clone since the first hour. Reading it turned three open unknowns into one
+bug and two confirmations. When integrating a vendor SDK, find its documentation
+before its source — and `pdftotext -layout` makes a PDF greppable.
+
+## Do not invoke the suite twice in one command
+
+`cargo test | grep FAILED; cargo test | grep -c ok` runs the whole suite twice.
+Measured: 3m36s that way against 53s for one invocation redirected to a file and
+analysed afterwards. Most of that cost is linking ~50 test binaries, not running
+tests. Redirect once, then grep the log.
+
+## A cfg-gated field cannot be read from ungated code
+
+The per-frame trace was changed to print the jitter sign, reading `self.dlss`
+from a block carrying no `#[cfg]`. That field exists only under the `dlss`
+feature, which is off by default, so `cargo build`, `cargo run` and `cargo test`
+all stopped compiling — while `--features dlss`, the only configuration being
+built that session, stayed green. It rode in on a commit that was otherwise
+documentation, so nothing about it looked like a code change.
+
+Two rules. Read a gated field only from gated code, or hoist it into a local
+that both configurations define; the hoist is better, because it also stops the
+traced value from drifting away from the value actually sent. And when the
+feature under active work is not the default, run `cargo check` with no features
+before committing — the default build is the one every other command uses.
+
+## A temporal algorithm with no temporal benefit is being reset
+
+DLSS shimmered for days. Depth format, motion-vector convention, jitter units
+and the jitter baked into the prep pass were each audited and each came back
+correct. They were correct. `history_valid` was recorded as `taa_on`, which is
+hardwired false whenever DLSS is attached, so `reset = !history_valid` was true
+on every frame and NGX threw its history away before it could read any of them.
+
+The misleading part was the strongest-looking clue: `--dlss dlaa` shimmered too,
+which "ruled out upscaling precision". It did, truthfully, and it sent the search
+straight at the inputs. A feature that resets every frame cannot show that its
+inputs are right, so every input audit came back clean and nothing moved.
+
+Check the control flags of a temporal algorithm -- reset, history-valid, first-
+frame -- before auditing the buffers you hand it. The buffers only matter to a
+feature that is allowed to remember them, and "every input looks correct" is
+itself the symptom of a feature that never reads them.
+
+## A filtered test run is a different experiment
+
+`transitions_are_symmetric_and_never_uncover` failed in the full suite and passed
+three times out of three when re-run with a name filter. That read as "flaky" and
+pointed the diagnosis at the threshold. The filter *was* the difference: it left
+one test in the process, and the failure needs the binary's other eight flooding
+the shared global rayon pool. Running the binary unfiltered reproduced it every
+other run and hit the same 87-flip reading as the original failure.
+
+Twenty-four CPU hogs did not reproduce it. Machine-wide load is the obvious proxy
+for "the suite is busy" and it is the wrong one here: the contention was for slots
+in one process's pool, not for cores. The starved direction was also the one that
+got *quieter* -- fewer chunks arrived, so the drawn LOD stopped changing and the
+flip count fell -- which is why the ratio blew up from the numerator.
+
+Reproduce in the configuration that failed before changing the configuration. And
+a test that samples asynchronous work after a fixed sleep measures throughput, not
+behaviour: wait for the fixed point instead of widening the bound until the
+throughput fits inside it.
+
+## A wrapper's convenience getter is not the value the vendor computed
+
+`--dlss quality` reconstructed 1600x900 from 800x450 and looked soft next to the
+native image. `dlss_wgpu` asks NGX for the optimal, minimum and maximum render
+resolutions, **creates the feature with the optimal**, and then stores only the
+minimum and maximum -- and names the minimum `render_resolution()`. Calling the
+obvious getter therefore rendered at Performance's ratio under Quality's name.
+Nothing errors, because DLSS accepts any size in its dynamic range; the minimum
+is simply the blurriest point in it.
+
+The value was never unavailable, only unexposed. The vendor guide prints the
+ratio table (Quality 1.5, Balanced 1.724, Performance 2.0, Ultra 3.0, DLAA 1.0),
+so the optimal is three lines of arithmetic away. The earlier note in
+`docs/dlss.md` recorded the getter's behaviour correctly and then concluded "the
+optimal is not reachable", which was the wrong conclusion from a right
+observation, and it closed the question off as settled.
+
+When a wrapper's getter disagrees with what the wrapper itself passes to the
+vendor, read what it passes. And print the range, not just the chosen value: one
+number tells you nothing about where in the range you are sitting.
+
+## A shader flag nothing sets is a feature nothing runs
+
+Gating the water reflection's 65% roughness flatten behind a new
+`FLAG_WATER_ROUGH_FLATTEN` bit looked complete: the const was declared in
+`common.wgsl`, the branch read it, and the shader compiled. But no CPU code
+ever set the bit, so the branch was dead-off and the flatten simply stopped
+happening -- in the default build, with no flag passed, breaking the
+bit-exactness rule that the flag was introduced to preserve.
+
+Nothing caught it. The full suite passed, because the shader-text pins assert
+that source strings are present, not that a uniform bit is reachable. Both
+halves of a Rust/WGSL constant pair have to land together (hard rule 2), and a
+flag is a pair: the WGSL const and the line that sets it. Grep for the setter,
+not the declaration.
+
+It was also nearly missed a second way. The base screenshot hash in the handoff
+was described as the *feature-build* neutrality target, which quietly assumed
+the default build still matched HEAD. It did not. Building HEAD in a throwaway
+worktree is what separated "the stub is not neutral" from "the tree regressed
+underneath the stub" -- the stub was neutral the whole time, both builds were
+equally wrong. When a hash misses, re-measure the reference before debugging
+the change.
+
+## A coefficient is the literal times the multiplier
+
+The ray-reconstruction plan was built on three measured causes of poor water
+reflections. The second -- that `water_compose` discards reflection detail by
+mixing it toward flat sky "by up to 65%" -- came from reading the literal
+`0.65` in `mix(refl, sky_base(...), ctx.roughness * 0.65)`. Nobody measured
+`ctx.roughness`. It is `optical_roughness`, a sub-pixel wave variance term that
+reads 0.0 across the entire near field and peaks near 0.036. The real
+coefficient is under 0.03, and A/B across six vantages puts the maximum channel
+difference at 10/255 -- invisible.
+
+The debug view that motivated the theory was consistent with it and did not
+test it: `--surface-debug reflection` shows a crisp mirrored mountain one line
+before the mix, and the conclusion drawn was that the mix destroys it. The
+final image shows the same crisp mountain. Rendering the *output* of the
+suspect line, not just its input, would have closed the question in one
+screenshot.
+
+A whole stage of work was scoped to remove a line that does nothing. When a
+plan names a magnitude, measure the magnitude before building on it -- and
+prefer an A/B of the real toggle over reading the shader.
+
+## A single run is not a measurement when the fault is intermittent
+
+`--dlss-rr` died on frame 0 inside `ensure_spec`, exit `0xcfffffff`, no Rust
+panic, no wgpu error, silent validation layers. `23b148d` ran the same command
+for 1800 frames, so the RR work was the obvious suspect. Eight hypotheses
+followed -- `rr_debug_color`, `rr_pixel`, the water/guard hunks, the `rr_store`
+calls, the early return in `shade_glass`, a driver compile ceiling -- each
+tested with one run, each "confirmed", each wrong.
+
+The fault was the machine. After a reboot all three builds passed, including
+the exact binary that had failed ten times in a row. There was no ceiling, and
+`glass_sec`/`glass_resolve` were never special: they were simply where the
+coin landed that time. The tell was available hours earlier and was read
+backwards -- the session handoff of the day (now folded into
+`docs/dlss-open-questions.md`) listed an **intermittent**
+startup hang at "COMPILING PIPELINES" as still open, and that line was quoted
+twice as *corroboration* for a deterministic story.
+
+Two habits would have caught it. Repeat the control: `23b148d` passed twice
+early and was treated as a fixed point for the rest of the day, when running it
+again after each failure would have shown it failing too. And when a revert
+that should restore a known-good state does not, stop bisecting -- that is the
+signal the model is wrong, not that the next hunk is guilty.
+
+The one move that produced information was instrumenting the failure site: a
+single `eprintln!` in `make_spec`'s pipeline factory named the pipeline being
+compiled, which four whole-file reverts had failed to localise. When a failure
+reports nothing, the first move is to make it report something, not to start
+deleting code.
+
+Also: shader text was ruled out conclusively only by reconstructing the module
+the way `shader_source` builds it and diffing against `git show 23b148d:...`.
+174394 bytes, identical, still crashed. Compare the bytes you actually ship,
+early, rather than reasoning about whether two variants are equivalent.
+
+## A comment warning about a bug is not a test
+
+`Renderer::resize` re-attaches the upscaled blit target, and carries a comment
+saying that dropping it "previously left index 3 dangling and panicked on the
+first resize". Ray Reconstruction presents from that same slot. The re-attach
+asked only about `self.dlss`, which is `None` on the RR path -- so the first
+window resize rebuilt three sources while `last_blit` still pointed at index 3,
+and panicked exactly as described, one upscaler later.
+
+Mirroring `attach_dlss` was not enough, because the bug lives in the *other*
+half of the pattern. When a comment says a mistake was made before, the thing
+to write is the assertion, not another comment. `tests/dlss_rr_config.rs` now
+pins both halves.
+
+## A probe that cannot fail is not a measurement
+
+`.gitattributes` says the tree is deliberately mixed-EOL, `AGENTS.md` repeats
+it, and the standing instruction is to check the bytes before anchoring an edit
+on a newline. The check used was `grep -c $'\r$'`, which returns the file's line
+count for *every* file, CRLF or LF. Three docs were duly "preserved" into CRLF
+that had been LF all along.
+
+Counting bytes takes one line and cannot lie: compare the number of CRLF
+pairs with the number of newlines. Across the tree that shows 158 pure-LF
+files and one CRLF file, `codebase_dump.txt`, which is untracked — so the
+tracked tree is uniformly LF. The `.gitattributes` prose naming Cargo.toml,
+CLAUDE.md, PERF.md, README.md, `src/lib.rs`, `src/stats.rs` and
+`docs/batch-11-godrays.md` as CRLF describes a tree that no longer exists;
+half of those files are gone. The `* -text` pin is still right and still
+load-bearing: it is what stops Git for Windows' `core.autocrlf=true` from
+rewriting the working copy.
+
+The transferable half is not about newlines. A verification step whose output
+is the same whether or not the condition holds is worse than no verification,
+because it converts an assumption into a reported fact. Before trusting a
+probe, run it against a case you know should fail.
+
+## A source format only one loader understands needs every reader found
+
+The Ray Reconstruction work made `resolve.wgsl` and `common.wgsl` carry both
+variants of every line it touches, chosen at build time by `render::select_rr`.
+The consequence is that the files on disk are no longer valid WGSL — the two
+arms of a changed `if` each open a brace and share one close, leaving
+`resolve.wgsl` with 435 `{` against 432 `}`. Only `shader_source()` produces
+real WGSL.
+
+`tests/dlss_rr_prep.rs` carries a careful comment explaining exactly this, and
+commit `751c311` converted one test from `include_str!` to `shader_source()`.
+`tests/split_passes.rs` was missed, and fails with `unterminated WGSL function`
+— a message that names a symptom in the shader and points nowhere near the
+cause. Nothing else caught it, because the pins that would have are the same
+pins that broke.
+
+When a change makes a checked-in file mean something different from what it
+says, the job is not done until every existing reader has been found and moved.
+Grep for the reading idiom (`include_str!` on that path), not for the feature
+name — the callers predate the feature and do not mention it.
+
+## A comment can carry a marker token
+
+The prune pass added a comment to `resolve.wgsl` saying "select_rr strips this
+whole `//#rr-on` region" — mentioning the marker, not using it — and
+`tests/rr_shader_text.rs` failed with 17 on vs 16 end. The test counts
+substring occurrences of the markers, not marker lines, so a marker inside a
+prose comment is indistinguishable from a real one. The same token in
+`dlss_rr.wgsl` would also have broken `no_selection_marker_survives_into_the_module`
+under a `dlss-rr-prep` build, even though default builds never append that
+file. The pitfall about shader-text pins splitting on `//` has a second form:
+before writing shader comments near the RR machinery, grep the new text for
+`//#rr`.
+
+## Read the whole impl block before excising a member
+
+Replacing `IdleRepaint::new` matched only the fn and guessed at its successor;
+the Edit matched cleanly and duplicated the next fn's signature line. Nothing
+flagged it — the corruption was silent until read back. An excision's span
+ends where the next member begins, so read to there before writing.
+
+## "No callers" needs the whole surface, and tests count as callers
+
+Two sweep claims died under the V-rules and the register records both.
+`WordPool::used_words` is the brick-pool leak counter read by `tests/tree.rs`'s
+`assert_pools_empty` — a pub field with zero production readers is not dead
+when the test suite reads it to hold the line against leaks. `font::g` is a
+private const identity called from all 57 glyph arms — trivial is not unused,
+and inlining it means rewriting a glyph table for nothing.
+
+## A per-file editor cannot apply a multi-file plan
+
+The `diff_bbox` fix spans `metric.rs`, `headless.rs` and `tests/d2b.rs`. The
+per-file editor applied its own file honestly, reported that the other two
+spans were outside its ownership, and the tree stopped compiling until the
+rest landed — the gate caught it exactly as designed, but a fix that crosses
+files must either be applied by one editor or have its cross-file spans
+explicitly assigned. A plan that says "edit A, then B compiles" is a promise
+about ordering, and per-file fan-out does not keep it.
+
+## A monotonic trend in an untouched metric is the thermometer, not the result
+
+Four `--bench-frames` runs on 2026-09-20 compared `--shadow-temporal`,
+`--hiz-temporal` and `--no-shadows` against a baseline. All three came out
+slower, which was already odd, and `--no-shadows` -- strictly less work --
+came out slower than the baseline, which is impossible.
+
+The signal was in the column nobody was testing. `march` read 3.34, 3.38, 3.53,
+3.58 across the four, in run order, and none of those flags touches the primary
+march. That is a laptop GPU warming up over four consecutive benches, and it
+had contaminated every total.
+
+The stage under test was still readable: `resolve` measured 3.56 and 3.57 on
+separate occasions, did not track run order, and put `--no-shadows` lowest even
+though it ran last and hottest. So the per-stage breakdown survived what the
+total did not.
+
+Two rules out of it. **Check a metric your change cannot affect before trusting
+one it can** -- if the control column moved, the experiment moved with it.
+And **interleave arms (A, B, A, B) rather than running them in sequence**, so
+drift cancels instead of accumulating into whichever arm went last.
+
+The `docs/testing.md` baseline originally claimed run-to-run noise "under 1%,
+treat +/-0.1 ms as unchanged". That came from two runs that happened to agree,
+taken at different times, and it was wrong by a factor of two or more. A noise
+figure needs the runs that disagree, not the ones that agree.
+
+## A feature that adds an unconditional pass to save conditional work
+
+`--shadow-temporal` reprojects last frame's blocker distances so only the misses
+retrace. It benched as a flat loss at every vantage, including its best case: a
+static camera, where history validity is maximal and 1.1 ms of shadow work was
+on the table. The reason was visible in the source, not the numbers.
+`shadow_reproject` calls `shadow_guide` for every pixel and `primary_shadow`
+then calls it again for every pixel, and `shadow_guide` is several dependent
+memory loads -- an atomic `vis` read, a `block_at` into the brick pool, a
+`hit_t`, a `chunks[ci]` lookup. The flag buys a conditional skipped shadow ray
+at the price of an unconditional duplicate reconstruction.
+
+The rule: when a temporal optimisation adds a pass, price the pass against the
+work it skips *before* building it, and count what the new pass recomputes. A
+saving that is conditional loses to a cost that is not, unless the hit rate is
+near total and the saved work is much larger than the added work.
+
+`--hiz-temporal` failed differently and the diagnosis came from a counter rather
+than a timer. Its pair counts are fully deterministic: baseline marches 68,896
+and defers 104,413; with the flag it marches 69,200 and defers 104,109, the same
+numbers on every repeat. It exists to defer more and it defers 304 fewer. When a
+feature has a counter that states its purpose directly, read that before the
+timings -- it says whether the thing is working at all, which is a different
+question from whether it is fast.
+
+## `--no-default-features` is not the build the game runs
+
+2026-09-21. Content packs shipped green: 60 suites, a bit-exact capture
+diff, headless screenshots, the lot. Every one of those was run with
+`cargo build --release --no-default-features`, because that is what the
+SDK-free test configuration needs and it is what the command table shows
+first. **The game's own build is `cargo run --release`, with `dlss` on by
+default**, and it had not been started once. It hung the driver at
+pipeline creation. The user found it, not the gate.
+
+The mechanism was a `u32` pipeline override constant per bound, added to
+`is_tuft` and `is_cutout_id` so the shader could learn which ids a pack
+had taken. Both are called from inside the marching loop. Compiling the
+`resolve` entry with `RESOLVE_LANE = 1` died there every time -- and only
+in the windowed DLSS build, which is why nothing headless caught it. An
+override the driver cannot fold is a very different thing in that loop
+from a literal it can.
+
+Two lessons, and the first is the bigger one:
+
+- **Run the binary the user runs before calling anything done.** A green
+  suite in a non-default feature configuration is evidence about that
+  configuration and nothing else. `cargo run --release` takes forty
+  seconds.
+- **Prefer rewriting shader text over adding an override constant to a
+  function in the marching loop.** `select_rr` was already doing exactly
+  that a few lines above, and `select_pack` now does it too: with no pack
+  loaded the module is byte for byte what it was before packs existed,
+  which is both faster and a far stronger guarantee than "the override
+  defaults to zero".
+
+## The headless baseline is not the frame the player is looking at
+
+2026-09-21. A ladder hunting banding in the player's water ran five arms
+against `coastline` and found almost nothing to bisect: the water crop scored
+`coherence` 0.19 and every wave flag moved it by noise. The artifact was
+plainly visible in the player's own screenshot.
+
+The captures were right and the baseline was wrong. The windowed game loads
+`Preferences` from the settings file; every headless mode builds
+`Config::default()`. The saved configuration had `water_look`, `soft_shadows`,
+`aces` and Cine grade on and `ambient` at 0 -- and `--water-look` is the arm
+that carries the banding. Replaying the saved settings as flags took the same
+crop from 0.19 to **0.78 at a diagonal lag**, matching the screenshot, and the
+ladder then named the cause in four arms.
+
+- **Read the settings file before building a baseline.** It is the difference
+  between bisecting the player's frame and bisecting a frame nobody runs. This
+  is the same failure as "`--no-default-features` is not the build the game
+  runs", one layer up: that entry is about the *build*, this one about the
+  *configuration*.
+- **Read the lag vector before building a new instrument.** A metric was built
+  here for a screen-locked row artifact, on the theory that the bands were
+  horizontal. They were diagonal, and `coherence` had already said so in the
+  very first measurement -- it peaked at `(-13, 2)`, `(-20, 4)`, `(-10, 3)`,
+  never at a `dx` of zero. The existing metric reports *where* a repeat sits,
+  not just how strong it is, and that field was the answer.
+
+## A cosmetic reformat in `resolve.wgsl` hung the driver, and "still running" is not "working"
+
+2026-09-21. ADR 0009 widens two `smoothstep` windows in `water_ctx`. The change
+went out as named constants plus the two call sites reformatted across lines
+with a trailing comma, which is valid WGSL, parses, and renders. The whole
+suite was green in both feature configurations and every headless capture was
+correct, including `resolve` compiled at lanes 1 and 2. The windowed build hung
+the driver every time.
+
+Bisected to the formatting alone. Two builds differing *only* in whether the
+call sat on one line or four: the one-line build ran, the split one hung, three
+times. No Rust panic, nothing on stderr, the process alive but not rendering.
+Why remains unexplained -- it is the second time this machine has killed a
+`resolve` pipeline over something that reads as inert (see `select_pack`, where
+an override constant did it), so the suspicion is the same driver and the same
+entry point rather than anything about commas.
+
+Two lessons, and the second is the one that cost the time:
+
+- **Shader text in the resolve family is not free to reformat.** Change the
+  values, not the layout. `tests/batch101.rs` now pins the calls to one line so
+  a tidy-up cannot quietly reintroduce it.
+- **Prove a windowed run is *rendering*, not merely running.** The first
+  instrument was `Process.WaitForExit(timeout)`: it returned false, that was
+  reported as "SURVIVED 20s", and it was wrong twice over. A hung GPU app keeps
+  its process, so liveness proves nothing -- `Responding` and a climbing CPU
+  are the weak signals, frames on stderr the strong one. Worse, the game boots
+  to `Screen::Title` and builds the renderer only when Play is clicked, so an
+  unattended launch never reaches the code under test at all. Both "working"
+  results from that instrument were measured on a title screen. If a windowed
+  check cannot be driven to the frame that exercises the change, it is not a
+  check; ask for the click.
+- **A zero diff is only evidence once you have shown the path is reachable.**
+  Verifying the caustic sign fix (`docs/audit-triage.md` §10.1) produced four
+  consecutive `differing 0 of 1440000` results that all looked like proof of
+  bit-exactness and were all vacuous. Two separate reasons stacked: caustics
+  are **opt-in** (`Config::caustics` defaults false, `--caustics` turns them
+  on), and `--time` takes a **0..1 fraction**, so the `--time 143` copied from
+  `lookbook.rs`'s argument list -- where those numbers belong to `--cam-yaw`,
+  not `--time` -- put the sun nowhere useful. The fix only became measurable
+  at `--caustics --cam-submerge 3 --time noon`, and then moved 53k pixels.
+  Run the control first: diff the feature **off against on** in the same view,
+  confirm it is non-zero, and only then trust a zero as meaning something.
+- **A provably bit-exact one-line edit wedged pipeline compilation.**
+  `surface_from_below` called `underwater_body()` twice in consecutive lines,
+  the second where the already-bound `below` would do. Replacing the call with
+  `below` is equivalence by construction -- same pure function, no arguments,
+  same frame state -- and a headless capture diff agreed exactly:
+  `differing 0 of 1440000  MAE 0.0000  max 0`. It still killed the windowed
+  session, `0xcfffffff`, while `master` ran at ~109 FPS. Nothing else was in
+  the build; the commit is one changed line.
+  Two corollaries worth carrying. **Headless does not gate this file**: seven
+  `--screenshot` runs passed on the same commit, because pipelines are built
+  lazily (`spec_pipes` starts empty, `make_spec` runs on first use per spec
+  key) and a fixed-camera capture never requests the combinations a real
+  session does (`FULL PASS FAMILY / GLASS SPLIT ON / SHADOW PASS ON`). And
+  **"the GPU line printed, so pipelines compiled" is false reasoning** -- that
+  println in `App::start_session` happens before any specialization is built.
+  The cliff is not about semantics, output, or even added code. Treat *any*
+  edit to `resolve.wgsl` as requiring a windowed run, including ones you can
+  prove cannot change a pixel.
+- **The `resolve.wgsl` "compile cliff" is a compile-*time* cliff, and headless
+  does gate it.** Windows Error Reporting logs every one of these deaths as
+  `AppHangB1` -- an unresponsive window, not a crash. That is the whole
+  mechanism: pipelines are built lazily on the first frame on the main thread,
+  so a slow `create_compute_pipeline` stops the message pump and Windows kills
+  the process at roughly five seconds. Nothing fails, so wgpu has nothing to
+  report and there is no exception code to look up.
+  Headless has no window, so the identical compile **succeeds** -- it just
+  takes minutes. That is also why plain `--screenshot` looked like a false
+  negative: it builds a *different spec key* (`0xbc1fff80/0x8003b`) than a
+  session with saved preferences (`0xbc1fff80/0xf90bb`). Add the six missing
+  flags -- `--water-look --glass-reflect --wind-sway --soft-shadows
+  --compact-shade-hit --isolate-glass` -- and the keys match exactly.
+  Measured, same machine, same key: `master` 4.8s, the one-line bit-exact
+  `78f1290` 133s. **~28x, from deleting one redundant call.** So gate this file
+  with a *timed* headless run and treat the clock as the metric; it shows
+  headroom shrinking instead of only reporting a wedge after the fact.
+  Confirm the key with `VOXELCRAFT_TRACE_FRAME=1` rather than trusting the
+  flag list, which only matches today's preferences.
+- **The cliff is fixed, and the shape of the mistake is worth keeping.** ADR
+  0010 moved pipeline compilation off the message-pump thread; the directional
+  AO pass -- parked after ~30 windowed bisect runs concluded "the module has to
+  get smaller" -- then compiled in 79s and rendered on the first try, with no
+  change to its own logic. So did the bit-exact `underwater_body` fix that
+  `docs/audit-triage.md` had recorded as unlandable.
+  Both conclusions were sound *given* the failure being read as a compile
+  limit. It was a **timeout**: Windows killing an unresponsive window, logged
+  as `AppHangB1`, never a crash. Roughly thirty runs went into bisecting which
+  shader construct was "too big" for a budget that did not exist, when the
+  question that would have ended it in one step -- *what does the OS say
+  killed us?* -- was one Event Viewer query away. When a failure has no error
+  message, no panic and no log line, stop bisecting the code and go ask the
+  layer that did the killing.
+
+- **Smooth noise can become square again downstream.** In `foam_mottle`, an
+  un-interpolated cell-seeded phase gain multiplied smooth value noise and
+  restored discontinuities. The user's base-noise-only GPU ablation removed
+  the edges with foam retained; changing slant depth did not. Interpolate
+  animated gains at shared lattice corners, not wrapped phase angles, and
+  keep the animation. Source isolation is not measured proof of a bit-exact
+  foam-off arm; preserve that as a paired GPU acceptance check (ADR 0012).

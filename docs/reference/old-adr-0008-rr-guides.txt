@@ -1,0 +1,89 @@
+# 0008. Ray reconstruction material guides
+
+Status: Accepted
+
+## Context
+
+Water reflections read poorly under `--dlss`. Three causes were measured. Render
+resolution was the first and is fixed (`optimal_render_resolution` in
+`render/mod.rs`). The third is that `dlss_prep` reprojects the water *surface*,
+so reflected geometry is handed the motion of the water it sits on; Super
+Resolution has no way to track a reflection that moves against its own surface.
+
+DLSS Ray Reconstruction exists for exactly that: a specular guide carrying the
+world-space distance from the primary vertex to the specular hit, which lets the
+reconstructor follow reflected detail under motion. It wants material guides
+rather than final colour — diffuse albedo, specular albedo, world normal, linear
+roughness — and it replaces Super Resolution rather than stacking with it
+(RR Integration Guide 3.2).
+
+The second supposed cause does not survive measurement, and this ADR exists partly
+to record that. `water_compose` mixes the reflection toward flat sky with
+coefficient `ctx.roughness * 0.65`, and the plan read that as "up to 65% of the
+detail discarded". `ctx.roughness` is `optical_roughness`, a sub-pixel wave
+variance term that measures 0.0 across the near field and peaks near 0.036, so the
+coefficient is under 0.03. A/B across six vantages puts the maximum channel
+difference at 10/255. The line is very nearly a no-op.
+
+## Decision
+
+Write the four material guides from `resolve.wgsl` rather than from a pass of its
+own, because `resolve` is the only place that has albedo, the lighting split and
+the sky path together, and because `dlss_prep` is dispatched *after* the resolve
+fork so anything it wrote would be clobbered. The call is `rr_store`, defined in
+`dlss_rr.wgsl` with the storage bindings and in `dlss_rr_stub.wgsl` with an empty
+body and none, chosen by `#[cfg]` in `render::shader_source`. The call sites in
+`resolve.wgsl` are unconditional and identical in both configurations.
+
+Give the flatten an explicit switch, `--water-rough-flatten` /
+`--no-water-rough-flatten`, defaulting on, with `--dlss-rr` implying off. The
+reason is that RR owns roughness filtering and a hand-mix running underneath it
+would filter twice — not that the hand-mix was destroying detail, because it was
+not.
+
+Hand `WaterCtx.roughness` to RR as the guide's linear roughness. Whether that
+mapping is right is unverified: the term was built as a variance measure, not as
+a material property, and it reads near zero over most of the surface. The water
+does look near-mirror, so zero may be the honest description.
+
+**This does not supersede ADR 0002.** The plan assumed it would. ADR 0002's
+decision is to preserve wave variance and compensate by blending the *shading
+normal* toward the geometric normal as variance grows; that blend
+(`nw = normalize(mix(nw, n, optical_roughness))` in `water_ctx`) is untouched
+here, as is the `--water-mottle` pinning. Only the separate reflection mix gets a
+switch. Superseding 0002 would have claimed a reversal that did not happen.
+
+## Alternatives considered
+
+- **An `override` to keep shader text byte-identical when the feature is off** —
+  rejected: the override and the calls would sit in `resolve.wgsl` regardless, and
+  a referenced storage binding forces a pipeline layout change whether or not the
+  branch is taken. The stub gives the guarantee that actually matters (unchanged
+  layout, unchanged output) and the base screenshot hash verifies it.
+- **Writing the guides from `dlss_prep.wgsl`** — rejected: it has the vis key but
+  no atlas sample and no lighting split, so it cannot produce albedo or roughness,
+  and its dispatch order is wrong.
+- **Stacking RR on Super Resolution** — not available. Guide 3.2: RR overrides SR,
+  which is no longer executed. The two flags refuse each other.
+- **Removing the flatten outright rather than gating it** — rejected: it is
+  reachable presentation, the pre-RR look is worth keeping bit-exact, and with the
+  measured coefficient there is nothing to gain by deleting it.
+
+## Consequences
+
+Shader text changes once, permanently, relative to the pre-RR tree, so the
+substring and occurrence-count pins in `tests/` needed one reconciliation pass.
+Two moved: `tests/sky_specular.rs` pinned the substring `spec_hi`, which the new
+`spec_hit` trips, and `tests/cutout.rs` counted decoder sites without accounting
+for `dlss_prep.wgsl` (a pre-existing miscount that only showed up once the suite
+was run under a `dlss-prep`-implying feature).
+
+With the feature off, and with `dlss-rr-prep` compiled in but unused, `--screenshot`
+stays byte-identical to the pre-RR baseline `580d9fbba4919a0b61f1941fa9250a22`.
+
+Stages 1 and 2 are not expected to improve the image on their own, and stage 3
+will not recover reflection detail because none is being lost. The payoff, if
+there is one, is reflection stability under motion, which needs hardware and a
+judged A/B to confirm. `docs/dlss-open-questions.md` carries the open questions:
+jittered vs unjittered matrices for the specular guide, the RR jitter sign, and
+the roughness mapping above.

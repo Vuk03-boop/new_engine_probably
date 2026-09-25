@@ -1,0 +1,34 @@
+﻿cargo :     Finished `release` profile [optimized] target(s) in 0.05s
+At line:1 char:302
++ ... tch {} } }; cargo test --release -j 2 -p light sky_table_matches -- - ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Finished `r...get(s) in 0.05s:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+     Running unittests src\lib.rs (target\release\deps\light-7f4d920c4e93ae78.exe)
+
+running 1 test
+  dawn el 0.5 az 45: table [0.04224105683536088, 0.022259288171199557, 0.00847715202261327] mc [0.0456298097563197, 
+0.02473317953152645, 0.009880380676503382] (se [0.0005227115504736082, 0.00029311592020143967, 0.0003595986707111065]) 
+excess 0.058
+  dawn el 0.5 az 270: table [0.023077259721167455, 0.013373766047021786, 0.007059310956934358] mc 
+[0.024960000044997575, 0.014761427146306638, 0.00802258926900275] (se [0.00032087383323487184, 0.0001995647392004539, 
+0.00036477785813672964]) excess 0.051
+sky table vs MC dawn: luminance |rel| raw mean 0.0425 p95 0.0845 max 0.0922; beyond 3 se: p95 0.0490; channel beyond 3 
+se p95 0.0484
+sky table vs MC morning: luminance |rel| raw mean 0.0286 p95 0.0588 max 0.0653; beyond 3 se: p95 0.0290; channel 
+beyond 3 se p95 0.0311
+sky table vs MC midday: luminance |rel| raw mean 0.0197 p95 0.0477 max 0.0665; beyond 3 se: p95 0.0117; channel beyond 
+3 se p95 0.0134
+  dusk el 0.5 az 45: table [0.027826421325796467, 0.014537901768568378, 0.00692585436517461] mc [0.030419653710395178, 
+0.016317387873073068, 0.008198031444354109] (se [0.0003956216662895343, 0.00021021184515192007, 
+0.00035451932007612476]) excess 0.066
+  dusk el 0.5 az 270: table [0.02307725972116746, 0.013373766047021786, 0.007059310956934359] mc 
+[0.024976752162873272, 0.014780953758506956, 0.007974436395236342] (se [0.00032139884353426336, 0.0002000010312758882, 
+0.0003548405381802729]) excess 0.051
+sky table vs MC dusk: luminance |rel| raw mean 0.0445 p95 0.0847 max 0.1023; beyond 3 se: p95 0.0446; channel beyond 3 
+se p95 0.0436
+test sky::tests::sky_table_matches_the_monte_carlo_sky ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 4.36s
+

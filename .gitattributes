@@ -1,0 +1,11 @@
+# Binary data: never convert line endings (core.autocrlf is on for this machine).
+# The save-format fixtures (*.journal, *.snap) and the baked sky reference (*.bin) are byte-pinned.
+*.bin binary
+*.journal binary
+*.snap binary
+*.spv binary
+*.pfm binary
+*.ppm binary
+*.png binary
+*.bmp binary
+*.xls binary

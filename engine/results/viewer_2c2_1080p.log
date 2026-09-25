@@ -1,0 +1,28 @@
+== rep 1 merge greedy mailbox 1920x1080
+device "NVIDIA GeForce RTX 3050 Laptop GPU", validation true
+meshes: merge greedy region chunk: 291 regions, 10503 quads, 275890 triangles, 6791664 B device, snapshot 1, built in 0.12 s
+swapchain B8G8R8A8_SRGB SRGB_NONLINEAR, 3 images 1920x1080, present MAILBOX (asked MAILBOX); ~24883200 B driver-owned, not in the ledger
+ledger live: GpuMesh 6819376 B, GpuMaterial 272 B, GpuTemporal 39813120 B (targets 39813120 B), Staging 16777216 B
+{"run":"viewer_2c2","device":"NVIDIA GeForce RTX 3050 Laptop GPU","merge":"greedy","region":"chunk","present":"MAILBOX","extent":[1920,1080],"frames":1200,"frames_in_flight":2,"swapchain_recreates":1,"scripted":true,"cycle_views":false,"triangles":275890,"snapshot":1,"frame_ms":{"n":1199,"p50":3.054,"p99":6.338,"max":18.087},"gpu_ms":{"gbuffer":{"n":1198,"p50":0.213,"p99":0.361,"max":0.366},"debug_view":{"n":1198,"p50":0.076,"p99":0.103,"max":0.106}},"validation_errors":0,"validation_warnings":0,"readers_held_at_exit":1}
+exit 0
+== rep 1 merge none mailbox 1920x1080
+device "NVIDIA GeForce RTX 3050 Laptop GPU", validation true
+meshes: merge none region chunk: 291 regions, 520540 quads, 1041080 triangles, 37479360 B device, snapshot 1, built in 0.19 s
+swapchain B8G8R8A8_SRGB SRGB_NONLINEAR, 3 images 1920x1080, present MAILBOX (asked MAILBOX); ~24883200 B driver-owned, not in the ledger
+ledger live: GpuMesh 37493040 B, GpuMaterial 272 B, GpuTemporal 39813120 B (targets 39813120 B), Staging 16777216 B
+{"run":"viewer_2c2","device":"NVIDIA GeForce RTX 3050 Laptop GPU","merge":"none","region":"chunk","present":"MAILBOX","extent":[1920,1080],"frames":1200,"frames_in_flight":2,"swapchain_recreates":1,"scripted":true,"cycle_views":false,"triangles":1041080,"snapshot":1,"frame_ms":{"n":1199,"p50":2.913,"p99":6.087,"max":20.035},"gpu_ms":{"gbuffer":{"n":1198,"p50":0.387,"p99":0.479,"max":0.483},"debug_view":{"n":1198,"p50":0.079,"p99":0.108,"max":0.109}},"validation_errors":0,"validation_warnings":0,"readers_held_at_exit":2}
+exit 0
+== rep 2 merge greedy mailbox 1920x1080
+device "NVIDIA GeForce RTX 3050 Laptop GPU", validation true
+meshes: merge greedy region chunk: 291 regions, 10503 quads, 275890 triangles, 6791664 B device, snapshot 1, built in 0.12 s
+swapchain B8G8R8A8_SRGB SRGB_NONLINEAR, 3 images 1920x1080, present MAILBOX (asked MAILBOX); ~24883200 B driver-owned, not in the ledger
+ledger live: GpuMesh 6819376 B, GpuMaterial 272 B, GpuTemporal 39813120 B (targets 39813120 B), Staging 16777216 B
+{"run":"viewer_2c2","device":"NVIDIA GeForce RTX 3050 Laptop GPU","merge":"greedy","region":"chunk","present":"MAILBOX","extent":[1920,1080],"frames":1200,"frames_in_flight":2,"swapchain_recreates":1,"scripted":true,"cycle_views":false,"triangles":275890,"snapshot":1,"frame_ms":{"n":1199,"p50":2.819,"p99":6.291,"max":13.035},"gpu_ms":{"gbuffer":{"n":1198,"p50":0.214,"p99":0.312,"max":0.314},"debug_view":{"n":1198,"p50":0.076,"p99":0.099,"max":0.101}},"validation_errors":0,"validation_warnings":0,"readers_held_at_exit":1}
+exit 0
+== rep 2 merge none mailbox 1920x1080
+device "NVIDIA GeForce RTX 3050 Laptop GPU", validation true
+meshes: merge none region chunk: 291 regions, 520540 quads, 1041080 triangles, 37479360 B device, snapshot 1, built in 0.20 s
+swapchain B8G8R8A8_SRGB SRGB_NONLINEAR, 3 images 1920x1080, present MAILBOX (asked MAILBOX); ~24883200 B driver-owned, not in the ledger
+ledger live: GpuMesh 37493040 B, GpuMaterial 272 B, GpuTemporal 39813120 B (targets 39813120 B), Staging 16777216 B
+{"run":"viewer_2c2","device":"NVIDIA GeForce RTX 3050 Laptop GPU","merge":"none","region":"chunk","present":"MAILBOX","extent":[1920,1080],"frames":1200,"frames_in_flight":2,"swapchain_recreates":1,"scripted":true,"cycle_views":false,"triangles":1041080,"snapshot":1,"frame_ms":{"n":1199,"p50":2.809,"p99":6.513,"max":17.582},"gpu_ms":{"gbuffer":{"n":1198,"p50":0.389,"p99":0.482,"max":0.486},"debug_view":{"n":1198,"p50":0.079,"p99":0.105,"max":0.109}},"validation_errors":0,"validation_warnings":0,"readers_held_at_exit":2}
+exit 0

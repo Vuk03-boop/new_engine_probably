@@ -1,0 +1,1 @@
+﻿{"scene":"street_block","voxel_m":0.0625,"materials":17,"chunks":291,"bricks":5103,"occupied_voxels":1515582,"payload_mib":5.56,"bounds_min":[0,-32,-64],"bounds_max":[384,160,256],"world_version":7633002,"width":640,"height":360,"threads":2,"primary_rays":230400,"primary_hits":173137,"shadow_rays":171196,"shadow_blocked":34900,"build_ms":109.3,"render_ms":806.0}

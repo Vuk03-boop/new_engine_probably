@@ -1,0 +1,83 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 12.89s
+     Running tests\denoise.rs (target\release\deps\denoise-cba05e17b2083eac.exe)
+
+running 3 tests
+test edits_relight_what_they_change ... edit: 538 shadowed samples with a distant occluder; removing [[318, 94, 172], [326, 102, 180]) around VoxelCoord { x: 322, y: 98, z: 176 } at distance 277 frees 5 of them
+R1 relight: 920 px relit, 0 of 57600 decisions differ from the host rule (passes)
+R1 none: 0 px relit, 920 of 57600 decisions differ from the host rule (fails)
+R2: 172 changed px; 4 frames after the edit: relight 0.0611, none 0.3279, reset 0.0609
+validation: 0 errors, 0 warnings
+ok
+test motion_path_meets_the_budget ... motion frame 8: filtered rel_mse 0.0281 bias -0.0019 | raw 0.0799 bias -0.0000 MISSED
+  age 1-3 interior: 324 px, filtered 0.0001 raw 0.0047 (shares of the frame's mean)
+  age 1-3 edge    : 155 px, filtered 0.0016 raw 0.0064 (shares of the frame's mean)
+  age 4-15 interior: 30141 px, filtered 0.0015 raw 0.0281 (shares of the frame's mean)
+  age 4-15 edge    : 13152 px, filtered 0.0249 raw 0.0408 (shares of the frame's mean)
+  age 16+ interior: 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+  age 16+ edge    : 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+motion frame 16: filtered rel_mse 0.0264 bias +0.0016 | raw 0.0454 bias +0.0012 MISSED
+  age 1-3 interior: 326 px, filtered 0.0001 raw 0.0051 (shares of the frame's mean)
+  age 1-3 edge    : 148 px, filtered 0.0006 raw 0.0071 (shares of the frame's mean)
+  age 4-15 interior: 856 px, filtered 0.0001 raw 0.0014 (shares of the frame's mean)
+  age 4-15 edge    : 353 px, filtered 0.0007 raw 0.0012 (shares of the frame's mean)
+  age 16+ interior: 29597 px, filtered 0.0019 raw 0.0107 (shares of the frame's mean)
+  age 16+ edge    : 12971 px, filtered 0.0229 raw 0.0199 (shares of the frame's mean)
+motion frame 32: filtered rel_mse 0.0272 bias +0.0009 | raw 0.0326 bias -0.0005 MISSED
+  age 1-3 interior: 326 px, filtered 0.0000 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 118 px, filtered 0.0008 raw 0.0032 (shares of the frame's mean)
+  age 4-15 interior: 970 px, filtered 0.0000 raw 0.0013 (shares of the frame's mean)
+  age 4-15 edge    : 229 px, filtered 0.0003 raw 0.0008 (shares of the frame's mean)
+  age 16+ interior: 30125 px, filtered 0.0025 raw 0.0058 (shares of the frame's mean)
+  age 16+ edge    : 13505 px, filtered 0.0235 raw 0.0163 (shares of the frame's mean)
+validation: 0 errors, 0 warnings
+
+thread 'motion_path_meets_the_budget' (17952) panicked at gpu\tests\denoise.rs:641:5:
+D4 missed at frames [8, 16, 32]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test sweep_sliders ... hour 8 unfiltered / temporal only: @1 1.2547 (edge 2.0377, bias +0.0064) | @4 0.3113 (edge 0.5054, bias +0.0004) | @64 0.0194 (edge 0.0307, bias +0.0005)
+hour 8 spatial only (max_age 1): @1 0.0845 (edge 0.2097, bias -0.0403) | @4 0.1028 (edge 0.2568, bias -0.0492) | @64 0.0874 (edge 0.2272, bias -0.0432)
+hour 8 levels 0 sigma 4: @1 1.2547 (edge 2.0377, bias +0.0064) | @4 0.3113 (edge 0.5054, bias +0.0004) | @64 0.0194 (edge 0.0307, bias +0.0005)
+hour 8 levels 1 sigma 4: @1 0.2426 (edge 0.4800, bias -0.0264) | @4 0.0651 (edge 0.1285, bias -0.0132) | @64 0.0050 (edge 0.0104, bias -0.0001)
+hour 8 levels 2 sigma 4: @1 0.1111 (edge 0.2543, bias -0.0359) | @4 0.0315 (edge 0.0718, bias -0.0184) | @64 0.0045 (edge 0.0110, bias +0.0000)
+hour 8 levels 3 sigma 4: @1 0.0872 (edge 0.2107, bias -0.0395) | @4 0.0259 (edge 0.0625, bias -0.0198) | @64 0.0050 (edge 0.0128, bias +0.0005)
+hour 8 levels 4 sigma 4: @1 0.0839 (edge 0.2069, bias -0.0404) | @4 0.0253 (edge 0.0619, bias -0.0197) | @64 0.0055 (edge 0.0139, bias +0.0008)
+hour 8 levels 5 sigma 4: @1 0.0845 (edge 0.2097, bias -0.0403) | @4 0.0258 (edge 0.0632, bias -0.0192) | @64 0.0058 (edge 0.0147, bias +0.0010)
+hour 8 levels 6 sigma 4: @1 0.0856 (edge 0.2124, bias -0.0397) | @4 0.0263 (edge 0.0644, bias -0.0188) | @64 0.0060 (edge 0.0150, bias +0.0011)
+hour 8 levels 5 sigma 1: @1 0.6055 (edge 1.0797, bias -0.0392) | @4 0.1280 (edge 0.2354, bias -0.0246) | @64 0.0085 (edge 0.0161, bias -0.0011)
+hour 8 levels 5 sigma 2: @1 0.1755 (edge 0.3560, bias -0.0643) | @4 0.0473 (edge 0.1005, bias -0.0322) | @64 0.0049 (edge 0.0110, bias -0.0007)
+hour 8 levels 5 sigma 8: @1 0.0865 (edge 0.2237, bias -0.0162) | @4 0.0286 (edge 0.0745, bias -0.0069) | @64 0.0090 (edge 0.0239, bias +0.0026)
+hour 8 levels 5 sigma 16: @1 0.1038 (edge 0.2692, bias -0.0033) | @4 0.0450 (edge 0.1200, bias -0.0000) | @64 0.0135 (edge 0.0364, bias +0.0039)
+hour 8 levels 5 sigma 1000000: @1 0.3448 (edge 0.5028, bias +0.0100) | @4 0.3149 (edge 0.4193, bias +0.0040) | @64 0.3018 (edge 0.3871, bias +0.0033)
+hour 8 max_age 16: @16 0.0112 (edge 0.0286, bias -0.0015) | @64 0.0098 (edge 0.0256, bias +0.0010) | @128 0.0095 (edge 0.0250, bias -0.0007)
+hour 8 max_age 32: @16 0.0112 (edge 0.0286, bias -0.0015) | @64 0.0073 (edge 0.0190, bias +0.0016) | @128 0.0074 (edge 0.0192, bias +0.0010)
+hour 8 max_age 128: @16 0.0112 (edge 0.0286, bias -0.0015) | @64 0.0058 (edge 0.0147, bias +0.0010) | @128 0.0042 (edge 0.0103, bias +0.0016)
+hour 18.25 unfiltered / temporal only: @1 1.7764 (edge 2.4127, bias +0.0071) | @4 0.4442 (edge 0.6136, bias +0.0030) | @64 0.0286 (edge 0.0400, bias +0.0003)
+hour 18.25 spatial only (max_age 1): @1 0.0739 (edge 0.1563, bias -0.0980) | @4 0.0745 (edge 0.1638, bias -0.1009) | @64 0.0843 (edge 0.1898, bias -0.1003)
+hour 18.25 levels 0 sigma 4: @1 1.7764 (edge 2.4127, bias +0.0071) | @4 0.4442 (edge 0.6136, bias +0.0030) | @64 0.0286 (edge 0.0400, bias +0.0003)
+hour 18.25 levels 1 sigma 4: @1 0.2947 (edge 0.4878, bias -0.0591) | @4 0.0750 (edge 0.1270, bias -0.0326) | @64 0.0074 (edge 0.0144, bias -0.0020)
+hour 18.25 levels 2 sigma 4: @1 0.1060 (edge 0.2056, bias -0.0804) | @4 0.0332 (edge 0.0674, bias -0.0465) | @64 0.0078 (edge 0.0183, bias -0.0025)
+hour 18.25 levels 3 sigma 4: @1 0.0735 (edge 0.1505, bias -0.0905) | @4 0.0266 (edge 0.0575, bias -0.0519) | @64 0.0091 (edge 0.0222, bias -0.0021)
+hour 18.25 levels 4 sigma 4: @1 0.0717 (edge 0.1500, bias -0.0958) | @4 0.0258 (edge 0.0569, bias -0.0534) | @64 0.0100 (edge 0.0247, bias -0.0018)
+hour 18.25 levels 5 sigma 4: @1 0.0739 (edge 0.1563, bias -0.0980) | @4 0.0268 (edge 0.0597, bias -0.0537) | @64 0.0106 (edge 0.0263, bias -0.0014)
+hour 18.25 levels 6 sigma 4: @1 0.0751 (edge 0.1595, bias -0.0980) | @4 0.0278 (edge 0.0622, bias -0.0532) | @64 0.0109 (edge 0.0269, bias -0.0012)
+hour 18.25 levels 5 sigma 1: @1 0.9105 (edge 1.2773, bias -0.0911) | @4 0.1319 (edge 0.2123, bias -0.0719) | @64 0.0109 (edge 0.0197, bias -0.0059)
+hour 18.25 levels 5 sigma 2: @1 0.2521 (edge 0.3736, bias -0.1323) | @4 0.0451 (edge 0.0852, bias -0.0856) | @64 0.0070 (edge 0.0159, bias -0.0053)
+hour 18.25 levels 5 sigma 8: @1 0.0899 (edge 0.2045, bias -0.0498) | @4 0.0358 (edge 0.0846, bias -0.0254) | @64 0.0197 (edge 0.0483, bias +0.0014)
+hour 18.25 levels 5 sigma 16: @1 0.1311 (edge 0.3003, bias -0.0220) | @4 0.0660 (edge 0.1547, bias -0.0095) | @64 0.0344 (edge 0.0824, bias +0.0034)
+hour 18.25 levels 5 sigma 1000000: @1 0.4393 (edge 0.9696, bias +0.0118) | @4 0.4165 (edge 0.9156, bias +0.0080) | @64 0.4069 (edge 0.8934, bias +0.0050)
+hour 18.25 max_age 16: @16 0.0181 (edge 0.0440, bias -0.0107) | @64 0.0194 (edge 0.0477, bias -0.0032) | @128 0.0180 (edge 0.0442, bias -0.0030)
+hour 18.25 max_age 32: @16 0.0181 (edge 0.0440, bias -0.0107) | @64 0.0145 (edge 0.0358, bias -0.0006) | @128 0.0140 (edge 0.0346, bias +0.0005)
+hour 18.25 max_age 128: @16 0.0181 (edge 0.0440, bias -0.0107) | @64 0.0106 (edge 0.0263, bias -0.0014) | @128 0.0071 (edge 0.0174, bias +0.0011)
+validation: 0 errors, 0 warnings
+ok
+
+failures:
+
+failures:
+    motion_path_meets_the_budget
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 256.77s
+
+error: test failed, to rerun pass `-p gpu --test denoise`

@@ -1,0 +1,119 @@
+# Cross-audit — the other AI’s reports versus our reviews and the code
+
+**2026-09-22 · Authorized scope: audit + Batch 09 · Read-only engine**
+
+## Bottom line
+
+The other review is substantially consistent with ours on the **21 original decisions: 18 REJECTED as stated, 3 ADAPT (P03, P13, P19)**. Its proposed first investigations are sensible. Agreement is not independent experimental corroboration, however: its scripts and receipts were not supplied.
+
+**The audit found one substantive error in our Batch 08 cost analysis:** directional AO being visually off by default does **not** mean its compute work is absent. The split render path dispatches the five-tap producer anyway. This changes the baseline/profiling recommendation, **not** the rejection of the proposed neural replacement.
+
+I also resolved the other report’s JFA DOI through the ACM-deposited Crossref record, corrected current tracking’s misleading archive-availability wording, and inventoried missing historical links. I did **not** find grounds to change an original proposal verdict. This is a bounded audit of decision-bearing claims and producer/consumer paths, not a guarantee that every sentence of every historical document or every engine behavior has been formally verified.
+
+[Final synthesis and experiment queue](batch-09-synthesis.md) · [Source pins](sources/batch-09/source-audit.json) · [Reproduction results](sources/batch-09/reproduction.json) · [Integrity receipt](sources/batch-09/integrity.json)
+
+## 1. What was compared and actually checked
+
+### Inputs
+
+| Supplied report | Our counterpart | Result |
+|---|---|---|
+| [Their Batch 07](../uploads/batch-07-temporal-lod.md) | [Our Batch 07](batch-07-temporal-lod-continuity.md) | Same P06/P07 rejections; same missing history producer, parity/layer distinction, and missing LoD correspondence. Different CPU examples are not replicated experiments. |
+| [Their Batch 08](../uploads/batch-08-lighting-speculation.md) | [Our Batch 08](batch-08-lighting-neural-heightfield.md) | Same P11/P12/P17 rejections; conditional 16×16/f16 feasibility correctly distinguished from device verification. Our default-AO cost sentence needs correction below. Their JFA DOI is independently confirmed. |
+| [Their Batch 09](../uploads/batch-09-synthesis.md) | Newly completed [our synthesis](batch-09-synthesis.md) | Adopt baseline-first, no-translation H03 census, H13 preallocation control, conditional H19 codegen investigation, and separate diagnostics. Add the AO scheduling finding; do not import their unsupplied artifact verification. |
+
+All three uploads are hash-recorded in [the opening snapshot](sources/batch-09/baseline-before.json). Relative links inside them belong to the other review’s workspace. Some names coincide with ours, but this **does not make our files their evidence**.
+
+### Fresh work
+
+- Rechecked the unchanged engine’s relevant Rust producers, WGSL consumers, bindings, flags, scheduling and selected pinned dependency paths. The audit records **29 lexical pin records covering all 21 IDs**, with semantic explanations here; pins are not a compiler or complete proof.
+- Reran **all eight existing Python model suites** in an output-redirected isolation wrapper. Their **nine generated JSON artifacts** reproduced byte-for-byte, including Batch 04’s separate reachability result. Historical outputs and scripts were not overwritten.
+- Rechecked all **295 engine files** against the opening and original inventories; all **16 retained PDFs** against their hashes and page counts. Recorded coverage of 13 groups, 248 physical pages, 199 canonical pages. Prior complete-paper reading is credited to the owning batches, **not falsely claimed as a fresh reread of every paper**.
+- Audited inline local Markdown file links in the 21 pre-existing top-level review/source-index/batch-README documents: **45 missing link occurrences, 36 distinct missing targets**. These are historical unavailable PDFs/images, a crate archive and a handoff link—not 36 unread papers or newly deleted engine files. The complete list is in [historical-link-audit.json](sources/batch-09/historical-link-audit.json).
+
+**Not done:** Rust builds/tests, authoritative `render::shader_source()` execution, Naga compilation, API validation, device capability queries, GPU capture/timing, rendering comparisons, or rerunning the historical documentation checker. Its recorded exit 1/three quotation failures remain historical, unresolved checks—not a new green gate. There is no Git metadata here, so no fresh clean-HEAD or push claim.
+
+## 2. Corrections and qualifications that now govern our documents
+
+### A09-01 — Correct the default-AO cost claim (substantive)
+
+**Affected text:** our Batch 08 §3, “Existing lighting is not an NRC training pipeline,” cost accounting:
+
+> Turning off a default-off AO pass saves nothing in the default configuration.
+
+**This inference is incorrect.** “Effect off” was confused with “producer not executed.” The source chain is:
+
+1. `src/config.rs::Config::default` sets `dir_ao: false` and `shadow_pass: true`.
+2. `src/scene.rs::spec_hi_from` unconditionally includes `FLAG_HI_SHADOW_PASS`; this selects the split family in the ordinary path.
+3. `src/render/mod.rs::Renderer::render_ready` dispatches `ao_probe` at half resolution inside that family, **without a `FLAG_DIR_AO` condition**. The renderer file contains that flag’s constant declaration, not a dispatch gate.
+4. `src/render/shaders/ao.wgsl::ao_probe` does not check that flag. Valid guides reach **five `ao_tap` calls**. Invalid guides write neutral output and return.
+5. `ao_sample` checks the flag and returns `1.0` before sampling when disabled. That removes the **shading contribution/sample**, not the earlier producer dispatch.
+6. `src/render/timer.rs::Readback::family_timestamp` brackets the split family. AO has no dedicated timestamp pair; its work is inside the family’s `q::RESOLVE` interval. `total_ms` does not also add the three shadow subintervals, so do not diagnose pre-existing double-counting merely from their existence.
+
+**Replacement statement:** directional AO’s contribution defaults off, but the current split path still dispatches its producer. Default baseline profiling must include this work. A separately authorized flag-gating experiment may avoid unnecessary production while preserving off-arm output; its actual savings, shader/API validity, texture initialization and toggle behavior remain unmeasured.
+
+This also qualifies Batch 08 §6’s H12 cost discussion, “default where AO is off,” STATUS’s default-off descriptions, and any synthesis that infers zero cost from an inactive feature. They should be read as **appearance state only**. Their five-tap/half-resolution descriptions remain correct.
+
+New diagnostic label **D-AO** is deliberately separate from H12’s neural-learning/matrix hypothesis. It does not approve NRC, a two-layer network, a <0.1 ms promise, or removing the probe field. No engine patch was made. Both RR-selected inspection views confirm the flag/producer distinction; GPU behavior is not observed here.
+
+**Lesson for this review:** follow enablement through producer scheduling *and* consumption. Passing the previous CPU models did not catch this prose error; those models did not test this cost inference.
+
+### A09-02 — Archive/source and current/historical provenance (tracking correction)
+
+The pre-audit STATUS said five published archives were in `sources/batch-02/api-source/`. **Recovered unpacked source trees are available; the original archive binaries are not.** Earlier lock-checksum/archive-verification statements describe the earlier workspace. The supplied synthesis’s claim of six verified archives cannot be renewed here by finding similarly named directories.
+
+Current STATUS/source-index wording now separates historical verification from surviving source availability. Earlier immutable reports/receipts remain intact. All 295 engine bytes match the historical baseline, but `.git` is absent: “same bytes” is not a current Git status check.
+
+### A09-03 — JFA DOI resolved (bibliographic addition, no verdict change)
+
+The supplied DOI **`10.1145/1111411.1111431`** matches the ACM-deposited [Crossref record](https://api.crossref.org/works/10.1145/1111411.1111431): Rong and Tan, the correct *Jump flooding in GPU…* title, I3D 2006. The [author project page](https://www.comp.nus.edu.sg/~tants/jfa.html) matches title/authors/venue and links the already-read eight-page paper.
+
+[Raw Crossref response](sources/batch-09/jfa-crossref.json) · [Retrieval/hash receipt](sources/batch-09/bibliography-receipt.json). Our Batch 08 unresolved-DOI note is superseded by this addition, not silently rewritten. No algorithm or performance conclusion changes.
+
+### A09-04 — Historical links are not all currently resolvable
+
+Do not say “all document links check out.” The [link audit](sources/batch-09/historical-link-audit.json) records exactly what is unavailable. Useful surviving texts include [PagedAttention](sources/batch-02/pagedattention.txt), [SGLang](sources/batch-03/sglang.txt), [Axis-normalized](sources/batch-03/axis.txt), [Orca](sources/batch-04/orca.txt), [GA102](sources/batch-04/ga102-whitepaper.txt), and [MoE](sources/batch-05/moe.txt). These are **not replacements for absent original PDFs/archives or fresh verification of their illustrations**.
+
+This link census has a different scope from Batch 07’s 16 missing receipt-listed assets: it scans document references, including images and a handoff, not only that earlier receipt’s selected artifact list. The counts are not contradictory. New deliverable links are checked separately; historical missing links are disclosed rather than repaired by fabricating files.
+
+Editorial only: Batch 08’s source README has `all746` where it means “all 746.” Its integrity count is unchanged. The earlier `Renderer::sync_world` symbol correction was already completed before this audit; it is not a newly discovered defect.
+
+## 3. Code-dependent disposition audit across all original proposals
+
+Paths below are relative to `recovered-codebase/`, except explicitly named dependency sources. The original blueprint’s target strings remain preserved in the ledger even where they name nonexistent/mislocated helpers.
+
+| ID | Checked source contract / inference boundary | Outcome |
+|---|---|---|
+| P01 | `voxel/geometry.rs::Inner`, `world.rs::insert_local`, `common.wgsl::march_chunk`: upper prefix nibble carries water-line metadata; rank selects packed children. New empty-space bounds require separate safety/invalidation. | Rejection stands. |
+| P02 | `lod.rs::fine_share/Planner`, `stream.rs::build/request/drain`, renderer uploads: CPU residency/fade/build/journal ownership is real; `rayon::spawn` plus `try_recv` is not evidence of a global barrier stall. | Rejection stands. |
+| P03 | `RunPool::intern` compares exact whole runs; `make_root/release_root/set_block` maintain ownership. Shape transforms must preserve occurrence material order and world-frame metadata. | ADAPT stands; census first. |
+| P04 | `make_atlas` uses nearest magnification, linear minification/mip filtering; `textures.rs` supplies 16² layers/four mips. `resolve.wgsl::face_uv` is not in `common.wgsl`. Equal faces do not imply equal requests. | Rejection stands. |
+| P05 | `shadow.rs::Targets::new` and `shadow.wgsl`: receiver compatibility does not certify caster visibility; fresh distance and temporal history are different allocations. | Rejection stands; H05 diagnostic valid. |
+| P06 | Same resources are two temporal parities, not spatial depth layers. Reprojection cannot seed cleared guide-depth histories. No reservoir estimator is supplied by those buffers. | Rejection stands. |
+| P07 | `lod.rs::dissolve`, `common.wgsl::ray_skips`, `build_chunk_list`: complementary stochastic primary selection and separately selected world-grid LoD, not a bijective surface map. | Rejection stands. |
+| P08 | `shadow_horizontal/vertical` retain per-receiver taps, weights and normalization. Sharing a guide is not removing duplicated ReSTIR path shifts from an estimator that is absent. | Rejection stands. |
+| P09 | `march` is pair/tile work with a final atomic hit-key reduction; `march_chunk` already caches L1/leaf per invocation. Root/L1 staging does not include leaf/attribute data. | Rejection stands. |
+| P10 | `attributes.rs::bits_for/encode_leaf/decode_leaf`: exact adaptive palettes, straight-line lookup. Encoding loops are not a decoding loop; one nibble cannot select 17 palette entries. | Rejection stands. |
+| P11 | `ShaftField::update` samples procedural centers/reuses the camera window without edited `World` input. Target-only verification cannot exclude an earlier hit. | Rejection stands. |
+| P12 | `probe.rs`, `stream.rs::build`, AO producer/consumer, device requirements and pinned HAL/Naga parsing: quantities differ; 16/f16 route is conditional, not absent or verified. **AO cost correction A09-01 applies.** | Rejection stands; baseline cost inference corrected. |
+| P13 | `GpuMirror::sync`, `WordPool`, `RunPool`: growth/full upload, dirty-range merging, retained high-water vectors and ownership are different costs. A page table alone does not reclaim every retained payload. | ADAPT stands; compare preallocation. |
+| P14 | `march` uses 8×8 groups over tile/chunk pairs and a strided list. Atomic per-lane work claims do not prove SIMT tail elimination or hardware residency. | Rejection stands. |
+| P15 | Both wrappers use `SPEC_COMPACT_SHADE_HIT`; primary cached and secondary uncached callers differ. `glmPrune/PLAN.md` protects four bodies. Pinned Naga specialization is not proof of final native-code deduplication. | Rejection stands; no merge. |
+| P16 | Pair lanes share a chunk descriptor, not all per-ray ancestor/interval state. Existing exact counterexamples reproduce. | Rejection stands; data-only sharing remains conditional. |
+| P17 | `light.rs::compute/flood` seeds Sky/RGB separately and propagates six-neighbor, unit-loss, obstacle-aware maxima, with a bailout. `handle_edits` consumes one deduplicated key per call. | Rejection stands; 14-round ideal graph is not full Rust equivalence. |
+| P18 | `shaft::STEPS`, `render_ready`, shader dependencies and timestamp ownership: serial scan stages, input readiness and consumer joins remain. Public queue/native integration distinctions survive. | Rejection stands; no measured hiding. |
+| P19 | RR-selected `march_chunk` has mixed integer/float work and bounded alignment. Exact-power-of-two multiplication candidate is narrower than unrestricted conversion or approximate division/floor. | ADAPT stands; generated-kernel evidence needed. |
+| P20 | Pinned core buffer creation requires mapped-primary feature for broadened usage; queue submission rejects mapped buffers. Staging placement does not eliminate the destination copy. | Rejection stands. |
+| P21 | No `safe_d`/`dmin` helper to replace; actual guarded stepping/raw-direction calculations and signed interval/tie behavior matter. | Rejection stands. |
+
+These conclusions also retain the dynamic-world constraints: journal edits, coarse ancestors, in-flight builds without an explicit generation token in their result, eviction/reload, reused handles and publication order. Procedural probes/shaft fields are not magically updated by geometry invalidation. A proposed fix must establish its own lifetime contract; this audit did not execute an edit-race reproducer.
+
+## 4. What agreement with the other AI does—and does not—buy
+
+**Useful agreement:** the current history producer gap; distinction between camera-visible receiver retention and light visibility; no automatic LoD mapping from repeated face UVs; conditional cooperative matrices; learned radiance versus probe/AO targets; JFA versus attenuated multi-channel lighting; and smaller first experiments instead of a combined architecture.
+
+**Different witnesses, not contradictions:** their earlier-hit example uses different distances; their JFA error has squared distances 73/81 while ours reproduces a 109/113 paper example; their relaxation tests use 50 small 2D cases while ours use 24 small 3D cases. None of those counts should be added and advertised as our replicated test coverage. Only our own eight suites were rerun here.
+
+**Do not import:** their clean-engine/archive receipts, their local link validation, their unprovided script execution, or historical timings as new target measurements. The source-visible lack of a fresh history producer is strong evidence, but neither report proves that it caused an old +0.15/+0.23 ms result.
+
+**Final judgment:** the other reports are useful and technically compatible cross-checks, not a certification. Our original verdicts survive the code audit, but our default-AO cost claim did not. The corrected synthesis explicitly carries that exception rather than claiming blanket agreement or blanket correctness.
