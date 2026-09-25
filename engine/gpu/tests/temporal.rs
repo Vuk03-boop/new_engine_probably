@@ -30,8 +30,8 @@ use world::{scene, BrickKey, Transaction, World};
 const NEAR: f64 = 0.1;
 const SEED: u32 = 0x3D;
 /// Sun and sky without the 3F bounce: the lighting this file's criteria were measured with.
-const DIRECT: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false };
-const SUN_ONLY: ShadeSettings = ShadeSettings { sun: true, sky: false, point_sun: false, uniform_sky: false, bounce: false };
+const DIRECT: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false, ..ShadeSettings::NONE };
+const SUN_ONLY: ShadeSettings = ShadeSettings { sun: true, sky: false, point_sun: false, uniform_sky: false, bounce: false, ..ShadeSettings::NONE };
 const W: u32 = 320;
 const H: u32 = 180;
 

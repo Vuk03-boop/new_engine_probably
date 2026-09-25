@@ -1,0 +1,29 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running unittests src/lib.rs (target/release/deps/gpu-4c89237ab4b5c7e4)
+
+running 21 tests
+test alloc::tests::first_fit_aligns_splits_and_coalesces ... ok
+test equivalence::tests::camera_rays_have_unit_forward_component ... ok
+test equivalence::tests::resolve_picks_the_voxel_behind_the_face ... ok
+test exposure::tests::host_layout_matches_the_compiled_module ... ok
+test exposure::tests::samples_are_every_stride_th_pixel ... ok
+test layout::tests::f16_integers_are_exact ... ok
+test layout::tests::image_sections_are_aligned_and_hold_the_triangulation ... ok
+test layout::tests::negative_coordinates_group_into_the_right_region ... ok
+test layout::tests::pack_round_trips_and_fields_do_not_overlap ... ok
+test equivalence::tests::axis_normals_encode_to_exact_snorm_bits ... ok
+test reference::tests::host_layout_matches_the_compiled_module ... ok
+test reflect::tests::parses_nested_values_and_rejects_garbage ... ok
+test shade::tests::emitter_flags_follow_the_settings ... ok
+test shade::tests::host_layout_matches_the_compiled_module ... ok
+test emitters::tests::region_size_does_not_change_the_table ... ok
+test temporal::tests::relight_rows_follow_the_shader_layout ... ok
+test timeline::tests::retirement_releases_in_order_only_after_completion ... ok
+test timing::tests::nearest_rank_percentiles ... ok
+test layout::tests::regions_preserve_every_quad_in_world_position ... ok
+test emitters::tests::edits_keep_the_table_equal_to_a_fresh_build ... ok
+test temporal::tests::changed_power_bounds_the_edit ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+exit 0

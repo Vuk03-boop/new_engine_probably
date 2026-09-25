@@ -27,9 +27,9 @@ use world::{scene, World};
 const NEAR: f64 = 0.1;
 const SEED: u32 = 0x3B;
 /// Sun and sky without the 3F bounce: the lighting this file's criteria were measured with.
-const DIRECT: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false };
+const DIRECT: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false, ..ShadeSettings::NONE };
 /// The 3B term alone.
-const SUN_ONLY: ShadeSettings = ShadeSettings { sun: true, sky: false, point_sun: false, uniform_sky: false, bounce: false };
+const SUN_ONLY: ShadeSettings = ShadeSettings { sun: true, sky: false, point_sun: false, uniform_sky: false, bounce: false, ..ShadeSettings::NONE };
 
 fn gpu() -> Gpu {
     let g = Gpu::new().expect("an RT-capable Vulkan device is required for gpu tests");
@@ -232,7 +232,7 @@ fn real_time_sun_equals_the_reference_sample_per_pixel() {
                 let rf = rig.reference_frame(&s, &cam, &light, point_sun, frame);
                 let arms = [("ok", ShadeFaults::default()), ("flip_x", ShadeFaults { flip_x: true, ..ShadeFaults::default() }), ("depth", ShadeFaults { depth: true, ..ShadeFaults::default() })];
                 for (fname, faults) in arms {
-                    let rt = rig.shade_frame(&s, &targets, &out, &cam, &light, ShadeSettings { sun: true, sky: false, point_sun, uniform_sky: false, bounce: false }, faults, frame);
+                    let rt = rig.shade_frame(&s, &targets, &out, &cam, &light, ShadeSettings { sun: true, sky: false, point_sun, uniform_sky: false, bounce: false, ..ShadeSettings::NONE }, faults, frame);
                     let a = agreement(&rt, &rf, w);
                     let pass = a.mismatch * 1000 <= n && a.bad == 0 && a.lit >= 1000;
                     eprintln!(

@@ -22,11 +22,19 @@
 // face, material and snapped point come from the ray query and the region table (as in
 // `reference.slang`). The stream continues in the reference's order (sun pair, then direction pair).
 // Light from bounces >= 2 is not computed (reported against the reference, 3F record).
+// 4B term (EMITTERS, ADR-0005 Amendment 3): emitter next-event estimation at the primary vertex and,
+// with BOUNCE, at the bounce hit: the reference's `emitters_direct` and `emitters_indirect` with
+// max_bounces 1, by the same function (`emitter_nee.slang`) at the same place in the stream (after
+// the sun's pair, before the continuation's), so frame f still equals the reference's sample f. The
+// emitter count is `pad0` (from the bound table); `pad1` = k > 1 takes k samples at the primary
+// vertex, averaged (the extra ones drawn right after the first). Emission itself is not added here:
+// the light view adds it after reconstruction. With EMITTERS off no emitter numbers are drawn.
 // Output w: 1 when the pixel's or the bounce hit's surface id is outside its table (must stay 0),
 // else 0.
 
 #include "light_common.slang"
 #include "sky_common.slang"
+#include "emitters_common.slang"
 
 struct Params
 {
@@ -41,8 +49,8 @@ struct Params
     uint frame;
     uint seed;
     uint flags;
-    uint pad0;
-    uint pad1;
+    uint pad0; // 4B: emitter count of the bound table
+    uint pad1; // 4B: emitter samples at the primary vertex (k >= 1)
     uint pad2;
 };
 
@@ -62,6 +70,8 @@ struct RegionRef
 [[vk::binding(5, 0)]] RWStructuredBuffer<float4> radiance;
 [[vk::binding(6, 0)]] StructuredBuffer<float4> sky_view;
 [[vk::binding(7, 0)]] StructuredBuffer<RegionRef> regions;
+// 4B: the scene's emitter table (a placeholder the shader never reads when EMITTERS is off).
+[[vk::binding(8, 0)]] StructuredBuffer<Emitter> emitters;
 [[vk::push_constant]] ConstantBuffer<Params> params;
 
 static const uint F_SUN = 1u;
@@ -69,8 +79,10 @@ static const uint F_SKY = 2u;
 static const uint F_POINT_SUN = 4u;
 static const uint F_UNIFORM_SKY = 8u;
 static const uint F_BOUNCE = 16u;
+static const uint F_EMITTERS = 32u;
 static const uint F_FAULT_FLIP_X = 256u;
 static const uint F_FAULT_DEPTH = 512u;
+static const uint F_FAULT_NO_SOLID_ANGLE = 1024u;
 
 // The axis-aligned face normal from the octahedral target: the dominant axis, with its sign.
 float3 face_normal(float2 e)
@@ -106,6 +118,28 @@ bool occluded(float3 origin, float3 dir)
     rq.TraceRayInline(tlas, RAY_FLAG_NONE, 0xFF, ray);
     rq.Proceed();
     return rq.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
+}
+
+// The segment origin -> origin + seg (TMax 1 along the unnormalized direction), as `reference.slang`.
+bool occluded_segment(float3 origin, float3 seg)
+{
+    RayDesc ray;
+    ray.Origin = origin;
+    ray.Direction = seg;
+    ray.TMin = 0.0;
+    ray.TMax = 1.0;
+    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rq;
+    rq.TraceRayInline(tlas, RAY_FLAG_NONE, 0xFF, ray);
+    rq.Proceed();
+    return rq.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
+}
+
+#include "emitter_nee.slang"
+
+// Emitter light at (p, n) without the albedo: one sample (4B).
+float3 emitter_light(float3 p, float3 n, inout uint rng)
+{
+    return emitter_sample(p, n, params.pad0, false, (params.flags & F_FAULT_NO_SOLID_ANGLE) != 0u, false, rng);
 }
 
 // The closest surface along a ray: 0 = miss, 1 = hit, 2 = bad surface id (as `reference.slang`).
@@ -206,6 +240,15 @@ void main(uint3 tid: SV_DispatchThreadID)
         if (c > 0.0 && !occluded(p, ws))
             l = rho * params.sun_ground.xyz * (c / PI);
     }
+    bool emit_on = (params.flags & F_EMITTERS) != 0u && params.pad0 > 0u;
+    if (emit_on)
+    {
+        uint k = max(params.pad1, 1u);
+        float3 le = emitter_light(p, n, rng);
+        for (uint j = 1u; j < k; j++)
+            le += emitter_light(p, n, rng);
+        l += rho * (le / float(k));
+    }
     float v1 = rnd(rng);
     float v2 = rnd(rng);
     float3 wi = cosine_hemisphere(n, v1, v2);
@@ -233,6 +276,8 @@ void main(uint3 tid: SV_DispatchThreadID)
                 if (c > 0.0 && !occluded(p2, ws))
                     l += beta * params.sun_ground.xyz * (c / PI);
             }
+            if (emit_on)
+                l += beta * emitter_light(p2, n2, rng);
             float x1 = rnd(rng);
             float x2 = rnd(rng);
             if (sky_on)

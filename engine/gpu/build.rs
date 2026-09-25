@@ -27,15 +27,18 @@ const SHADERS: &[(&str, &str, &str, &str, &[&str])] = &[
     ("temporal.slang", "main", "compute", "temporal", &[]),
     // 3E: the native reconstruction.
     ("denoise.slang", "main", "compute", "denoise", &[]),
+    // 4B: the viewer's automatic exposure (sums of the displayed luminance).
+    ("exposure.slang", "main", "compute", "exposure", &[]),
 ];
 
 fn main() {
     println!("cargo:rerun-if-env-changed=VULKAN_SDK");
     println!("cargo:rerun-if-changed=build.rs");
-    // Shared includes (light_common.slang, sky_common.slang, emitters_common.slang) are not listed as modules.
+    // Shared includes (light_common.slang, sky_common.slang, emitters_common.slang, emitter_nee.slang) are not listed as modules.
     println!("cargo:rerun-if-changed=shaders/light_common.slang");
     println!("cargo:rerun-if-changed=shaders/sky_common.slang");
     println!("cargo:rerun-if-changed=shaders/emitters_common.slang");
+    println!("cargo:rerun-if-changed=shaders/emitter_nee.slang");
     let sdk = std::env::var("VULKAN_SDK").expect("VULKAN_SDK is not set: the gpu crate needs the pinned Vulkan SDK (ADR-0001)");
     let bin = PathBuf::from(sdk).join("Bin");
     let slangc = bin.join("slangc.exe");

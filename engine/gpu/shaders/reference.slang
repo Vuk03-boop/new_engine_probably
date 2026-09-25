@@ -158,47 +158,7 @@ bool occluded_segment(float3 origin, float3 seg)
     return rq.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
 }
 
-// Emitter next-event estimation at (p, n), without beta and albedo (light::reference::emitter_sample).
-float3 emitter_sample(float3 p, float3 n, inout uint rng)
-{
-    uint count = asuint(params.right.w);
-    uint i = uniform_index(count, rng);
-    Emitter e = emitters[i];
-    if ((next_u32(rng) >> 8u) >= e.meta.x)
-        e = emitters[e.meta.y];
-    float u = rnd(rng);
-    float v = rnd(rng);
-    float3 ne = face_normal(e.meta.z);
-    if (dot(ne, p - e.p0_area.xyz) <= 0.0)
-        return float3(0.0, 0.0, 0.0);
-    bool solid = false;
-    SphRect r;
-    if ((params.flags & F_EMITTER_AREA) == 0u)
-    {
-        r = sph_rect(e.p0_area.xyz, e.eu_pdf.xyz, e.ev.xyz, p);
-        solid = r.solid_angle >= SOLID_ANGLE_MIN;
-    }
-    float3 y = solid ? sph_rect_sample(r, u, v) : e.p0_area.xyz + u * e.eu_pdf.xyz + v * e.ev.xyz;
-    float3 d = y - p;
-    float d2 = dot(d, d);
-    float3 w = d * rsqrt(d2);
-    float cx = dot(n, w);
-    float cy = -dot(ne, w);
-    if (cx <= 0.0 || cy <= 0.0)
-        return float3(0.0, 0.0, 0.0);
-    if (occluded_segment(p, y + ne * RAY_OFFSET - p))
-        return float3(0.0, 0.0, 0.0);
-    float k;
-    if ((params.flags & F_FAULT_NO_SOLID_ANGLE) != 0u)
-        k = e.p0_area.w;
-    else if (solid)
-        k = r.solid_angle;
-    else if ((params.flags & F_FAULT_NO_EMITTER_COS) != 0u)
-        k = e.p0_area.w / d2;
-    else
-        k = e.p0_area.w * cy / d2;
-    return e.radiance.xyz * (cx * k / (e.eu_pdf.w * PI));
-}
+#include "emitter_nee.slang"
 
 float3 sky(float3 dir, inout uint rng)
 {
@@ -271,7 +231,7 @@ void main(uint3 tid: SV_DispatchThreadID)
             }
             uint nee = bounce == 0u ? F_EMITTERS_DIRECT : F_EMITTERS_INDIRECT;
             if ((params.flags & nee) != 0u && emitter_count > 0u)
-                l += beta * rho * emitter_sample(p, n, rng);
+                l += beta * rho * emitter_sample(p, n, emitter_count, (params.flags & F_EMITTER_AREA) != 0u, (params.flags & F_FAULT_NO_SOLID_ANGLE) != 0u, (params.flags & F_FAULT_NO_EMITTER_COS) != 0u, rng);
             float v1 = rnd(rng);
             float3 wi = cosine_hemisphere(n, v1, rnd(rng));
             beta *= rho;

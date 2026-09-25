@@ -27,6 +27,12 @@
 //   accepted is instead rejected as "relit" when the ray from its surface point towards the sun
 //   crosses the box (its sun shadow may have changed) or the point is within the box's sky radius of
 //   it (its sky visibility may have changed by more than about 2%).
+// - 4B relight (ADR-0006 Amendment 2), emitters, with the history's luminance Y_h (bilinear taps) and
+//   d the distance from the point to the grown box: E1, the box changed emitter power dPhi (hi.w holds
+//   dPhi / pi^2) and dPhi / (pi^2 d^2) >= tol Y_h; E2, for each emitter listed with the box (centre,
+//   half-diagonal + 1 voxel, luminance Y_e), the segment from the point to its centre crosses the box
+//   grown by that radius and Y_e A / (pi d^2) >= tol Y_h, A = ab + bc + ca of the grown box. Both
+//   bound the change of direct emitter light (albedo <= 1); tol is relight[1].x (2%).
 // - Outputs: next guides, next history colour and state, motion, and, in place in `radiance`, the
 //   resolved colour (xyz) and the state (w) for the light and debug views. The state buffers hold
 //   age (bits 0-15) | reason (bits 16-23) | bad material (bit 24); in `radiance.w` the same number is
@@ -58,7 +64,9 @@ struct Params
 [[vk::binding(10, 0)]] StructuredBuffer<uint> prev_state;
 [[vk::binding(11, 0)]] RWStructuredBuffer<uint> next_state;
 [[vk::binding(12, 0)]] RWStructuredBuffer<float2> motion;
-// [0]: sun direction (xyz), box count (w); then per box: (lo.xyz, sky radius), (hi.xyz, 0). Voxels.
+// [0]: sun direction (xyz), box count (w); [1]: x the emitter tolerance (4B); then per box
+// (BOX_ROWS rows): (lo.xyz, sky radius), (hi.xyz, dPhi / pi^2), and BOX_LIGHTS pairs
+// (centre.xyz, radius), (luminance, 0, 0, 0). Voxels.
 [[vk::binding(13, 0)]] StructuredBuffer<float4> relight;
 [[vk::push_constant]] ConstantBuffer<Params> params;
 
@@ -80,6 +88,9 @@ static const uint R_RESET = 8u;
 static const uint R_RELIT = 9u;
 
 static const uint FACE_NONE = 7u;
+static const uint BOX_LIGHTS = 8u;
+static const uint BOX_ROWS = 2u + 2u * BOX_LIGHTS;
+static const float PI = 3.14159265358979;
 static const float SNAP = 1.0e-3;
 
 uint face_of(float2 e)
@@ -139,30 +150,57 @@ float4 catmull_rom(float t)
     return float4(-0.5 * t3 + t2 - 0.5 * t, 1.5 * t3 - 2.5 * t2 + 1.0, -1.5 * t3 + 2.0 * t2 + 0.5 * t, 0.5 * t3 - 0.5 * t2);
 }
 
-// Whether the light at surface point p may have changed because of the edited boxes.
-bool relit(float3 p)
+// Whether the light at surface point p, whose history has luminance lum, may have changed because of
+// the edited boxes.
+bool relit(float3 p, float lum)
 {
     float4 head = relight[0];
     uint n = uint(head.w);
     float3 sun = head.xyz;
+    float thr = relight[1].x * lum;
     float3 inv = float3(1.0 / sun.x, 1.0 / sun.y, 1.0 / sun.z);
     for (uint b = 0u; b < n; b++)
     {
-        float4 lo = relight[1u + 2u * b];
-        float3 hi = relight[2u + 2u * b].xyz;
+        uint base = 2u + BOX_ROWS * b;
+        float4 lo = relight[base];
+        float4 hi = relight[base + 1u];
         // Sky: distance from p to the box.
-        float3 d = max(max(lo.xyz - p, p - hi), float3(0.0, 0.0, 0.0));
-        if (dot(d, d) <= lo.w * lo.w)
+        float3 d = max(max(lo.xyz - p, p - hi.xyz), float3(0.0, 0.0, 0.0));
+        float d2 = dot(d, d);
+        if (d2 <= lo.w * lo.w)
             return true;
         // Sun: the ray p + t sun, t >= 0, against the box (slabs).
         float3 t0 = (lo.xyz - p) * inv;
-        float3 t1 = (hi - p) * inv;
+        float3 t1 = (hi.xyz - p) * inv;
         float3 tn = min(t0, t1);
         float3 tf = max(t0, t1);
         float enter = max(max(tn.x, tn.y), max(tn.z, 0.0));
         float leave = min(tf.x, min(tf.y, tf.z));
         if (enter <= leave)
             return true;
+        // 4B E1: a light changed in the box.
+        if (hi.w > 0.0 && hi.w >= thr * d2)
+            return true;
+        // 4B E2: the box may shadow a listed emitter.
+        float3 sz = hi.xyz - lo.xyz;
+        float area = sz.x * sz.y + sz.y * sz.z + sz.z * sz.x;
+        for (uint j = 0u; j < BOX_LIGHTS; j++)
+        {
+            float4 c = relight[base + 2u + 2u * j];
+            float ye = relight[base + 3u + 2u * j].x;
+            if (ye <= 0.0 || ye * area / PI < thr * d2)
+                continue;
+            float3 seg = c.xyz - p;
+            float3 is = float3(1.0 / seg.x, 1.0 / seg.y, 1.0 / seg.z);
+            float3 s0 = (lo.xyz - c.w - p) * is;
+            float3 s1 = (hi.xyz + c.w - p) * is;
+            float3 sn = min(s0, s1);
+            float3 sf = max(s0, s1);
+            float en = max(max(sn.x, sn.y), max(sn.z, 0.0));
+            float lv = min(min(sf.x, sf.y), min(sf.z, 1.0));
+            if (en <= lv)
+                return true;
+        }
     }
     return false;
 }
@@ -280,7 +318,7 @@ void main(uint3 tid: SV_DispatchThreadID)
         }
         if (wsum <= 0.0)
             reason = nearest_reason == R_ACCEPTED ? R_NO_PREV : nearest_reason;
-        else if (relit(p))
+        else if (relit(p, dot(hist / wsum, float3(0.2126, 0.7152, 0.0722))))
             reason = R_RELIT;
         // Catmull-Rom over the 4x4 taps, only when all of them with a weight are valid.
         if (reason == R_ACCEPTED && (flags & F_BILINEAR) == 0u)

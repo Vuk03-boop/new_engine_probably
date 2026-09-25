@@ -33,7 +33,7 @@ use world::reference::{trace, Ray};
 use world::{scene, BrickKey, MaterialId, Transaction, VoxelCoord, World};
 
 /// Sun and sky without the 3F bounce: the lighting this file's criteria were measured with.
-const DIRECT: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false };
+const DIRECT: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false, ..ShadeSettings::NONE };
 const NEAR: f64 = 0.1;
 const SEED: u32 = 0x3E;
 const W: u32 = 320;
@@ -944,7 +944,7 @@ fn relight_check(shade: ShadeSettings) {
     let (nfreed, v, dist) = best.unwrap();
     let (lo, hi) = box_of(v);
     eprintln!("edit: {} shadowed samples with a distant occluder; removing [{lo:?}, {hi:?}) around {v:?} at distance {dist:.0} frees {nfreed} of them", occ.len());
-    let boxes = [Relight { lo, hi }];
+    let boxes = [Relight::new(lo, hi)];
     let saved = rig.voxels(lo, hi);
     let removed: Vec<_> = saved.iter().map(|&(c, _)| (c, None)).collect();
     let t_old = rig.target_with(&cam, &light, shade, TARGET_FRAMES);

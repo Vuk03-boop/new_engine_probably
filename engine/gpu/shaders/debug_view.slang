@@ -14,7 +14,9 @@
 //     Narkowicz ACES fit. No shadows, no occlusion. Output is linear (the sRGB image encodes).
 //   8 light (3B): the real-time lighting of gpu::shade (linear HDR radiance per pixel, row-major in
 //     `radiance`), times params.light.w (exposure), then the same ACES fit. Covers every pixel,
-//     surfaces and sky alike.
+//     surfaces and sky alike. 4B: with EMISSION (bit 8 of params.origin.w) a surface pixel adds its
+//     material's emitted radiance (`MaterialRow.emissive`, ADR-0005 units) before the exposure: the
+//     emission at the primary hit, added after reconstruction (ADR-0005 Amendment 3).
 //   9 history age, 10 history reason (3D; 3E adds relit): the temporal state gpu::temporal writes into radiance.w
 //     (the number age | reason << 16 | bad << 24, stored as a float value).
 //   11 motion (3D): the motion buffer, pixels to the previous frame.
@@ -31,7 +33,7 @@ struct Params
     float4 forward;
     // xyz: eye minus the integer camera origin; w: near plane.
     float4 eye;
-    // xyz: integer camera origin; w: view.
+    // xyz: integer camera origin; w: view (bits 0-7), EMISSION (bit 8).
     int4 origin;
     // x, y: target size; z: material count; w: region count.
     uint4 info;
@@ -144,7 +146,8 @@ uint hash3(int3 k)
 float4 fs_main(float4 frag : SV_Position) : SV_Target0
 {
     int2 px = int2(frag.xy);
-    uint view = uint(params.origin.w);
+    uint view = uint(params.origin.w) & 255u;
+    bool emission = (uint(params.origin.w) & 256u) != 0u;
     if (view == 8)
     {
         // Bounds-checked: without a bound radiance buffer the material table stands in (magenta).
@@ -153,7 +156,14 @@ float4 fs_main(float4 frag : SV_Position) : SV_Target0
         radiance.GetDimensions(rcount, rstride);
         if (ri >= rcount)
             return float4(1.0, 0.0, 1.0, 1.0);
-        return float4(aces(radiance[ri].xyz * params.light.w), 1.0);
+        float3 c = radiance[ri].xyz;
+        if (emission && depth_tex.Load(int3(px, 0)) > 0.0)
+        {
+            uint m = material_tex.Load(int3(px, 0));
+            if (m < params.info.z)
+                c += materials[m].emissive.xyz;
+        }
+        return float4(aces(c * params.light.w), 1.0);
     }
     if (view == 9 || view == 10)
     {

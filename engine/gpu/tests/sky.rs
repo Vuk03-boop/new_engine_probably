@@ -31,7 +31,7 @@ use world::scene;
 
 const NEAR: f64 = 0.1;
 const SEED: u32 = 0x3C;
-const SKY_ONLY: ShadeSettings = ShadeSettings { sun: false, sky: true, point_sun: false, uniform_sky: false, bounce: false };
+const SKY_ONLY: ShadeSettings = ShadeSettings { sun: false, sky: true, point_sun: false, uniform_sky: false, bounce: false, ..ShadeSettings::NONE };
 
 fn gpu() -> Gpu {
     let g = Gpu::new().expect("an RT-capable Vulkan device is required for gpu tests");
@@ -261,7 +261,7 @@ fn uniform_sky_term_equals_the_reference_per_pixel() {
     let mut failed = Vec::new();
     for (name, cam) in street_cameras(w, h) {
         let frame = 23;
-        let rt = rig.shade_frame(&cam, &light, ShadeSettings { sun: false, sky: false, point_sun: false, uniform_sky: true, bounce: false }, frame);
+        let rt = rig.shade_frame(&cam, &light, ShadeSettings { sun: false, sky: false, point_sun: false, uniform_sky: true, bounce: false, ..ShadeSettings::NONE }, frame);
         let rf = rig.reference_image(&cam, &light, &Settings { uniform_sky: true, max_bounces: 0, ..Settings::default() }, frame, 1);
         let (mut mismatch, mut lit, mut bad) = (0, 0, 0);
         for (x, y) in rt.iter().zip(&rf.sum) {

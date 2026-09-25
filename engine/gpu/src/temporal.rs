@@ -16,11 +16,20 @@
 //! voxel boxes ([`Relight`]) for the frame after it is published, and pixels whose sun ray crosses a
 //! box or that lie within its sky radius restart as "relit"; while the sun moves, the age cap shrinks
 //! so that the history spans at most `sun_tolerance_deg` of sun motion.
+//!
+//! 4B (ADR-0006 Amendment 2), emitters: while the lights are on, a box also carries a bound on the
+//! emitter power the edit changed ([`changed_power`], rule E1) and the emitters it may shadow most
+//! ([`Relight::with_lights`], rule E2); a pixel restarts as relit when either bound on the change of
+//! its direct emitter light is at least [`EMITTER_TOLERANCE`] of its history's luminance. A change of
+//! the lights' state ([`History::set_lights`]) is a light jump: a global reset.
 
 use std::mem::size_of;
 
 use ash::vk;
 use memory::Category;
+
+use light::emitters::{luminance, EmitterTable};
+use world::{MaterialId, VoxelCoord};
 
 use crate::alloc::{Allocator, Buffer, Kind};
 use crate::context::{Gpu, GpuError, Result, VkCheck};
@@ -38,7 +47,16 @@ pub const CUT_VOXELS: f64 = 64.0;
 pub const LIGHT_JUMP_DEG: f64 = 1.0;
 /// Relight boxes per frame; more are merged into the last one.
 pub const MAX_RELIGHT_BOXES: usize = 16;
-const RELIGHT_BYTES: u64 = 16 * (1 + 2 * MAX_RELIGHT_BOXES as u64);
+/// 4B: emitters listed per box for rule E2.
+pub const BOX_LIGHTS: usize = 8;
+/// 4B: a pixel restarts when a bound on the change of its direct emitter light is at least this
+/// fraction of its history's luminance (as 3E's sky radius, about 2%).
+pub const EMITTER_TOLERANCE: f64 = 0.02;
+/// Rows per box: lo, hi, then two per listed emitter.
+const BOX_ROWS: usize = 2 + 2 * BOX_LIGHTS;
+/// Header rows: sun and box count; the emitter tolerance.
+const HEAD_ROWS: usize = 2;
+const RELIGHT_BYTES: u64 = 16 * (HEAD_ROWS + BOX_ROWS * MAX_RELIGHT_BOXES) as u64;
 
 /// History reasons (ADR-0006), as in the shader.
 pub mod reason {
@@ -91,39 +109,123 @@ impl TemporalSettings {
     }
 }
 
-/// Voxels an edit changed this frame: `lo` inclusive, `hi` exclusive.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 4B: an emitter a box may shadow (rule E2): its centre, half-diagonal and luminance, and the
+/// potential it was chosen by, Φ / (d² + 1) with d from the centre to the box (voxels).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BoxLight {
+    pub centre: [f64; 3],
+    pub radius: f64,
+    pub luminance: f64,
+    pub potential: f64,
+}
+
+/// Voxels an edit changed this frame: `lo` inclusive, `hi` exclusive. 4B: with the lights on, also
+/// the bound on the emitter power it changed (E1) and the emitters it may shadow (E2).
+#[derive(Clone, Debug, PartialEq)]
 pub struct Relight {
     pub lo: [i32; 3],
     pub hi: [i32; 3],
+    /// Upper bound on the emitter power added or removed (π · area · luminance, voxels², ADR-0005
+    /// units; [`changed_power`]). 0: no light changed, or the lights are off.
+    pub power: f64,
+    /// At most [`BOX_LIGHTS`], largest potential first. Empty: the lights are off.
+    pub lights: Vec<BoxLight>,
 }
 
 impl Relight {
-    /// The smallest box holding both.
+    /// A box without emitter terms (the 3E rules only).
+    pub fn new(lo: [i32; 3], hi: [i32; 3]) -> Relight {
+        Relight { lo, hi, power: 0.0, lights: Vec::new() }
+    }
+
+    /// The smallest box holding both; powers add, and the lights keep the [`BOX_LIGHTS`] largest.
     pub fn union(self, o: Relight) -> Relight {
-        Relight { lo: std::array::from_fn(|a| self.lo[a].min(o.lo[a])), hi: std::array::from_fn(|a| self.hi[a].max(o.hi[a])) }
+        let mut lights = self.lights;
+        lights.extend(o.lights);
+        lights.sort_by(|a, b| b.potential.total_cmp(&a.potential));
+        lights.truncate(BOX_LIGHTS);
+        Relight { lo: std::array::from_fn(|a| self.lo[a].min(o.lo[a])), hi: std::array::from_fn(|a| self.hi[a].max(o.hi[a])), power: self.power + o.power, lights }
+    }
+
+    /// 4B: this box with the emitter terms of `table` (the lights are on): `power` from
+    /// [`changed_power`], and the [`BOX_LIGHTS`] emitters of largest Φ / (d² + 1), d from the emitter's
+    /// centre to the box.
+    pub fn with_lights(mut self, power: f64, table: &EmitterTable) -> Relight {
+        self.power = power;
+        let mut all: Vec<BoxLight> = table
+            .emitters
+            .iter()
+            .map(|e| {
+                let centre: [f64; 3] = std::array::from_fn(|a| e.p0[a] + 0.5 * (e.eu[a] + e.ev[a]));
+                let radius = 0.5 * (0..3).map(|a| (e.eu[a] + e.ev[a]).powi(2)).sum::<f64>().sqrt();
+                let y = luminance(e.radiance);
+                let d2: f64 = (0..3).map(|a| (self.lo[a] as f64 - centre[a]).max(centre[a] - self.hi[a] as f64).max(0.0).powi(2)).sum();
+                BoxLight { centre, radius, luminance: y, potential: std::f64::consts::PI * e.area * y / (d2 + 1.0) }
+            })
+            .filter(|l| l.potential > 0.0)
+            .collect();
+        all.sort_by(|a, b| b.potential.total_cmp(&a.potential));
+        all.truncate(BOX_LIGHTS);
+        self.lights = all;
+        self
     }
 
     /// The box as the shader tests it: grown by a 1-voxel margin (the sun disk's penumbra up to about
     /// 400 voxels away), with sky radius 4 x its largest side + 1 voxel (outside it, removing or
-    /// adding the box changes a point's sky irradiance by less than about 2%).
+    /// adding the box changes a point's sky irradiance by less than about 2%); 4B: the hi row's w is
+    /// the E1 coefficient ΔΦ / π².
     pub fn rows(&self) -> [[f32; 4]; 2] {
         let side = (0..3).map(|a| self.hi[a] - self.lo[a]).max().unwrap_or(0).max(1) as f32;
         let (l, h) = (self.lo.map(|v| v as f32 - 1.0), self.hi.map(|v| v as f32 + 1.0));
-        [[l[0], l[1], l[2], 4.0 * side + 1.0], [h[0], h[1], h[2], 0.0]]
+        let pi2 = std::f64::consts::PI * std::f64::consts::PI;
+        [[l[0], l[1], l[2], 4.0 * side + 1.0], [h[0], h[1], h[2], (self.power / pi2) as f32]]
+    }
+
+    /// 4B: the two rows of each listed emitter (centre and grown radius; luminance), [`BOX_LIGHTS`]
+    /// pairs, unused ones zero (luminance 0 is skipped).
+    pub fn light_rows(&self) -> Vec<[f32; 4]> {
+        let mut rows = Vec::with_capacity(2 * BOX_LIGHTS);
+        for k in 0..BOX_LIGHTS {
+            match self.lights.get(k) {
+                Some(l) => {
+                    rows.push([l.centre[0] as f32, l.centre[1] as f32, l.centre[2] as f32, (l.radius + 1.0) as f32]);
+                    rows.push([l.luminance as f32, 0.0, 0.0, 0.0]);
+                }
+                None => rows.extend([[0.0; 4]; 2]),
+            }
+        }
+        rows
     }
 }
 
-/// The relight buffer's contents: sun direction and count, then two rows per box (at most
-/// [`MAX_RELIGHT_BOXES`]; the rest are merged into the last one).
-pub fn relight_rows(sun: [f64; 3], boxes: &[Relight]) -> Vec<[f32; 4]> {
-    let mut merged: Vec<Relight> = boxes.iter().take(MAX_RELIGHT_BOXES).copied().collect();
-    if boxes.len() > MAX_RELIGHT_BOXES {
-        merged[MAX_RELIGHT_BOXES - 1] = boxes[MAX_RELIGHT_BOXES - 1..].iter().copied().reduce(Relight::union).unwrap();
+/// 4B rule E1: an upper bound on the emitter power (π · area · luminance, voxels², ADR-0005 units) that
+/// setting `edits` adds or removes. Every face of an edited voxel whose material emits before
+/// (`before`) or after, and the face of each emitting face neighbour that the edit may cover or
+/// expose. `emission` is per material index (`light::emitters::emission`).
+pub fn changed_power(edits: &[(VoxelCoord, Option<MaterialId>)], before: impl Fn(VoxelCoord) -> Option<MaterialId>, emission: &[[f64; 3]]) -> f64 {
+    let y = |m: Option<MaterialId>| m.and_then(|m| emission.get(m.raw() as usize)).map_or(0.0, |l| luminance(*l));
+    let mut sum = 0.0;
+    for &(v, m) in edits {
+        sum += 6.0 * (y(before(v)) + y(m));
+        for (dx, dy, dz) in [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)] {
+            sum += y(before(VoxelCoord::new(v.x + dx, v.y + dy, v.z + dz)));
+        }
     }
-    let mut rows = vec![[sun[0] as f32, sun[1] as f32, sun[2] as f32, merged.len() as f32]];
+    std::f64::consts::PI * sum
+}
+
+/// The relight buffer's contents: sun direction and count; the emitter tolerance; then per box its
+/// two rows and [`BOX_LIGHTS`] light row pairs (at most [`MAX_RELIGHT_BOXES`] boxes; the rest are
+/// merged into the last one).
+pub fn relight_rows(sun: [f64; 3], boxes: &[Relight]) -> Vec<[f32; 4]> {
+    let mut merged: Vec<Relight> = boxes.iter().take(MAX_RELIGHT_BOXES).cloned().collect();
+    if boxes.len() > MAX_RELIGHT_BOXES {
+        merged[MAX_RELIGHT_BOXES - 1] = boxes[MAX_RELIGHT_BOXES - 1..].iter().cloned().reduce(Relight::union).unwrap();
+    }
+    let mut rows = vec![[sun[0] as f32, sun[1] as f32, sun[2] as f32, merged.len() as f32], [EMITTER_TOLERANCE as f32, 0.0, 0.0, 0.0]];
     for b in &merged {
         rows.extend(b.rows());
+        rows.extend(b.light_rows());
     }
     rows
 }
@@ -184,6 +286,8 @@ pub fn host_layout() -> Vec<Param> {
 struct Prev {
     cam: Camera,
     sun: [f64; 3],
+    /// 4B: whether the lights were on.
+    lights: bool,
 }
 
 /// Why this frame was a global reset (all false: history carried over).
@@ -193,11 +297,13 @@ pub struct ResetCause {
     pub cut: bool,
     pub light: bool,
     pub forced: bool,
+    /// 4B: the lights were switched on or off (a light jump).
+    pub lights: bool,
 }
 
 impl ResetCause {
     pub fn any(&self) -> bool {
-        self.first || self.cut || self.light || self.forced
+        self.first || self.cut || self.light || self.forced || self.lights
     }
 }
 
@@ -220,6 +326,8 @@ pub struct History {
     pub frames: u64,
     /// The age cap of the last frame recorded (`TemporalSettings::age_cap`).
     pub age_cap: u32,
+    /// 4B: whether the lights are on for the next frame recorded ([`History::set_lights`]).
+    lights: bool,
 }
 
 impl History {
@@ -251,7 +359,17 @@ impl History {
         };
         let mut it = bufs.into_iter();
         let mut n = || it.next().unwrap();
-        Ok(History { width, height, guides: [n(), n()], hist: [n(), n()], state: [n(), n()], motion: n(), relight, parity: 0, prev: None, frames: 0, age_cap: 0 })
+        Ok(History { width, height, guides: [n(), n()], hist: [n(), n()], state: [n(), n()], motion: n(), relight, parity: 0, prev: None, frames: 0, age_cap: 0, lights: false })
+    }
+
+    /// 4B: the lights' state for the next frame recorded. A change from the previous frame's state is a
+    /// light jump (ADR-0006 Amendment 2): that frame resets every history.
+    pub fn set_lights(&mut self, on: bool) {
+        self.lights = on;
+    }
+
+    pub fn lights(&self) -> bool {
+        self.lights
     }
 
     pub fn device_bytes(&self) -> u64 {
@@ -376,7 +494,8 @@ impl Temporal {
     }
 
     /// Records the pass for this frame and advances `history` (parity, previous camera and sun).
-    /// `relight` lists the voxel boxes edited since the previous frame (3E). The shade pass must
+    /// `relight` lists the voxel boxes edited since the previous frame (3E; 4B: with their emitter
+    /// terms while the lights are on). The shade pass must
     /// precede it in the same queue (its radiance writes are made visible here); the caller makes the
     /// outputs visible to their consumer (`shade::radiance_to_fragment`).
     #[allow(clippy::too_many_arguments)]
@@ -389,7 +508,7 @@ impl Temporal {
                 let moved = (0..3).map(|a| (cam.eye[a] - p.cam.eye[a]).powi(2)).sum::<f64>().sqrt();
                 let cos = (0..3).map(|a| sun[a] * p.sun[a]).sum::<f64>().clamp(-1.0, 1.0);
                 sun_deg = cos.acos().to_degrees();
-                ResetCause { first: false, cut: moved > CUT_VOXELS, light: sun_deg > LIGHT_JUMP_DEG, forced: force_reset }
+                ResetCause { first: false, cut: moved > CUT_VOXELS, light: sun_deg > LIGHT_JUMP_DEG, forced: force_reset, lights: p.lights != history.lights }
             }
         };
         history.age_cap = s.age_cap(sun_deg);
@@ -432,7 +551,7 @@ impl Temporal {
             dev.cmd_dispatch(cmd, cam.width.div_ceil(8), cam.height.div_ceil(8), 1);
         }
         history.parity = 1 - history.parity;
-        history.prev = Some(Prev { cam: *cam, sun });
+        history.prev = Some(Prev { cam: *cam, sun, lights: history.lights });
         history.frames += 1;
         cause
     }
@@ -443,5 +562,184 @@ impl Temporal {
             gpu.device.destroy_pipeline_layout(self.layout, None);
             gpu.device.destroy_descriptor_set_layout(self.set_layout, None);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+
+    use super::*;
+    use crate::emitters::table;
+    use crate::layout::{build_regions, RegionKey, RegionMesh, RegionSize};
+    use derived::{Config, Merge, Pipeline};
+    use world::scene::{street_night, Dressing};
+    use world::{BrickKey, Transaction, World};
+
+    fn rows_of(rows: &[[f32; 4]], b: usize) -> &[[f32; 4]] {
+        &rows[HEAD_ROWS + BOX_ROWS * b..HEAD_ROWS + BOX_ROWS * (b + 1)]
+    }
+
+    fn light(p: f64) -> BoxLight {
+        BoxLight { centre: [p, 2.0 * p, 3.0], radius: 0.5, luminance: p, potential: p }
+    }
+
+    /// 4B C2: the header, the box rows and the light rows are where the shader reads them; more than
+    /// 16 boxes merge into the last (powers add, the 8 largest lights stay).
+    #[test]
+    fn relight_rows_follow_the_shader_layout() {
+        let mut boxes: Vec<Relight> = (0..20)
+            .map(|i| {
+                let mut b = Relight::new([i, 0, 0], [i + 2, 1, 1]);
+                b.power = 1.0 + i as f64;
+                b.lights = (0..3).map(|k| light((10 * i + k) as f64 + 1.0)).collect();
+                b
+            })
+            .collect();
+        boxes[0].lights.clear();
+        let rows = relight_rows([0.0, 1.0, 0.0], &boxes);
+        assert_eq!(rows.len(), HEAD_ROWS + BOX_ROWS * MAX_RELIGHT_BOXES);
+        assert_eq!((rows.len() * 16) as u64, RELIGHT_BYTES);
+        assert_eq!(rows[0], [0.0, 1.0, 0.0, 16.0]);
+        assert_eq!(rows[1][0], EMITTER_TOLERANCE as f32);
+        let pi2 = (std::f64::consts::PI * std::f64::consts::PI) as f32;
+        let b1 = rows_of(&rows, 1);
+        assert_eq!(b1[0], [0.0, -1.0, -1.0, 4.0 * 2.0 + 1.0]);
+        assert_eq!(b1[1], [4.0, 2.0, 2.0, (2.0 / (std::f64::consts::PI * std::f64::consts::PI)) as f32]);
+        assert_eq!(b1[2], [11.0, 22.0, 3.0, 1.5]);
+        assert_eq!(b1[3], [11.0, 0.0, 0.0, 0.0]);
+        assert_eq!(b1[2 + 2 * 3], [0.0; 4], "unused light rows are zero");
+        assert!(rows_of(&rows, 0)[2..].iter().all(|r| *r == [0.0; 4]), "no lights: zero rows");
+        // Boxes 15..19 merged: the union box, powers 16 + 17 + 18 + 19 + 20, the 8 largest lights.
+        let last = rows_of(&rows, 15);
+        assert_eq!(last[0][0], 14.0);
+        assert_eq!(last[1][0], 21.0 + 1.0);
+        assert!((last[1][3] - (90.0 / pi2)).abs() < 1e-5);
+        let lum: Vec<f32> = (0..BOX_LIGHTS).map(|k| last[3 + 2 * k][0]).collect();
+        assert_eq!(lum, vec![193.0, 192.0, 191.0, 183.0, 182.0, 181.0, 173.0, 172.0]);
+    }
+
+    fn drain(p: &mut Pipeline, w: &World) -> BTreeSet<BrickKey> {
+        loop {
+            let jobs = p.dispatch(w);
+            if jobs.is_empty() {
+                break;
+            }
+            for j in jobs {
+                p.complete(w, j.run());
+            }
+        }
+        p.try_publish(w).map(|x| x.groups.into_iter().flatten().collect()).unwrap_or_default()
+    }
+
+    fn full(p: &mut Pipeline) -> BTreeMap<RegionKey, RegionMesh> {
+        let t = p.acquire();
+        let keys: Vec<BrickKey> = p.current().keys().collect();
+        let meshes: Vec<_> = keys.iter().map(|&k| (k, p.read(&t, k).unwrap().unwrap().clone())).collect();
+        p.release(t).unwrap();
+        build_regions(meshes.iter().map(|(k, m)| (*k, m)), RegionSize::Chunk)
+    }
+
+    const DIRS: [(i32, i32, i32); 6] = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)];
+
+    /// The emitting unit faces (voxel, direction) around `voxels` and their luminance: the exact
+    /// face-level oracle.
+    fn emitting_faces(w: &World, voxels: &[VoxelCoord], emission: &[[f64; 3]]) -> BTreeMap<(i32, i32, i32, usize), f64> {
+        let mut out = BTreeMap::new();
+        let mut near = BTreeSet::new();
+        for v in voxels {
+            near.insert((v.x, v.y, v.z));
+            for (dx, dy, dz) in DIRS {
+                near.insert((v.x + dx, v.y + dy, v.z + dz));
+            }
+        }
+        for &(x, y, z) in &near {
+            let Some(m) = w.get(VoxelCoord::new(x, y, z)) else { continue };
+            let l = luminance(emission[m.raw() as usize]);
+            if l <= 0.0 {
+                continue;
+            }
+            for (k, (dx, dy, dz)) in DIRS.iter().enumerate() {
+                if w.get(VoxelCoord::new(x + dx, y + dy, z + dz)).is_none() {
+                    out.insert((x, y, z, k), l);
+                }
+            }
+        }
+        out
+    }
+
+    /// 4B C2: `changed_power` bounds the gross emitter power an edit adds or removes (the unit faces
+    /// that stop or start emitting, which is also >= the net change of the table's total power, from
+    /// from-scratch tables through the 1C pipeline), within 20 x; and is 0 for an edit that touches no
+    /// emitting voxel or neighbour. The listed lights are the 8 largest by Φ / (d² + 1).
+    #[test]
+    fn changed_power_bounds_the_edit() {
+        let (mut w, _) = street_night(Dressing::Full);
+        let emission = light::emitters::emission(w.materials()).unwrap();
+        let mats = w.materials().clone();
+        let id = |n: &str| mats.id_of(n).unwrap();
+        let mut p = Pipeline::new(Config { merge: Merge::Greedy, ..Config::default() });
+        p.mark_all(&w);
+        drain(&mut p, &w);
+        let total = |p: &mut Pipeline| {
+            let snap = p.current().id.raw();
+            table(&full(p), &mats, snap).unwrap().emitters.iter().map(|e| e.power).sum::<f64>()
+        };
+        let first = |w: &World, m| w.occupied().find(|&(_, x)| x == m).map(|(v, _)| v).unwrap();
+        let lamp = first(&w, id("lamp"));
+        let bulb = first(&w, id("bulb"));
+        let air = VoxelCoord::new(136, 40, 64);
+        assert_eq!(w.get(air), None);
+        let quiet = w
+            .occupied()
+            .find(|&(v, m)| luminance(emission[m.raw() as usize]) == 0.0 && DIRS.iter().all(|(dx, dy, dz)| w.get(VoxelCoord::new(v.x + dx, v.y + dy, v.z + dz)).is_none_or(|n| luminance(emission[n.raw() as usize]) == 0.0)))
+            .unwrap()
+            .0;
+        let steps: Vec<(&str, VoxelCoord, Option<MaterialId>)> = vec![("lamp", lamp, None), ("bulb", bulb, None), ("neon in open air", air, Some(id("neon_pink"))), ("quiet", quiet, None)];
+        for (label, v, m) in steps {
+            let edits = [(v, m)];
+            let before_total = total(&mut p);
+            let faces_before = emitting_faces(&w, &[v], &emission);
+            let bound = changed_power(&edits, |c| w.get(c), &emission);
+            let mut tx = Transaction::new();
+            tx.set(v, m);
+            let applied = w.apply(&tx).unwrap();
+            p.notify_edits(&applied.changed);
+            drain(&mut p, &w);
+            let after_total = total(&mut p);
+            let faces_after = emitting_faces(&w, &[v], &emission);
+            let keys: BTreeSet<_> = faces_before.keys().chain(faces_after.keys()).copied().collect();
+            let gross = std::f64::consts::PI * keys.iter().filter(|k| faces_before.get(k) != faces_after.get(k)).map(|k| faces_before.get(k).unwrap_or(&0.0) + faces_after.get(k).unwrap_or(&0.0)).sum::<f64>();
+            let net = (after_total - before_total).abs();
+            eprintln!("C2 {label}: bound {bound:.4e}, gross {gross:.4e}, net table change {net:.4e}");
+            if label == "quiet" {
+                assert_eq!(bound, 0.0);
+                assert_eq!(gross, 0.0);
+                assert!(net <= 1e-12 * before_total);
+            } else {
+                assert!(gross > 0.0, "{label}: the edit changes emitting faces");
+                assert!(net <= gross * (1.0 + 1e-9), "{label}: the face oracle covers the table's net change");
+                assert!(bound >= gross * (1.0 - 1e-12), "{label}: the bound holds");
+                assert!(bound <= 20.0 * gross, "{label}: the bound is within 20x");
+            }
+        }
+        // The listed lights: the 8 largest potentials by brute force.
+        let t = table(&full(&mut p), &mats, 1).unwrap();
+        let b = Relight::new([lamp.x - 2, lamp.y - 2, lamp.z - 2], [lamp.x + 2, lamp.y + 2, lamp.z + 2]).with_lights(1.0, &t);
+        let mut all: Vec<f64> = t
+            .emitters
+            .iter()
+            .map(|e| {
+                let c: [f64; 3] = std::array::from_fn(|a| e.p0[a] + 0.5 * (e.eu[a] + e.ev[a]));
+                let d2: f64 = (0..3).map(|a| (b.lo[a] as f64 - c[a]).max(c[a] - b.hi[a] as f64).max(0.0).powi(2)).sum();
+                e.power / (d2 + 1.0)
+            })
+            .collect();
+        all.sort_by(|a, b| b.total_cmp(a));
+        assert_eq!(b.lights.len(), BOX_LIGHTS);
+        for (l, want) in b.lights.iter().zip(&all) {
+            assert!((l.potential - want).abs() <= 1e-12 * want, "{} vs {want}", l.potential);
+        }
+        assert_eq!(b.power, 1.0);
     }
 }

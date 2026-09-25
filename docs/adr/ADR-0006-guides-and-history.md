@@ -70,10 +70,22 @@ Status: **accepted 2026-09-24 with 3E closing (S-018 for the D4 gap, S-019 for t
   - defaults, from the measured sweep (3E record): 2 levels, σ_l = 4, prefilter on level 1 of 2, moments from age 8.
 - Criteria and results: the [3E record](../changes/2026-09-24-phase3e-denoise.md).
 
+## Amendment 2 (4B, 2026-09-25): emitters
+
+Status: **proposed with 4B (delegated lighting technique, S-024); accepted when 4B's G5 passes on the laptop.** Record: [4B](../changes/2026-09-25-phase4b-many-lights.md).
+
+- **The lights' switch is a light jump.** `History::set_lights` carries whether the lights are on; a change from the previous frame resets every history (`ResetCause::lights`), like the sun's > 1° jump.
+- **Relight rules for emitter light**, applied while the lights are on, besides Amendment 1's sun and sky rules. A pixel whose history would otherwise be accepted restarts as *relit* (reason 9) when a bound on the change of its **direct** emitter light is at least **2%** of its history's luminance Y_h (the bilinear taps' mean; `temporal::EMITTER_TOLERANCE`). With d the distance from the surface point to the box grown by 1 voxel:
+  - **E1, a light changed:** the box carries ΔΦ, an upper bound on the emitter power the edit adds or removes (`temporal::changed_power`: π × luminance for every face of every edited voxel whose material emits before or after, and for the face of each emitting neighbour the edit may cover or expose). A Lambertian emitter set of power ΔΦ inside the box changes the reflected radiance at distance d by at most ΔΦ / (π² d²) (albedo ≤ 1). Restart when ΔΦ / (π² d²) ≥ 0.02 Y_h.
+  - **E2, a light shadowed or unshadowed:** the box lists up to 8 emitters of the scene's current table with the largest Φ / (d_e² + 1), d_e from the emitter's centre to the box (`Relight::with_lights`). Restart when the segment from the point to a listed emitter's centre crosses the box grown by that emitter's half-diagonal (plus the 1-voxel margin), and L_Y · A / (π d²) ≥ 0.02 Y_h, with A = ab + bc + ca of the grown box (a bound on the solid angle it can block, times the emitter's luminance).
+  - **Declared approximation:** emitters not listed, and indirect (bounce) changes, restart nothing. G5 measures the misses (changed pixels not relit) and the cost (relit pixels that did not change).
+- **Buffer:** the relight buffer grows to a header of 2 rows (sun and box count; the tolerance) plus 18 rows per box (lo and sky radius; hi and ΔΦ / π²; 8 × (centre and grown radius, luminance)): 4,640 B for 16 boxes, still written in the command stream (`vkCmdUpdateBuffer`).
+- With the lights off (and on the M3 street, which has no emitters) boxes carry no emitter terms, so the 3E behaviour is unchanged.
+
 ## Validation
 
 3D tests: a static camera's history equals the host's running mean; accumulation converges to the reference; planted "reset every frame", "never reject" and "no fresh sample" are caught; an edit resets only its regions; motion equals the host's reprojection; global resets reset everything.
 
 ## Implementation status
 
-See the [3D record](../changes/2026-09-24-phase3d-temporal.md).
+See the [3D record](../changes/2026-09-24-phase3d-temporal.md). Amendment 2 (4B): implemented in `gpu::temporal` (`changed_power`, `Relight::with_lights`, `History::set_lights`) and `shaders/temporal.slang`; the row layout passes C2 (cloud); G5 and G6 are NOT RUN until the laptop runs `run-local.cmd` ([4B record](../changes/2026-09-25-phase4b-many-lights.md)).

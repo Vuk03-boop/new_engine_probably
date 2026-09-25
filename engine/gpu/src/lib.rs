@@ -19,13 +19,14 @@
 //!   TLAS rebuild of the changed regions, swap, retirement).
 //! - [`reference`] (3A): the reference path tracer of ADR-0005, checked against `light`.
 //! - [`shade`] (3B, 3C): real-time lighting from the G-buffer (direct sun with one shadow ray, sky
-//!   light with one visibility ray).
+//!   light with one visibility ray); 3F one bounce; 4B emitter light at both vertices.
 //! - [`sky`] (3C): the sky tables on the device; the sky-view table rebuilt when the sun moves.
 //! - [`sky_bake`] (S-020): bakes the reference sky that corrects the sky-view table (a tool).
 //! - [`temporal`] (3D): reprojection, per-pixel history with age and rejection reasons (ADR-0006);
 //!   3E: relight boxes and the sun-motion age cap (Amendment 1).
 //! - [`denoise`] (3E): the native reconstruction (SVGF-style, on the exact guides).
 //! - [`emitters`] (4A): the emitter table from region meshes, and its device upload.
+//! - [`exposure`] (4B): the sums behind the viewer's automatic exposure.
 
 pub mod accel;
 pub mod alloc;
@@ -35,6 +36,7 @@ pub mod decode;
 pub mod denoise;
 pub mod emitters;
 pub mod equivalence;
+pub mod exposure;
 pub mod layout;
 pub mod mesh;
 pub mod present;

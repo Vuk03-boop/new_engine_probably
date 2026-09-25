@@ -1,6 +1,6 @@
-# NOW — Phase 4 (M4): 4A done; 4B is next
+# NOW — Phase 4 (M4): 4A done; 4B built, waiting for the laptop run
 
-**Updated 2026-09-25.** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
+**Updated 2026-09-25 (4B built).** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
 
 ## State
 
@@ -27,6 +27,11 @@
   - **part 2 cloud checks pass:** C6, C7; the magnitudes M1–M2 are measured (below);
   - **part 2 passed on the RTX 3050:** G6–G9 (`run-local.cmd`, 2026-09-25 20:29; analysed in a cloud session from the pushed logs);
   - **L moved to 4B** with the rendering it switches (in 4A it would switch nothing on screen).
+- **4B built, cloud checks pass, GPU checks NOT RUN** ([record](changes/2026-09-25-phase4b-many-lights.md)), started on the user's "go ahead then you are on high greenlight to do 4b" (2026-09-25), on branch `claude/hopeful-bell-972dbs`:
+  - criteria frozen first (commit `1da5bc8`); three corrections before any run, recorded in the record (C2's oracle is the gross face change, since a lamp's corner voxel has a net change of 0; G1 is judged at 10⁻³ relative, since the emitter term is continuous in the depth-rebuilt surface point and the f32 solid angle carries about 10⁻⁶ sr of rounding; G5's converged value is the reference with a 4-SE test, and its E2 box sits between the lamp head and the visible façades);
+  - built: emitters in `gpu::shade` at both vertices by the reference's own shared function (`shaders/emitter_nee.slang`), `emitter_samples`, `Shade::bind_lit`; emission added in the light view after reconstruction; the lights rule, L and `--lights`; the automatic exposure (`gpu::exposure`, `light::exposure::Adaptation`, `--exposure`); the emitter relight rules E1 / E2 and the lights switch as a light jump ([ADR-0006 Amendment 2](adr/ADR-0006-guides-and-history.md), proposed until G5 passes); `gpu/tests/lights.rs` (G1–G6, M1);
+  - cloud: C1–C4 pass; pure suite 154 pass, `gpu --lib` 21 pass, clippy only the 6 old `world` lints;
+  - `run-local.cmd` rewritten for 4B (untested; about 90 minutes).
 - **Not authorized:**
   - 4C–4G: reservoir reuse, P05, P08, the M4 gate;
   - glass and water;
@@ -50,6 +55,7 @@
     - the reference path tracer;
     - real-time shade with sun, sky and bounce, the temporal pass and the filter;
     - the tools `ref_light` (4A: `--scene night`) and `sky_bake`.
+  - 4B: `shade` emitter terms (`ShadeSettings::emitters`, `emitter_samples`, `Shade::bind_lit`), `debug_view::Lighting::emission`, `gpu::exposure`, `temporal::{changed_power, Relight::with_lights, History::set_lights}`, `light::exposure::{log_sums, exposure_from_sums, Adaptation}`, `gpu/tests/lights.rs`;
   - `viewer`:
     - walking and flying; edits (left click, E); R switches raster / ray query;
     - views: 0 the light view, 1–7 debug views, 9 the M1 lit view;
@@ -57,12 +63,14 @@
     - flags: `--no-bounce`, `--no-sky-correction`, `--edit-size N`;
     - the Q2 comparison: P, `--prefilter-age N`, `--camera low`;
     - fps in the title and on exit;
-    - 4A: `--scene street|night` and `--dressing` (the night scene keeps its emitter table through edits; its lights are not rendered until 4B).
-- **Emission:** has a unit (1 unit of luminance = 128,000 cd/m², ADR-0005 Amendment 3) and is in the references, off by default. The lights are on while the sun is below the horizon (`lights_on`). The real-time path has none yet (4B). `street_block` is unchanged; `street_night` carries the night lights (in the 4A record; accepted for now).
+    - 4A: `--scene street|night` and `--dressing` (the night scene keeps its emitter table through edits);
+    - 4B: the night scene's lights (on below the horizon, L flips them, `--lights`), `--emitter-samples K`, the automatic exposure (`--exposure auto|sky`, auto at night).
+- **Emission:** has a unit (1 unit of luminance = 128,000 cd/m², ADR-0005 Amendment 3) and is in the references, off by default. The lights are on while the sun is below the horizon (`lights_on`). 4B puts it in the real-time path (built, not yet run on the GPU). `street_block` is unchanged; `street_night` carries the night lights (in the 4A record; accepted for now).
 - **Repository** (since 2026-09-25):
   - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
   - **4A is merged into `main`** (PR https://github.com/Vuk03-boop/new_engine_probably/pull/1, merge commit `16edb67`, 2026-09-25, at the user's request; a merge commit, so the hashes cited in the 4A record stay valid). New work starts from `main`; the 4A branches `claude/tender-keller-9u9d6t` and `claude/nice-dijkstra-xpg7tr` are finished.
-  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, still holding the 4A part 2 checks (it ran once, all 15 steps exit 0). 4B will replace its steps. Logs go to `engine/results/local-run/<date>-<tag>/`; the user pushes `engine/results` back.
+  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, now holding the **4B** checks (G1–G8, M1, M2; untested, about 90 minutes). Logs go to `engine/results/local-run/<date>-4b/`, FLIP to `engine/results/phase4b/`; G4's 1080p references stay in `%TEMP%\ne_gate_4b` on the laptop; the user pushes `engine/results` back.
+  - 4B's work is on branch `claude/hopeful-bell-972dbs` (pushed; no PR yet).
   - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
   - Binary data is protected from line-ending conversion by `.gitattributes`.
   - Commits and pushes happen only on the user's request.
@@ -73,7 +81,12 @@
   - `engine/results/phase4a_ref/`: the night references (2 cameras × dusk, blue hour, night; 16,384 spp);
   - `engine/results/local-run/`: the laptop runs of `run-local.cmd`.
 
-## Last checks (2026-09-25, RTX 3050)
+## Last checks
+
+- **4B (2026-09-25, cloud, Linux, no GPU; [record](changes/2026-09-25-phase4b-many-lights.md)):**
+  - pure suite: exit 0, 154 pass, 4 ignored (`test_pure_4b_cloud.log`); `gpu --lib` 21 pass (`test_gpu_lib_4b_cloud.log`); clippy: exit 0, only the 6 old `world` lints (`clippy_4b_cloud.log`); every `gpu` test binary, both tools and `viewer` build (substitute SDK: supplemental, not ADR-0001 proof);
+  - C1 (layouts), C2 (relight rows, `changed_power` bounds the gross change within 20×), C3 (adaptation, sums) pass;
+  - **NOT RUN:** G1–G8, M1, M2 (no GPU): `run-local.cmd`.
 
 - **4A part 2 on the RTX 3050** (`run-local.cmd` at `7810f7d`, `engine/results/local-run/2026-09-25_2029-4a2/`, 15 of 15 steps exit 0; analysed in a cloud session, no GPU):
   - G6 pass: the table follows 5 edits, a refusal and a retry through `GpuScene::update`, device bytes equal every time; retirement and ledger asserts hold; the stale table is refused; 0 validation errors, no leaks;
@@ -113,20 +126,16 @@
 ## Milestone progress
 
 - M1, M2 and M3: 100%, accepted (M2 34 units, M3 35 units).
-- **M4: 6 of 33 units** (S-024): 4A done.
+- **M4: 6 of 33 units** (S-024): 4A done; 4B (3 units) counts once its GPU checks pass.
   - Weights: 4A 6, 4B 3, 4C 7, 4D 8, 4E 3, 4F 3, 4G 3.
   - 4E and 4F count once they are measured and recorded, admitted or not.
 
 ## Exact next action
 
-1. **4B** (authorized):
-   - one emitter sample per pixel at the primary and bounce hits, then the temporal pass and the filter;
-   - L, the automatic switch and the night exposure (moved from 4A);
-   - relight rules for emitters;
-   - the equal-time curve over samples per pixel and light counts.
-   - Criteria frozen in a 4B record before the first run; `run-local.cmd` rewritten for 4B's GPU checks.
-   - From 4A (recommendations): an energy criterion on reflected light, not on the whole image mean (emission dominates it at night); the night per-frame noise (2–3× dusk's median, 5–8× its 90th percentile, a tail that grows with the light count) is what 4B's filtered error must show, and that decides 4C; comparisons against the blue-hour references need the |z|-rate metric or a check of their heavy tail first.
-2. **Before 4C** (not authorized):
+1. **The user runs `run-local.cmd`** on the laptop (pull branch `claude/hopeful-bell-972dbs` first; about 90 minutes, plugged in, hands off while viewer windows run) and pushes `engine/results`.
+2. **A cloud session analyses those logs** against G1–G8 and records M1 (the equal-time curve) and M2 (night frame cost) in the 4B record. Failures are diagnosed, never rebaselined. The 4A recommendations stand: energy on reflected light (the tests measure reflected light only; emission is added only for display), the night noise after the filter (G4's data) decides whether 4C pays, blue hour is data.
+3. **The user judges the night look**: `viewer.exe --scene night --hour 17.5 --run-day` (lights, colours, exposure; L flips the lights).
+4. **Before 4C** (not authorized):
    - the user points to the P05 / P08 reviews and PDFs;
    - the ReSTIR direct-light sources need the user's copies or a download request.
 3. **Known debt** (propose only if it becomes needed):

@@ -108,14 +108,20 @@ pub struct Lighting {
     pub exposure: f32,
     /// Exposure of [`View::Light`] (ADR-0005 radiance, E_SUN = 1). Display only.
     pub light_exposure: f32,
+    /// 4B: [`View::Light`] adds each surface pixel's emitted radiance (the lights are on). Off by
+    /// default: the M3 street never lights.
+    pub emission: bool,
 }
 
 impl Lighting {
     /// Defaults for the street block, chosen by eye from the swept renders in the M1 record.
     pub fn new(sun_dir: [f64; 3]) -> Lighting {
-        Lighting { sun_dir, sun_intensity: 3.0, ambient: 0.6, exposure: 0.5, light_exposure: 16.0 }
+        Lighting { sun_dir, sun_intensity: 3.0, ambient: 0.6, exposure: 0.5, light_exposure: 16.0, emission: false }
     }
 }
+
+/// `Params::origin[3]`: the view index in bits 0-7, and this bit when [`View::Light`] adds emission.
+pub const EMISSION_BIT: i32 = 256;
 
 /// One material table row, as the shader's `MaterialRow`.
 #[repr(C)]
@@ -423,7 +429,7 @@ pub fn params(camera: &Camera, view: View, extent: vk::Extent2D, tables: &Tables
         up: s(camera.up, camera.tan_half_y),
         forward: s(camera.forward, 1.0),
         eye: [f[0], f[1], f[2], camera.near as f32],
-        origin: [o[0], o[1], o[2], index],
+        origin: [o[0], o[1], o[2], index | if lighting.emission && view == View::Light { EMISSION_BIT } else { 0 }],
         info: [extent.width, extent.height, tables.material_count, tables.region_count],
         sun: {
             let d = lighting.sun_dir;

@@ -5,6 +5,7 @@
 //! usage: viewer [--merge greedy|none] [--region brick|2x2x2_bricks|chunk|2x2x2_chunks]
 //!               [--present mailbox|fifo|immediate] [--view 0-12] [--hour H] [--run-day] [--max-age N] [--no-denoise] [--no-bounce] [--no-sky-correction] [--source raster|ray]
 //!               [--camera street|low] [--prefilter-age N] [--scene street|night [--dressing lamps|windows|full|dense]]
+//!               [--lights auto|on|off] [--exposure auto|sky] [--emitter-samples K]
 //!               [--size WxH] [--frames N [--walk] [--cycle-views] [--edit-script [--edit-size N]] [--resize-at FRAME WxH]] [--log PATH]
 //!               [--trace CSV] [--present-wait N]
 //!
@@ -34,7 +35,15 @@
 //!   `world::scene::street_night` with `--dressing` (default `full`). The night scene's `GpuScene`
 //!   publishes the emitter table with its meshes, and every edit rebuilds it inside the update
 //!   (ADR-0003 Amendment 3); the JSON line reports the emitter count and the table's time per edit.
-//!   The real-time lighting does not use emitters yet (4B), so the lights are not seen at night.
+//! - Lights (4B): the night scene's lights are on while the sun is below the horizon
+//!   (`light::emitters::lights_on`); L flips that by hand, `--lights on|off` starts from a fixed state
+//!   instead of `auto`. Lit, the shade pass samples the emitters at the primary vertex and the bounce
+//!   hit (`--emitter-samples K` at the primary vertex, default 1) and the light view adds each surface's
+//!   emitted radiance. A switch resets the history (a light jump). Edits while lit also relight what
+//!   their change of emitter light may reach (ADR-0006 Amendment 2). The M3 street never lights.
+//! - Exposure (4B): `--exposure auto` (the default for `--scene night`) adapts the light view's
+//!   exposure to the log-average of the shown image (`gpu::exposure`, about 1 s, bounded); `sky` (the
+//!   default for `--scene street`) is M3's sun-and-sky exposure. - and = offset either in stops.
 //! - Sky correction (S-020): the sky-view table is corrected from the reference baked in
 //!   `light/data/sky_reference_v1.bin`; `--no-sky-correction` runs without it. A missing or refused
 //!   file prints a warning and runs uncorrected; the JSON line reports `"sky_correction"`.
@@ -78,6 +87,7 @@ use ash::vk;
 use derived::{Config, Merge, Pipeline};
 use gpu::alloc::Allocator;
 use gpu::debug_view::{targets_to_read, DebugView, Lighting, Source, Tables, View};
+use gpu::exposure::{Exposure, ExposureBindings, ExposureTargets};
 use gpu::layout::{build_regions, RegionSize};
 use gpu::present::{image_to_attachment, image_to_present, Acquired, Frames, Swapchain};
 use gpu::raster::{Camera, Faults, Raster, Targets};
@@ -87,7 +97,7 @@ use gpu::scene::{affected_regions, region_meshes, Garbage, GpuScene};
 use gpu::shade::{self, radiance_to_fragment, Shade, ShadeBindings, ShadeFaults, ShadeSettings, ShadeTargets};
 use gpu::sky::{SkyTables, SkyView};
 use gpu::denoise::{Denoise, DenoiseBindings, DenoiseFaults, DenoiseSettings, DenoiseTargets};
-use gpu::temporal::{History, Relight, Temporal, TemporalBindings, TemporalFaults, TemporalSettings};
+use gpu::temporal::{changed_power, History, Relight, Temporal, TemporalBindings, TemporalFaults, TemporalSettings};
 use gpu::staging::{Uploader, DEFAULT_RING_BYTES};
 use gpu::timing::{percentile, GpuTimer};
 use gpu::{FrameReaders, Gpu, Timeline};
@@ -106,8 +116,9 @@ use world::{scene, BrickKey, MaterialId, Transaction, VoxelCoord, World};
 const FRAMES_IN_FLIGHT: usize = 2;
 const NEAR: f64 = 0.1;
 /// Passes timed on the GPU, in order. `ray_trace` is empty unless the ray-query source is shown;
-/// `shade` (3B) is empty unless the light view is shown.
-const PASSES: [&str; 4] = ["gbuffer", "debug_view", "ray_trace", "shade"];
+/// `shade` (3B) is empty unless the light view is shown (it holds the shade, temporal and filter
+/// passes); `exposure` (4B) is empty unless the automatic exposure runs.
+const PASSES: [&str; 5] = ["gbuffer", "debug_view", "ray_trace", "shade", "exposure"];
 /// Seed of the real-time lighting's random streams (ADR-0005 PCG32).
 const SHADE_SEED: u32 = 0x3B;
 /// Longest edit reach, voxels.
@@ -152,10 +163,34 @@ struct Args {
     prefilter_age: u32,
     /// 4A: `--scene night` with its dressing; `None` is the M3 street block.
     night: Option<Dressing>,
+    /// 4B: the lights' starting rule (`auto`: on while the sun is below the horizon).
+    lights: LightsMode,
+    /// 4B: automatic exposure; `None`: by scene (night: auto, street: sky).
+    exposure_auto: Option<bool>,
+    /// 4B: emitter samples at the primary vertex.
+    emitter_samples: u32,
+}
+
+/// 4B: how the night scene's lights are decided before L flips them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LightsMode {
+    Auto,
+    On,
+    Off,
+}
+
+impl LightsMode {
+    fn name(self) -> &'static str {
+        match self {
+            LightsMode::Auto => "auto",
+            LightsMode::On => "on",
+            LightsMode::Off => "off",
+        }
+    }
 }
 
 fn parse_args() -> Result<Args, String> {
-    let mut a = Args { merge: Merge::Greedy, region: RegionSize::Chunk, present: vk::PresentModeKHR::MAILBOX, view: View::Light, size: (1280, 720), frames: None, walk_script: false, cycle_views: false, resize_at: None, log: None, trace: None, present_wait: None, edit_script: false, edit_size: 1, source: Source::Raster, hour: 9.0, run_day: false, max_age: 64, no_denoise: false, no_bounce: false, no_sky_correction: false, camera_low: false, prefilter_age: 8, night: None };
+    let mut a = Args { merge: Merge::Greedy, region: RegionSize::Chunk, present: vk::PresentModeKHR::MAILBOX, view: View::Light, size: (1280, 720), frames: None, walk_script: false, cycle_views: false, resize_at: None, log: None, trace: None, present_wait: None, edit_script: false, edit_size: 1, source: Source::Raster, hour: 9.0, run_day: false, max_age: 64, no_denoise: false, no_bounce: false, no_sky_correction: false, camera_low: false, prefilter_age: 8, night: None, lights: LightsMode::Auto, exposure_auto: None, emitter_samples: 1 };
     let mut dressing = None;
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
@@ -204,6 +239,27 @@ fn parse_args() -> Result<Args, String> {
                     "street" => None,
                     "night" => Some(Dressing::default()),
                     v => return Err(format!("--scene: {v}")),
+                }
+            }
+            "--lights" => {
+                a.lights = match val()?.as_str() {
+                    "auto" => LightsMode::Auto,
+                    "on" => LightsMode::On,
+                    "off" => LightsMode::Off,
+                    v => return Err(format!("--lights: {v}")),
+                }
+            }
+            "--exposure" => {
+                a.exposure_auto = Some(match val()?.as_str() {
+                    "auto" => true,
+                    "sky" => false,
+                    v => return Err(format!("--exposure: {v}")),
+                })
+            }
+            "--emitter-samples" => {
+                a.emitter_samples = val()?.parse().map_err(|e| format!("--emitter-samples: {e}"))?;
+                if !(1..=16).contains(&a.emitter_samples) {
+                    return Err("--emitter-samples is 1 to 16".into());
                 }
             }
             "--dressing" => {
@@ -421,8 +477,8 @@ struct Phases {
     inside: f64,
     /// `--present-wait`: waiting for earlier presents to reach the display (before `begin`).
     pwait: f64,
-    /// GPU pass times (G-buffer, view, ray trace, shade) of the frame that last used this slot, read in this frame.
-    gpu: [f64; 4],
+    /// GPU pass times (G-buffer, view, ray trace, shade, exposure) of the frame that last used this slot, read in this frame.
+    gpu: [f64; 5],
     /// Start of this frame, milliseconds after the run's first frame.
     at: f64,
 }
@@ -486,6 +542,10 @@ struct State {
     denoise: Option<Denoise>,
     denoise_targets: Option<DenoiseTargets>,
     denoise_bindings: Option<DenoiseBindings>,
+    /// 4B: the automatic exposure's pass, its host-visible sums (one slot per frame in flight) and bindings.
+    exposure: Option<Exposure>,
+    exposure_out: Option<ExposureTargets>,
+    exposure_bindings: Option<ExposureBindings>,
     swapchain: Option<Swapchain>,
     targets: Option<Targets>,
     debug: DebugView,
@@ -565,6 +625,19 @@ struct App {
     window_start: Instant,
     exit_code: i32,
     error: Option<String>,
+    /// 4B: L flips the lights' rule; the state of the last shaded frame; switches seen.
+    lights_flip: bool,
+    lights: bool,
+    light_switches: u64,
+    /// 4B: emitted radiance per material index (night scene; empty for the street), for the edit
+    /// relight bound.
+    emission: Vec<[f64; 3]>,
+    /// 4B: automatic exposure: on, the adapted value, the next frame's floor, and which slots hold
+    /// sums not yet read.
+    exposure_auto: bool,
+    adaptation: light::exposure::Adaptation,
+    exposure_floor: f64,
+    exposure_pending: [bool; FRAMES_IN_FLIGHT],
 }
 
 fn prepare_meshes(world: &World, merge: Merge) -> (Pipeline, Vec<(world::BrickKey, derived::BrickMesh)>) {
@@ -652,7 +725,7 @@ impl App {
             let sky_pass = SkyView::new(&gpu, &sky).map_err(e)?;
             let sh = Shade::new(&gpu).map_err(e)?;
             let out = ShadeTargets::new(&gpu, &mut alloc, swapchain.extent.width, swapchain.extent.height).map_err(e)?;
-            let b = sh.bind(&gpu, &targets, a, &albedo, &out, &sky.view).map_err(e)?;
+            let b = shade_bind(&gpu, &sh, &scene, a, &targets, &albedo, &out, &sky)?;
             debug.bind_radiance(&gpu, &out.radiance);
             (Some(sh), Some(out), Some(b), Some(albedo), Some(sky), Some(sky_pass))
         } else {
@@ -677,6 +750,15 @@ impl App {
         } else {
             (None, None, None)
         };
+        // 4B: the automatic exposure reads the shown radiance.
+        let (exposure, exposure_out, exposure_bindings) = if let Some(out) = &shade_out {
+            let x = Exposure::new(&gpu).map_err(e)?;
+            let o = ExposureTargets::new(&gpu, &mut alloc, FRAMES_IN_FLIGHT as u32).map_err(e)?;
+            let b = x.bind(&gpu, &targets, &out.radiance, &tables, &o).map_err(e)?;
+            (Some(x), Some(o), Some(b))
+        } else {
+            (None, None, None)
+        };
         let frames = Frames::new(&gpu, FRAMES_IN_FLIGHT).map_err(e)?;
         let timer = GpuTimer::new(&gpu, FRAMES_IN_FLIGHT as u32, PASSES.len() as u32).map_err(e)?;
         let l = alloc.ledger();
@@ -689,7 +771,7 @@ impl App {
             targets.device_bytes(),
             l.account(Category::Staging).usage.live
         );
-        Ok(State { gpu, alloc, timeline, up, raster, scene, bindings, ray, ray_out, ray_bindings, tables, shade, shade_out, shade_bindings, albedo, sky, sky_pass, temporal, history, temporal_bindings, denoise, denoise_targets, denoise_bindings, swapchain: Some(swapchain), targets: Some(targets), debug, frames, timer, readers: FrameReaders::default(), pipeline, window })
+        Ok(State { gpu, alloc, timeline, up, raster, scene, bindings, ray, ray_out, ray_bindings, tables, shade, shade_out, shade_bindings, albedo, sky, sky_pass, temporal, history, temporal_bindings, denoise, denoise_targets, denoise_bindings, exposure, exposure_out, exposure_bindings, swapchain: Some(swapchain), targets: Some(targets), debug, frames, timer, readers: FrameReaders::default(), pipeline, window })
     }
 
     fn recreate(&mut self) -> Result<(), String> {
@@ -727,6 +809,9 @@ impl App {
         if let Some(t) = s.denoise_targets.take() {
             t.free(&s.gpu, &mut s.alloc);
         }
+        if let Some(b) = s.exposure_bindings.take() {
+            b.destroy(&s.gpu);
+        }
         if let Some(sw) = &s.swapchain {
             assert_eq!(sw.format.format, s.debug.format, "surface format changed");
             let t = Targets::new(&s.gpu, &mut s.alloc, sw.extent).map_err(e)?;
@@ -738,8 +823,11 @@ impl App {
             s.debug.bind(&s.gpu, &t, &s.tables, s.ray_out.as_ref());
             if let (Some(sh), Some(a), Some(al), Some(sky)) = (&s.shade, &s.scene.accel, &s.albedo, &s.sky) {
                 let o = ShadeTargets::new(&s.gpu, &mut s.alloc, sw.extent.width, sw.extent.height).map_err(e)?;
-                s.shade_bindings = Some(sh.bind(&s.gpu, &t, a, al, &o, &sky.view).map_err(e)?);
+                s.shade_bindings = Some(shade_bind(&s.gpu, sh, &s.scene, a, &t, al, &o, sky)?);
                 s.debug.bind_radiance(&s.gpu, &o.radiance);
+                if let (Some(x), Some(xo)) = (&s.exposure, &s.exposure_out) {
+                    s.exposure_bindings = Some(x.bind(&s.gpu, &t, &o.radiance, &s.tables, xo).map_err(e)?);
+                }
                 if let Some(tp) = &s.temporal {
                     let h = History::new(&s.gpu, &mut s.alloc, sw.extent.width, sw.extent.height).map_err(e)?;
                     s.temporal_bindings = Some(tp.bind(&s.gpu, &t, &s.tables.regions, &o.radiance, &h).map_err(e)?);
@@ -757,6 +845,7 @@ impl App {
         }
         self.resize = false;
         self.recreates += 1;
+        self.exposure_pending = [false; FRAMES_IN_FLIGHT];
         Ok(())
     }
 
@@ -766,6 +855,17 @@ impl App {
         self.sun = sun_at(self.hour);
         self.lighting.sun_dir = self.sun.sun_dir;
         self.sky_zenith = sky_zenith(&self.luts, &self.sun);
+    }
+
+    /// 4B: whether the night scene's lights are on now: the rule of `--lights` (auto: the sun below the
+    /// horizon), flipped by L. The M3 street never lights.
+    fn lights_now(&self) -> bool {
+        let base = match self.args.lights {
+            LightsMode::Auto => light::emitters::lights_on(self.sun.sun_dir),
+            LightsMode::On => true,
+            LightsMode::Off => false,
+        };
+        self.args.night.is_some() && base != self.lights_flip
     }
 
     /// Starts walking with the feet at `feet`, lifted out of solid voxels. False if no free space.
@@ -873,6 +973,7 @@ impl App {
         }
         self.script_edits();
         self.apply_edits()?;
+        let lights_rule = self.lights_now();
         let s = self.state.as_mut().expect("state");
         let (Some(sw), Some(targets)) = (&s.swapchain, &s.targets) else {
             return Ok(()); // minimized
@@ -893,11 +994,21 @@ impl App {
         let slot = scene.slot;
         // The slot's previous frame has completed: its timestamps are ready and its token can go.
         if let Some(ms) = s.timer.read(&s.gpu, slot).map_err(e)? {
-            ph.gpu = [ms[0], ms[1], ms[2], ms[3]];
+            ph.gpu = [ms[0], ms[1], ms[2], ms[3], ms[4]];
             for (i, v) in ms.iter().enumerate() {
                 for series in [&mut self.all, &mut self.window_series] {
                     series.passes.resize(PASSES.len(), Vec::new());
                     series.passes[i].push(*v);
+                }
+            }
+        }
+        // 4B: the slot's previous frame has completed: its exposure sums are ready.
+        if std::mem::take(&mut self.exposure_pending[slot as usize]) {
+            if let Some(o) = &s.exposure_out {
+                let sums = o.read(slot);
+                self.exposure_floor = sums.mean().map_or(0.0, |m| m * light::exposure::DARK_FRACTION);
+                if let Some(target) = light::exposure::exposure_from_sums(&sums) {
+                    self.adaptation.update(target, dt.min(0.1));
                 }
             }
         }
@@ -937,6 +1048,12 @@ impl App {
         s.timer.end_pass(&s.gpu, scene.cmd, slot, 2);
         // 3B: the real-time lighting runs only when shown; its timestamps are always written.
         let shaded = matches!(self.view, View::Light | View::HistoryAge | View::HistoryReason | View::Motion) && s.shade_bindings.is_some();
+        // 4B: the lights of this frame (the night scene's table must be the scene's).
+        let lights = lights_rule && matches!(s.scene.emitters(), Ok(Some(_)));
+        if lights != self.lights {
+            self.lights = lights;
+            self.light_switches += 1;
+        }
         s.timer.begin_pass(&s.gpu, scene.cmd, slot, 3);
         if let (true, Some(sh), Some(b), Some(o)) = (shaded, &s.shade, &s.shade_bindings, &s.shade_out) {
             // 3C: the sky-view table follows the sun (rebuilt only when the hour changed).
@@ -947,12 +1064,15 @@ impl App {
                 }
             }
             targets_to_read(&s.gpu, scene.cmd, targets);
-            let p = shade::Params::new(&camera, &self.sun, ShadeSettings { bounce: self.bounce, ..ShadeSettings::default() }, ShadeFaults::default(), self.frame_index as u32, SHADE_SEED);
+            let set = ShadeSettings { bounce: self.bounce, emitters: lights, emitter_samples: self.args.emitter_samples, ..ShadeSettings::default() };
+            let p = shade::Params::new(&camera, &self.sun, set, ShadeFaults::default(), self.frame_index as u32, SHADE_SEED);
             sh.record(&s.gpu, scene.cmd, b, o, &p);
             // 3D: accumulate. A gap in shading (another view was shown) or turning it back on resets.
             if let (true, Some(tp), Some(tb), Some(h)) = (self.accumulate, &s.temporal, &s.temporal_bindings, s.history.as_mut()) {
                 let gap = self.last_shaded.is_none_or(|f| f + 1 != self.frame_index);
                 let ts = TemporalSettings { max_age: self.args.max_age, ..TemporalSettings::default() };
+                // 4B: a switch of the lights is a light jump.
+                h.set_lights(lights);
                 tp.record(&s.gpu, scene.cmd, tb, h, &camera, self.sun.sun_dir, ts, TemporalFaults::default(), gap, &self.edits.relight);
                 // 3E: the filter shows the accumulated lighting reconstructed; the history stays raw.
                 if let (true, Some(d), Some(db), Some(dt)) = (self.denoise, &s.denoise, &s.denoise_bindings, &s.denoise_targets) {
@@ -962,9 +1082,18 @@ impl App {
             }
             self.edits.relight.clear();
             self.last_shaded = Some(self.frame_index);
-            radiance_to_fragment(&s.gpu, scene.cmd);
         }
         s.timer.end_pass(&s.gpu, scene.cmd, slot, 3);
+        // 4B: the automatic exposure's sums of the shown image, read when this slot comes round again.
+        s.timer.begin_pass(&s.gpu, scene.cmd, slot, 4);
+        if let (true, true, Some(x), Some(xb), Some(xo)) = (shaded, self.exposure_auto, &s.exposure, &s.exposure_bindings, &s.exposure_out) {
+            x.record(&s.gpu, scene.cmd, xb, xo, &s.tables, targets.extent.width, targets.extent.height, slot, self.exposure_floor, lights);
+            self.exposure_pending[slot as usize] = true;
+        }
+        s.timer.end_pass(&s.gpu, scene.cmd, slot, 4);
+        if shaded {
+            radiance_to_fragment(&s.gpu, scene.cmd);
+        }
         let t = Instant::now();
         let acquired = s.frames.acquire(&s.gpu, &mut s.timeline, sw, scene).map_err(e)?;
         ph.acquire = t.elapsed().as_secs_f64() * 1e3;
@@ -983,6 +1112,12 @@ impl App {
         image_to_attachment(&s.gpu, cmd, image);
         let mut lighting = self.lighting;
         lighting.light_exposure = light_exposure(&self.sun, self.sky_zenith, self.light_stops);
+        if self.exposure_auto {
+            // Until the first sums arrive (two frames), M3's exposure within the adaptation's bounds.
+            let bounded = (lighting.light_exposure as f64).clamp(light::exposure::MIN_EXPOSURE, light::exposure::MAX_EXPOSURE);
+            lighting.light_exposure = self.adaptation.exposure(self.light_stops as f64).unwrap_or(bounded) as f32;
+        }
+        lighting.emission = lights;
         if shaded {
             // The targets were made readable before the shade pass.
             s.debug.draw(&s.gpu, cmd, targets, &s.tables, sw.views[frame.image as usize], &camera, self.view, &lighting, source);
@@ -1040,7 +1175,7 @@ impl App {
             let gpu_ms: Vec<String> = PASSES.iter().zip(&w.passes).map(|(n, v)| format!("{n} {:.2}", p(v, 50.0))).collect();
             let (avg, low10, low1) = fps_lows(self.recent.iter().copied()).unwrap_or((f64::NAN, f64::NAN, f64::NAN));
             s.window.set_title(&format!(
-                "new-engine viewer | {} | {} ({}, R) | filter {} (P) | sun {:.2} h, {:.1}° ([ ] T) | {:.0} fps (last {} frames: avg {avg:.0}, 10% low {low10:.0}, 1% low {low1:.0}), frame p50 {:.2} p99 {:.2} ms | GPU p50 ms: {} | {:?} {}x{} | snapshot {}, edits {} (last visible in {:.1} ms){}",
+                "new-engine viewer | {} | {} ({}, R) | filter {} (P) | sun {:.2} h, {:.1}° ([ ] T){} | exposure {} {:.3e} | {:.0} fps (last {} frames: avg {avg:.0}, 10% low {low10:.0}, 1% low {low1:.0}), frame p50 {:.2} p99 {:.2} ms | GPU p50 ms: {} | {:?} {}x{} | snapshot {}, edits {} (last visible in {:.1} ms){}",
                 match self.mode {
                     Mode::Walk => "walk (F: fly)",
                     Mode::Fly => "fly (F: walk)",
@@ -1050,6 +1185,9 @@ impl App {
                 if !self.denoise { "off".to_string() } else if self.prefilter_age == u32::MAX { "3E".to_string() } else { format!("prefilter_age {}", self.prefilter_age) },
                 self.hour,
                 light::sun::elevation_deg(self.sun.sun_dir),
+                if self.args.night.is_some() { format!(" | lights {} ({}{}, L)", if lights { "on" } else { "off" }, self.args.lights.name(), if self.lights_flip { ", flipped" } else { "" }) } else { String::new() },
+                if self.exposure_auto { "auto" } else { "sky" },
+                lighting.light_exposure,
                 w.frame.len() as f64 / self.window_start.elapsed().as_secs_f64(),
                 self.recent.len(),
                 p(&w.frame, 50.0),
@@ -1167,6 +1305,8 @@ impl App {
                 continue;
             };
             let start = Instant::now();
+            // 4B E1: the emitter power the edit may change, from the world before it.
+            let power = changed_power(&voxels, |c| self.world.get(c), &self.emission);
             let mut tx = Transaction::new();
             for &(c, m) in &voxels {
                 tx.set(c, m);
@@ -1190,7 +1330,7 @@ impl App {
             if let Some(p) = s.pipeline.try_publish(&self.world) {
                 self.edits.dirty.extend(p.groups.into_iter().flatten());
             }
-            self.edits.relight_pending.push(Relight { lo, hi });
+            self.edits.relight_pending.push(Relight { power, ..Relight::new(lo, hi) });
             let t = EditTiming { voxels: applied.changed.len(), commit_ms: start.elapsed().as_secs_f64() * 1e3, ..EditTiming::default() };
             self.edits.unshown.push((start, t));
             self.edits.applied += 1;
@@ -1218,8 +1358,14 @@ impl App {
             Err(x) => return Err(x.to_string()),
         };
         self.edits.dirty.clear();
+        // 4B: while the lights are on, the boxes carry the emitter terms (E1 power, E2 listed emitters
+        // of the new table); otherwise the 3E rules only.
         let pending = std::mem::take(&mut self.edits.relight_pending);
-        self.edits.relight.extend(pending);
+        let table = if self.lights { s.scene.emitters().ok().flatten().map(|em| &em.table) } else { None };
+        self.edits.relight.extend(pending.into_iter().map(|b| match table {
+            Some(t) => b.clone().with_lights(b.power, t),
+            None => Relight::new(b.lo, b.hi),
+        }));
         // Rebuild what points at replaced buffers. The frames in flight have finished (the
         // acceleration update waited for them; the wait here covers the mesh-only path).
         let t = Instant::now();
@@ -1237,7 +1383,8 @@ impl App {
             s.debug.bind(&s.gpu, targets, &s.tables, s.ray_out.as_ref());
             // 3B: the shade pass reads the new TLAS.
             if let (Some(sh), Some(o), Some(a), Some(al), Some(sky)) = (&s.shade, &s.shade_out, &s.scene.accel, &s.albedo, &s.sky) {
-                if let Some(old) = s.shade_bindings.replace(sh.bind(&s.gpu, targets, a, al, o, &sky.view).map_err(e)?) {
+                // 4B: and the new emitter table.
+                if let Some(old) = s.shade_bindings.replace(shade_bind(&s.gpu, sh, &s.scene, a, targets, al, o, sky)?) {
                     old.destroy(&s.gpu);
                 }
                 s.debug.bind_radiance(&s.gpu, &o.radiance);
@@ -1277,6 +1424,11 @@ impl App {
                 true
             }
         });
+    }
+
+    fn exposure_summary(&self) -> String {
+        let value = self.adaptation.exposure(self.light_stops as f64).map_or("null".to_string(), |x| format!("{x:.4e}"));
+        format!("{{\"mode\":\"{}\",\"value\":{value}}}", if self.exposure_auto { "auto" } else { "sky" })
     }
 
     fn edits_summary(&self) -> String {
@@ -1351,7 +1503,7 @@ impl App {
         let (errors, warnings) = s.gpu.validation_counts();
         let passes: Vec<String> = PASSES.iter().zip(&self.all.passes).map(|(n, v)| format!("\"{n}\":{}", Series::summary(v))).collect();
         format!(
-            "{{\"run\":\"viewer\",\"device\":{:?},\"validation\":{},\"scene\":\"{}\",\"dressing\":{},\"emitters\":{},\"merge\":\"{}\",\"region\":\"{}\",\"source\":\"{}\",\"edits\":{},\"present\":\"{:?}\",\"extent\":[{},{}],\"frames\":{},\"frames_in_flight\":{},\"swapchain_recreates\":{},\"scripted\":{},\"cycle_views\":{},\"triangles\":{},\"snapshot\":{},\"frame_ms\":{},\"fps\":{},\"gpu_ms\":{{{}}},\"mode\":\"{}\",\"view\":\"{}\",\"hour\":{:.3},\"accumulate\":{},\"denoise\":{},\"prefilter_age\":{},\"bounce\":{},\"sky_correction\":{},\"max_age\":{},\"present_wait\":{},\"present_wait_supported\":{},\"present_wait_timeouts\":{},\"start_unix_ms\":{},\"refresh_mhz\":{},\"focus_lost\":{},\"occluded\":{},\"input_events\":{},\"phases_ms\":{},\"walk\":{},\"validation_errors\":{errors},\"validation_warnings\":{warnings},\"readers_held_at_exit\":{}}}",
+            "{{\"run\":\"viewer\",\"device\":{:?},\"validation\":{},\"scene\":\"{}\",\"dressing\":{},\"emitters\":{},\"merge\":\"{}\",\"region\":\"{}\",\"source\":\"{}\",\"edits\":{},\"present\":\"{:?}\",\"extent\":[{},{}],\"frames\":{},\"frames_in_flight\":{},\"swapchain_recreates\":{},\"scripted\":{},\"cycle_views\":{},\"triangles\":{},\"snapshot\":{},\"frame_ms\":{},\"fps\":{},\"gpu_ms\":{{{}}},\"mode\":\"{}\",\"view\":\"{}\",\"hour\":{:.3},\"accumulate\":{},\"denoise\":{},\"prefilter_age\":{},\"bounce\":{},\"sky_correction\":{},\"max_age\":{},\"present_wait\":{},\"present_wait_supported\":{},\"present_wait_timeouts\":{},\"start_unix_ms\":{},\"refresh_mhz\":{},\"focus_lost\":{},\"occluded\":{},\"input_events\":{},\"phases_ms\":{},\"walk\":{},\"lights\":{},\"emitter_samples\":{},\"exposure\":{},\"validation_errors\":{errors},\"validation_warnings\":{warnings},\"readers_held_at_exit\":{}}}",
             s.gpu.info.name,
             s.gpu.validation_enabled(),
             if self.args.night.is_some() { "night" } else { "street" },
@@ -1397,13 +1549,16 @@ impl App {
             self.input_events,
             self.phases_summary(),
             self.walk_summary(),
+            if self.args.night.is_some() { format!("{{\"on\":{},\"mode\":\"{}\",\"flipped\":{},\"switches\":{}}}", self.lights, self.args.lights.name(), self.lights_flip, self.light_switches) } else { "null".to_string() },
+            self.args.emitter_samples,
+            self.exposure_summary(),
             s.readers.len()
         )
     }
 
     fn shutdown(&mut self) {
         let Some(s) = self.state.take() else { return };
-        let State { gpu, mut alloc, timeline, up, raster, scene, bindings, ray, ray_out, ray_bindings, tables, shade, shade_out, shade_bindings, albedo, sky, sky_pass, temporal, history, temporal_bindings, denoise, denoise_targets, denoise_bindings, swapchain, targets, debug, frames, timer, mut readers, mut pipeline, window, .. } = s;
+        let State { gpu, mut alloc, timeline, up, raster, scene, bindings, ray, ray_out, ray_bindings, tables, shade, shade_out, shade_bindings, albedo, sky, sky_pass, temporal, history, temporal_bindings, denoise, denoise_targets, denoise_bindings, exposure, exposure_out, exposure_bindings, swapchain, targets, debug, frames, timer, mut readers, mut pipeline, window, .. } = s;
         let _ = frames.wait_all(&gpu, &timeline);
         let _ = gpu.wait_idle();
         let done = timeline.completed(&gpu).unwrap_or(0);
@@ -1461,6 +1616,15 @@ impl App {
         }
         if let Some(d) = denoise {
             d.destroy(&gpu);
+        }
+        if let Some(b) = exposure_bindings {
+            b.destroy(&gpu);
+        }
+        if let Some(o) = exposure_out {
+            o.free(&gpu, &mut alloc);
+        }
+        if let Some(x) = exposure {
+            x.destroy(&gpu);
         }
         if let Some(t) = sky {
             t.free(&gpu, &mut alloc);
@@ -1558,6 +1722,9 @@ impl ApplicationHandler for App {
                             self.bounce = !self.bounce;
                             self.last_shaded = None;
                         }
+                        if code == KeyCode::KeyL {
+                            self.lights_flip = !self.lights_flip;
+                        }
                         if code == KeyCode::Digit8 {
                             self.view = match self.view {
                                 View::HistoryAge => View::HistoryReason,
@@ -1632,10 +1799,11 @@ fn main() {
     let args = match parse_args() {
         Ok(a) => a,
         Err(e) => {
-            eprintln!("{e}\nusage: viewer [--merge greedy|none] [--region brick|2x2x2_bricks|chunk|2x2x2_chunks] [--present mailbox|fifo|immediate] [--view 0-12] [--hour H] [--run-day] [--max-age N] [--no-denoise] [--no-bounce] [--no-sky-correction] [--source raster|ray] [--camera street|low] [--prefilter-age N] [--scene street|night [--dressing lamps|windows|full|dense]] [--size WxH] [--frames N [--walk] [--cycle-views] [--edit-script [--edit-size N]] [--resize-at FRAME WxH]] [--log PATH] [--trace CSV] [--present-wait N]");
+            eprintln!("{e}\nusage: viewer [--merge greedy|none] [--region brick|2x2x2_bricks|chunk|2x2x2_chunks] [--present mailbox|fifo|immediate] [--view 0-12] [--hour H] [--run-day] [--max-age N] [--no-denoise] [--no-bounce] [--no-sky-correction] [--source raster|ray] [--camera street|low] [--prefilter-age N] [--scene street|night [--dressing lamps|windows|full|dense]] [--lights auto|on|off] [--exposure auto|sky] [--emitter-samples K] [--size WxH] [--frames N [--walk] [--cycle-views] [--edit-script [--edit-size N]] [--resize-at FRAME WxH]] [--log PATH] [--trace CSV] [--present-wait N]");
             std::process::exit(2);
         }
     };
+    let exposure_auto = args.exposure_auto.unwrap_or(args.night.is_some());
     let (world, view) = match args.night {
         Some(d) => scene::street_night(d),
         None => scene::street_block(),
@@ -1715,7 +1883,18 @@ fn main() {
         window_start: Instant::now(),
         exit_code: 0,
         error: None,
+        lights_flip: false,
+        lights: false,
+        light_switches: 0,
+        emission: Vec::new(),
+        exposure_auto,
+        adaptation: light::exposure::Adaptation::default(),
+        exposure_floor: 0.0,
+        exposure_pending: [false; FRAMES_IN_FLIGHT],
     };
+    if app.args.night.is_some() {
+        app.emission = light::emitters::emission(app.world.materials()).expect("the night scene's emission is valid (4A)");
+    }
     // Walking is the start, except for the scripted fly path.
     if (app.args.frames.is_none() || app.args.walk_script) && !app.args.camera_low {
         assert!(app.start_walking(spawn), "the reference view's feet are free");
@@ -1798,4 +1977,14 @@ fn light_exposure(sun: &light::reference::Lighting, sky: f64, stops: f32) -> f32
 fn sky_zenith(luts: &light::sky::SkyLuts, sun: &light::reference::Lighting) -> f64 {
     let e = luts.ground_irradiance(sun.sun_dir[1]);
     (0.2126 * e[0] + 0.7152 * e[1] + 0.0722 * e[2]) / std::f64::consts::PI
+}
+
+/// 4B: the shade pass's bindings, with the scene's emitter table when it publishes one.
+#[allow(clippy::too_many_arguments)]
+fn shade_bind(gpu: &Gpu, sh: &Shade, scene: &GpuScene, accel: &gpu::accel::Accel, targets: &Targets, albedo: &RefMaterials, out: &ShadeTargets, sky: &SkyTables) -> Result<ShadeBindings, String> {
+    let r = match scene.emitters().map_err(|x| format!("emitter table: {x:?}"))? {
+        Some(em) => sh.bind_lit(gpu, targets, accel, albedo, out, &sky.view, &em.device),
+        None => sh.bind(gpu, targets, accel, albedo, out, &sky.view),
+    };
+    r.map_err(|x| x.to_string())
 }
