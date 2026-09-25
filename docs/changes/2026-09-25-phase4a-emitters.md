@@ -1,6 +1,6 @@
 # Change: Phase 4A — emitters, units and the reference
 
-Status: **in progress. Part 1 passed** (conventions, emitter table, CPU and GPU reference, `street_night`): C1–C5 in the cloud session, G1–G5 and the M3 GPU regressions on the RTX 3050 (`run-local.cmd`, 2026-09-25 19:12). **Part 2 started**: its criteria are frozen below (C6–C7, G6–G9, M1–M2).
+Status: **closed 2026-09-25: 4A passed** (6 M4 units). Part 1 (conventions, emitter table, CPU and GPU reference, `street_night`): C1–C5 in the cloud session, G1–G5 and the M3 GPU regressions on the RTX 3050 (`run-local.cmd`, 2026-09-25 19:12). Part 2 (criteria frozen below before its first run): C6–C7 and M1–M2 in the cloud session, G6–G9 on the RTX 3050 (`run-local.cmd`, 2026-09-25 20:29), analysed in a later cloud session from the pushed logs.
 Date and baseline: 2026-09-25, branch `claude/tender-keller-9u9d6t` from `main` after the cloud rules commit. Written in a cloud session (no GPU; [CLOUD.md](../CLOUD.md)).
 Authorization: S-024 (4A and 4B authorized); the user's "green light for the session" (2026-09-25); part 2: "For now i accept it part 2 time" (the proposed night lights accepted for now).
 
@@ -178,7 +178,36 @@ M2b, emitter light alone at the primary hit, one sample, night (σ/μ median / p
 | Full (1,143) | 2.88 / 7.02 | 2.78 / 5.55 |
 | Dense (7,003) | 2.76 / 8.62 | 2.82 / 8.45 |
 
-**Laptop (`run-local.cmd`, 45–60 min):** G6–G9 are **NOT RUN** until the user runs it and pushes `engine/results`. Steps: the pure suite; `gpu --lib`; `gpu --test emitters` (G1–G6); `gpu --test edit`; `gpu --test temporal`; the viewer's edit runs (night Full at N = 1, 8, 32 and Dense at N = 1 with validation off; the street at N = 1; night Full at N = 1, 8, 32 with validation on, 400 frames), all appending to `viewer_edits.jsonl`; `ref_light --scene night --spp 16384` into `results/phase4a_ref/`. Not rerun on purpose: `gate`, `denoise`, and `reference`, `shade`, `sky`, `bounce` (their code did not change since part 1's run).
+**RTX 3050 laptop**, `run-local.cmd` at commit `7810f7d` (cargo 1.98.1, Vulkan SDK 1.4.357.0), logs in `engine/results/local-run/2026-09-25_2029-4a2/` (`summary.txt`: 15 of 15 steps exit 0), the night references in `engine/results/phase4a_ref/`. Analysed from the pushed logs in a cloud session (no GPU); the p95 values are nearest-rank over `edits.visible_all_ms` in `viewer_edits.jsonl`.
+
+| # | Result |
+|---|---|
+| G6 table in `GpuScene` | **pass** (`gpu_emitters_4a.log`, `the_scene_publishes_the_table_with_its_meshes`). Build: 1,143 emitters at snapshot 1. After each C6 edit the published table is the scene's snapshot and the device bytes equal the host table (rows + 368 B of per-material emission): 1,147 / 1,142 / 1,148 / 1,148 / 1,143 emitters at snapshots 2–6; table build and upload 0.75–0.96 ms per update. The test's asserts on retirement (old and new table both live until retirement, then the ledger back to the table's bytes), on `refuse_emitters` (snapshot, BLAS set and table unchanged, 1 deferral, nothing of the new table left) and on the retry (1,147 emitters at snapshot 7, bytes equal) held; `stale_emitters` refused as `StaleTable` (table 7, scene 8). 0 validation errors, 0 warnings, no leaked buffers |
+| G7 edit latency with the table | **pass** (table below; validation off, 1920×1080, MAILBOX, 2,000 frames). Every edit applied was shown, 0 deferred, 0 not shown at exit; 31–34 of 100 requests rejected (sky under the screen centre, as in 3G). Table median host time per update (build and upload): **0.63 ms** Full, **4.40 ms** Dense. Validation on (400 frames, Full, N = 1, 8, 32): exit 0, 0 errors, 0 warnings, 14 of 14 edits shown, p95 30.3 / 30.1 / 31.9 ms |
+| G8 night references | **pass** (`ref_light_night.log`, exit 0): all 6 images with 0 bad samples, 0 validation errors and 0 warnings; the tool's leak assert held. Per image below |
+| G9 regressions | **pass**. Pure suite exit 0, 153 pass, 4 ignored; `gpu --lib` 15 pass; `gpu --test emitters` 5 pass, 1 ignored (G1: 0 validation errors in every test; G2 0 over 10⁻⁶ on both cameras, worst 0; G3 ratio 0.99984, double emission 1.49984; G4 street z [0.31, −1.88, −2.10], 0.649% (limit 1.123%), low z [0.94, −0.33, −0.60], 0.791% (limit 1.498%), no solid angle caught at z ≈ 1,400–1,600; G5 median 3.79 ms, max 4.10 ms ≤ 5 ms); `gpu --test edit` 4 pass, `gpu --test temporal` 7 pass, 0 validation errors in each. The viewer's M3 street (N = 1, validation off): p95 29.4 ms, 67 of 67 shown, 0 deferred; the JSON reports `"scene":"street"`, `"emitters":null` and `edits.emitters_ms` 0 (max 0.001 ms) |
+| **NOT RUN** on purpose | `gate` (the M3 frame path and scene build did not change), `denoise` (accepted failures), and `reference`, `shade`, `sky`, `bounce` (unchanged since part 1's run) |
+
+G7 per run (edit-to-visible, ms):
+
+| Run | Voxels changed | Shown / applied | Regions p50 / max | p50 | p95 | Max | Budget (p95) | Table p50 / max | Accel p50 |
+|---|---|---|---|---|---|---|---|---|---|
+| night Full, N = 1 | 67 | 67 / 67 | 2 / 3 | 24.1 | **27.9** | 29.0 | 50 | 0.63 / 1.40 | 15.4 |
+| night Full, N = 8 | 17,752 | 66 / 66 | 2 / 8 | 25.9 | **32.5** | 36.3 | 50 | 0.63 / 1.14 | 16.6 |
+| night Full, N = 32 | 533,964 | 66 / 66 | 8 / 12 | 25.2 | **34.2** | 35.8 | 100 | 0.63 / 1.19 | 13.6 |
+| night Dense, N = 1 | 69 | 69 / 69 | 2 / 3 | 25.4 | **33.3** | 34.7 | 50 | 4.40 / 6.06 | 12.6 |
+| street (M3), N = 1 | 67 | 67 / 67 | 2 / 3 | 23.5 | **29.4** | 50.5 | 50 | — (no table) | 15.7 |
+
+G8 per image (960×540, 16,384 spp, 8 bounces, seed 74, Full dressing, 1,143 emitters):
+
+| Image | Sun | Lights | Mean (R / G / B) | Mean pixel relative SE | Metric exposure | Seconds |
+|---|---|---|---|---|---|---|
+| street_dusk | +2.65° | off | 5.06e-3 / 4.12e-3 / 4.00e-3 | 0.016 | 105.4 | 143.8 |
+| street_blue_hour | −5.30° | on | 2.43e-4 / 1.39e-4 / 1.08e-4 | 0.139 | 7,424 | 117.7 |
+| street_night | −30° | on | 2.22e-4 / 1.29e-4 / 8.87e-5 | 0.057 | 11,549 | 116.3 |
+| low_dusk | +2.65° | off | 6.74e-3 / 5.88e-3 / 6.14e-3 | 0.015 | 56.9 | 113.2 |
+| low_blue_hour | −5.30° | on | 2.16e-4 / 1.75e-4 / 1.46e-4 | 0.161 | 7,735 | 90.2 |
+| low_night | −30° | on | 1.91e-4 / 1.61e-4 / 1.16e-4 | 0.031 | 12,103 | 88.6 |
 
 ## Failures and changes on the way (diagnosed, not rebaselined)
 
@@ -191,6 +220,13 @@ M2b, emitter light alone at the primary hit, one sample, night (σ/μ median / p
 The spherical-rectangle code is written from the published algorithm as I recall it; it is validated by the exact-formula tests above, not by a copy of the paper.
 
 ## Observations
+
+**Part 2 on the laptop** (observations, not criteria):
+
+- The blue-hour references do not converge like the others. Their mean pixel relative standard error is 0.139 / 0.161 at 16,384 spp, about what 3A's twilight images had at 2,048 spp (0.137 / 0.131), where 8× the samples should give about 0.05 if the per-sample variance were finite and resolved. Dusk shrinks as expected (3A 0.045 / 0.041 at 2,048 spp → 0.016 / 0.015). Consistent with the heavy-tailed Monte Carlo twilight sky already noted in 3A and in M2's † (the sky is black at night, where the error is 0.057 / 0.031); not diagnosed further here. **Risk for 4B:** a per-pixel comparison against the blue-hour references needs a noise-aware metric (3A's |z| rate) or a check of the tail first.
+- Night Full edit p95 at N = 8 and 32 (32.5, 34.2 ms) is 2–3 ms above 3G's street runs (29.0–29.6, 31.1 ms). One run per arm here against two interleaved in 3G, on a different scene, so this is not a paired comparison; the table's own median time is 0.63 ms. The Dense table costs 4.4 ms median per edit (build and upload, 7,003 emitters), inside the budget.
+- The street run's single worst edit was 50.5 ms (p95 29.4 ms); 3G's maxima were up to 56.8 ms. The criterion is on p95.
+- The N = 32 run with validation off ended with 1 reader held at exit, the others with 2 (as in 3G); not a criterion.
 
 **Part 2 magnitudes** (observations; what they suggest is under Next):
 
@@ -206,9 +242,10 @@ The spherical-rectangle code is written from the published algorithm as I recall
 
 ## Next
 
-1. **The laptop run:** the user runs `run-local.cmd` (45–60 min) and pushes `engine/results`. G6–G9 are then analysed from the logs (G7's p95 from `viewer_edits.jsonl`). If they pass, 4A is done (its 6 units count).
+1. **4A is done** (G6–G9 passed on the RTX 3050; 6 of M4's 33 units).
 2. **Then 4B** (authorized): one emitter sample per pixel at the primary and bounce hits, then the temporal pass and the filter; L, the automatic switch and the night exposure (moved here from 4A); relight rules for emitters; the equal-time curve over samples per pixel and light counts.
 3. **What the magnitudes suggest** (recommendations, not decisions):
    - 4B's energy criterion should be on reflected light (emission excluded) or per region, not on the mean of the whole image, which emission dominates at night.
    - Per-frame noise at night is 2–3× dusk's in the median and 5–8× in the 90th percentile, and its tail grows with the light count. That is the case reservoir reuse (4C) targets; 4B's filtered error decides whether it pays.
+   - The blue-hour references are heavy-tailed (Observations): 4B's comparisons at blue hour should use the |z|-rate metric or first check that tail.
    - One bounce misses 7–10% of the reflected light at night (0.2–0.5% at dusk). That bears on 4D's entry condition ("the indirect term matters at night as a share of bounces ≥ 2"), which set no threshold: the call is yours once 4B shows whether the loss is visible after filtering.
