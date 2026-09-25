@@ -48,6 +48,11 @@
     - the Q2 comparison: P, `--prefilter-age N`, `--camera low`;
     - fps in the title and on exit.
 - **Emission:** off everywhere (ADR-0005). The street registers 3 lamp heads and 3 sign boards as emissive; their values have no unit until 4A.
+- **Repository** (since 2026-09-25):
+  - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
+  - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
+  - Binary data is protected from line-ending conversion by `.gitattributes`.
+  - Commits and pushes happen only on the user's request.
 - **Evidence:**
   - `engine/results/`: logs per slice;
   - `engine/results/phase3g/`: FLIP, perf series and edits;
