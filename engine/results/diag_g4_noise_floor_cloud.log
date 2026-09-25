@@ -1,0 +1,4 @@
+# cargo test --release -j 2 -p light --test emitters diagnostic_g4_noise_floor -- --ignored --nocapture (cloud, Linux, 4 threads, 2026-09-25; CPU timings are not evidence)
+G4 floor street night: one frame's mean luminance 1-sigma at 1080p 7.47% (at 192x108: 74.68%); ages 1 / 4 / 16 / 64: 7.47% / 3.73% / 1.87% / 0.93%; the noisiest 1% of pixels carry 89% of the variance; 2048 spp, 209 s
+G4 floor low night: one frame's mean luminance 1-sigma at 1080p 8.28% (at 192x108: 82.77%); ages 1 / 4 / 16 / 64: 8.28% / 4.14% / 2.07% / 1.03%; the noisiest 1% of pixels carry 97% of the variance; 2048 spp, 169 s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 378.70s

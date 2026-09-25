@@ -1,6 +1,6 @@
 # NOW — Phase 4 (M4): 4A done; 4B built, waiting for the laptop run
 
-**Updated 2026-09-25 (4B built; night history cap fixed, S-025).** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
+**Updated 2026-09-25 (4B built; night history cap fixed, S-025; G4's Q1 corrected before the run).** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
 
 ## State
 
@@ -31,8 +31,9 @@
   - criteria frozen first (commit `1da5bc8`); three corrections before any run, recorded in the record (C2's oracle is the gross face change, since a lamp's corner voxel has a net change of 0; G1 is judged at 10⁻³ relative, since the emitter term is continuous in the depth-rebuilt surface point and the f32 solid angle carries about 10⁻⁶ sr of rounding; G5's converged value is the reference with a 4-SE test, and its E2 box sits between the lamp head and the visible façades);
   - built: emitters in `gpu::shade` at both vertices by the reference's own shared function (`shaders/emitter_nee.slang`), `emitter_samples`, `Shade::bind_lit`; emission added in the light view after reconstruction; the lights rule, L and `--lights`; the automatic exposure (`gpu::exposure`, `light::exposure::Adaptation`, `--exposure`); the emitter relight rules E1 / E2 and the lights switch as a light jump ([ADR-0006 Amendment 2](adr/ADR-0006-guides-and-history.md), proposed until G5 passes); `gpu/tests/lights.rs` (G1–G6, M1);
   - cloud: C1–C4 pass; pure suite 154 pass, `gpu --lib` 21 pass, clippy only the 6 old `world` lints;
-  - `run-local.cmd` rewritten for 4B (untested; about 90 minutes).
+  - `run-local.cmd` rewritten for 4B (untested; about 1.5–2.5 hours, re-estimated from 4A's laptop reference times; first written as 90 minutes).
 - **Night history cap fixed (S-025, 2026-09-25, cloud)**, on the user's approval and their choice of −12° after the measurement: the sun-motion age cap is off while the sun is below −12° ([ADR-0006 Amendment 3](adr/ADR-0006-guides-and-history.md), `TemporalSettings::sun_cap_min_elevation_deg`). Measured first (`light::sky` `diagnostic_skylight_below_horizon`): the skylight radiance on an albedo-0.3 surface is 1.1 × 10⁻⁸ units at −12°, about 0.05% of the night street's mean reflected lamp light. Details in the [4B record](changes/2026-09-25-phase4b-many-lights.md). The work is on branch `claude/focused-faraday-ygdjx7`, which carries 4B's commits plus this fix.
+- **G4's Q1 corrected before any GPU run** (same session; the user delegated the review: "check for any weird stuff and decide yourself"): one night frame's mean luminance has a 1-sigma of 7.5–8.3% at 1080p (CPU-measured, `light` `diagnostic_g4_noise_floor`), so Q1's frozen ±2% could not pass even with correct code. Q1 is now Q1a (the filter's energy change against the raw history of the same frames, ±2%) and Q1b (the raw history's bias within max(2%, 4σ/√age)); Q2 and Q4 are unchanged ("G4 correction" in the [4B record](changes/2026-09-25-phase4b-many-lights.md)). The review found nothing else to change: every test filter in `run-local.cmd` matches a test, every viewer flag exists, the viewer exits 1 on validation messages, the 1080p reference renders stay far below Windows' 2 s GPU timeout (8 samples per submission), 4A's viewer runs really were 1920×1080, and the exposure pass's 64-workgroup change is consistent with its host sums.
 - **Not authorized:**
   - 4C–4G: reservoir reuse, P05, P08, the M4 gate;
   - glass and water;
@@ -49,7 +50,7 @@
   - the change records in `docs/changes/`;
   - [BUILD-ROADMAP](../BUILD-ROADMAP.md) and [TECHNIQUE-MAP](../TECHNIQUE-MAP.md).
 - **`engine/`** ([README](../engine/README.md): crates, verified commands, notes):
-  - pure crates `memory`, `world`, `derived`, `walk`, `light` (153 tests);
+  - pure crates `memory`, `world`, `derived`, `walk`, `light` (154 tests, 6 ignored diagnostics);
   - 4A: `light::emitters` (table, alias selection, solid-angle sampling, `lights_on`), `light::exposure::metric_exposure`, the reference's emitter terms (off by default), `world::scene::street_night(Dressing)`, `gpu::emitters` (`EmitterSet`, `SceneEmitters`, `RefEmitters`) and `Reference::bind_lit`, `GpuScene::build_lit` and `GpuScene::emitters`, `gpu/tests/emitters.rs`;
   - `gpu`, on Vulkan:
     - raster, ray query and scene updates;
@@ -70,7 +71,7 @@
 - **Repository** (since 2026-09-25):
   - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
   - **4A is merged into `main`** (PR https://github.com/Vuk03-boop/new_engine_probably/pull/1, merge commit `16edb67`, 2026-09-25, at the user's request; a merge commit, so the hashes cited in the 4A record stay valid). New work starts from `main`; the 4A branches `claude/tender-keller-9u9d6t` and `claude/nice-dijkstra-xpg7tr` are finished.
-  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, now holding the **4B** checks (G1–G8, M1, M2; untested, about 90 minutes). Logs go to `engine/results/local-run/<date>-4b/`, FLIP to `engine/results/phase4b/`; G4's 1080p references stay in `%TEMP%\ne_gate_4b` on the laptop; the user pushes `engine/results` back.
+  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, now holding the **4B** checks (G1–G8, M1, M2; untested, about 1.5–2.5 hours). Logs go to `engine/results/local-run/<date>-4b/`, FLIP to `engine/results/phase4b/`; G4's 1080p references stay in `%TEMP%\ne_gate_4b` on the laptop; the user pushes `engine/results` back.
   - 4B's work is on branch `claude/hopeful-bell-972dbs` (pushed; no PR yet); `claude/focused-faraday-ygdjx7` = that branch plus the S-025 cap fix (pushed; no PR). **Pull `claude/focused-faraday-ygdjx7` for the laptop run.**
   - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
   - Binary data is protected from line-ending conversion by `.gitattributes`.
@@ -84,7 +85,7 @@
 
 ## Last checks
 
-- **Night cap fix (2026-09-25, cloud, Linux, no GPU):** the new pure test passes (with a planted −90° cutoff caught); pure suite exit 0, 154 pass, 5 ignored (`test_pure_4b_cap_cloud.log`); `gpu --lib` exit 0, 22 pass (`test_gpu_lib_4b_cap_cloud.log`); clippy exit 0, only the 6 old `world` lints (`clippy_4b_cap_cloud.log`; substitute SDK). **NOT RUN:** the viewer at night with the day running.
+- **Night cap fix (2026-09-25, cloud, Linux, no GPU):** the new pure test passes (with a planted −90° cutoff caught); pure suite exit 0, 154 pass, 6 ignored (`test_pure_4b_cap_cloud.log`, rerun after the G4 correction); `gpu --lib` exit 0, 22 pass (`test_gpu_lib_4b_cap_cloud.log`); clippy exit 0, only the 6 old `world` lints (`clippy_4b_cap_cloud.log`; substitute SDK). **NOT RUN:** the viewer at night with the day running. G4's noise floor: street 7.47%, low 8.28% per frame at 1080p (`diag_g4_noise_floor_cloud.log`); `lights` builds with the corrected Q1 (substitute SDK), not run (no GPU).
 - **4B (2026-09-25, cloud, Linux, no GPU; [record](changes/2026-09-25-phase4b-many-lights.md)):**
   - pure suite: exit 0, 154 pass, 4 ignored (`test_pure_4b_cloud.log`); `gpu --lib` 21 pass (`test_gpu_lib_4b_cloud.log`); clippy: exit 0, only the 6 old `world` lints (`clippy_4b_cloud.log`); every `gpu` test binary, both tools and `viewer` build (substitute SDK: supplemental, not ADR-0001 proof);
   - C1 (layouts), C2 (relight rows, `changed_power` bounds the gross change within 20×), C3 (adaptation, sums) pass;
@@ -134,13 +135,13 @@
 
 ## Exact next action
 
-1. **The user runs `run-local.cmd`** on the laptop (pull branch `claude/focused-faraday-ygdjx7` first: 4B plus the night cap fix; about 90 minutes, plugged in, hands off while viewer windows run) and pushes `engine/results`.
+1. **The user runs `run-local.cmd` overnight** on the laptop (pull branch `claude/focused-faraday-ygdjx7` first: 4B, the night cap fix and the G4 correction; about 1.5–2.5 hours): plugged in, lid open, sleep and screen-off set to Never while plugged in, Windows Update paused for the night (an update restart would kill the run), no other apps; in the morning push `engine/results`.
 2. **A cloud session analyses those logs** against G1–G8 and records M1 (the equal-time curve) and M2 (night frame cost) in the 4B record. Failures are diagnosed, never rebaselined. The 4A recommendations stand: energy on reflected light (the tests measure reflected light only; emission is added only for display), the night noise after the filter (G4's data) decides whether 4C pays, blue hour is data.
 3. **The user judges the night look**: `viewer.exe --scene night --hour 17.5 --run-day` (lights, colours, exposure; L flips the lights). With S-025, once the sun is below −12° (hour 19.14, about 19:08, on the default path) the age view should go white while the day runs; it was capped at 8–16 frames before.
 4. **Before 4C** (not authorized):
    - the user points to the P05 / P08 reviews and PDFs;
    - the ReSTIR direct-light sources need the user's copies or a download request.
-3. **Known debt** (propose only if it becomes needed):
+5. **Known debt** (propose only if it becomes needed):
    - the acceleration update waits on the host, edit frames cost about 4 ms more CPU, and descriptor sets are rebuilt wholesale on every edit;
    - FIFO on sky-heavy views (M1 record §3b);
    - the twilight sky reference is heavy-tailed (3A record; again in the 4A blue-hour references), and below −6° the sky correction uses its −6° slice;

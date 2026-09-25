@@ -29,7 +29,8 @@ for /f "delims=" %%i in ('cargo --version') do >> "%SUMMARY%" echo %%i
 >> "%SUMMARY%" echo reference cache %GATE%
 >> "%SUMMARY%" echo.
 
-echo Running the 4B checks. This takes about 90 minutes; keep the laptop plugged in.
+echo Running the 4B checks. This takes about 1.5 to 2.5 hours; keep the laptop plugged in,
+echo the lid open and sleep off.
 echo Viewer windows will open and move by themselves: do not touch the mouse or keyboard
 echo until this window says Done.
 echo.

@@ -926,6 +926,8 @@ fn run_still(rig: &mut Rig, cam: &Camera, light: &Lighting, filter: bool, ages: 
 
 /// G4 (Q1, Q2 and the images for Q4): the viewer's frame with the lights on at 1080p against the
 /// one-bounce reference with emitters (16,384 spp), both cameras; judged at night, blue hour as data.
+/// Q1 is judged as Q1a (the filter's energy change against the raw history of the same frames,
+/// ±2%) and Q1b (the raw history's bias within max(2%, 4 sigma)); corrected before any run.
 #[test]
 fn night_against_the_reference() {
     let (w, h) = (1920, 1080);
@@ -942,33 +944,46 @@ fn night_against_the_reference() {
             let m: Vec<bool> = guides.iter().map(|g| g[0] & 7 != FACE_NONE).collect();
             let em = rig.emission_of(&guides);
             let filt = run_still(&mut rig, &cam, &light, true, &[1, 4, 16, 64]);
-            // Data: the 1-sigma of one real-time frame's mean luminance over the surface, from the
-            // reference's per-sample variance (the same estimator): the noise floor of Q1 at age 1.
+            // The 1-sigma of one real-time frame's mean luminance over the surface, from the
+            // reference's per-sample variance (the same estimator): Q1's noise scale at age 1.
             let (mut var, mut tot) = (0.0, 0.0);
             for i in (0..r.sum.len()).filter(|&i| m[i]) {
                 var += (lum(r.std_error(i)) * (r.samples as f64).sqrt()).powi(2);
                 tot += lum(r.mean(i));
             }
+            let floor = var.sqrt() / tot.max(1e-300);
             eprintln!(
-                "G4 {key}: {} surface px, reference noise rel_mse {:.2e}, one frame's mean luminance 1-sigma about {:.2}% (data){}",
+                "G4 {key}: {} surface px, reference noise rel_mse {:.2e}, one frame's mean luminance 1-sigma {:.2}%{}",
                 m.iter().filter(|&&b| b).count(),
                 ref_noise(&r, &m),
-                100.0 * var.sqrt() / tot.max(1e-300),
+                100.0 * floor,
                 if judged { "" } else { " (blue hour: data)" }
             );
             for (age, gain) in [(1u32, 8u32), (4, 4), (16, 4), (64, 1)] {
                 let (f, a, rg) = (error(&filt[&age], &mean, &m), error(&raw[&age], &mean, &m), error(&raw[&(age * gain)], &mean, &m));
-                let q1 = f.bias.abs() <= 0.02;
+                // Q1, corrected before any run (4B record, "G4 correction"): one night frame's mean
+                // is too noisy for ±2% (1-sigma about 7.5% at 1080p, CPU-measured). Q1a: the filter
+                // keeps energy, paired with the raw history of the same frames (the filter writes
+                // only the shown radiance), within ±2%. Q1b: the raw history is unbiased, within
+                // max(2%, 4 sigma) at its age (sigma = the frame's 1-sigma / sqrt(age)).
+                let sigma = floor / (age as f64).sqrt();
+                let q1a = (f.bias - a.bias).abs() <= 0.02;
+                let q1b = a.bias.abs() <= (4.0 * sigma).max(0.02);
+                let q1 = q1a && q1b;
                 let q2 = f.rel_mse <= rg.rel_mse;
                 eprintln!(
-                    "  age {age:2}: filtered rel_mse {:.4} bias {:+.4} | raw {:.4} bias {:+.4} | raw at age {:2} {:.4} | Q1 {} Q2 {}",
+                    "  age {age:2}: filtered rel_mse {:.4} bias {:+.4} | raw {:.4} bias {:+.4} (z {:+.2}) | raw at age {:2} {:.4} | filter energy {:+.4} | Q1 {} (a {} b {}) Q2 {}",
                     f.rel_mse,
                     f.bias,
                     a.rel_mse,
                     a.bias,
+                    a.bias / sigma.max(1e-300),
                     age * gain,
                     rg.rel_mse,
+                    f.bias - a.bias,
                     if q1 { "pass" } else { "FAIL" },
+                    if q1a { "pass" } else { "FAIL" },
+                    if q1b { "pass" } else { "FAIL" },
                     if q2 { "pass" } else { "FAIL" }
                 );
                 if judged && !q1 {

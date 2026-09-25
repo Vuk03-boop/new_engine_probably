@@ -456,3 +456,63 @@ fn diagnostic_magnitudes() {
         }
     }
 }
+
+/// 4B, before the laptop run: the noise floor of G4's Q1 (the shown mean luminance within ±2% of
+/// the reference). One real-time frame is one sample per pixel of the one-bounce estimator with
+/// emitters at both vertices (G4's reference transport); the relative 1-sigma of its image mean is
+/// sqrt(Σ Var_i) / Σ μ_i, and at `a` frames of history it is that over sqrt(a). Measured at a small
+/// size and scaled to 1920x1080 by sqrt(pixels), since the per-pixel statistics do not depend on
+/// the resolution. Night, both cameras, Full. Measurement, not pass/fail. CPU only.
+/// Run: `cargo test --release -j 2 -p light --test emitters diagnostic_g4_noise_floor -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn diagnostic_g4_noise_floor() {
+    use light::emitters::luminance;
+    use light::reference::sample_pixel_lit;
+    use world::scene::{street_night, Dressing};
+
+    const W: u32 = 192;
+    const H: u32 = 108;
+    const SPP: u32 = 2048;
+    const SEED: u32 = 0x4B1;
+    let threads = std::thread::available_parallelism().map_or(4, |n| n.get());
+    let (world, _) = street_night(Dressing::Full);
+    let al = albedos(world.materials()).unwrap();
+    let em = table(&world, 4);
+    let light = Lighting::new(Atmosphere::default(), SunPath::default().direction(21.0));
+    let s = Settings { max_bounces: 1, emitters_direct: true, emitters_indirect: true, ..Settings::default() };
+    let scale_to_1080p = ((W * H) as f64 / (1920.0 * 1080.0)).sqrt();
+    for (cname, cam) in reference_cameras(W, H) {
+        let t = std::time::Instant::now();
+        let mut px = vec![(0.0f64, 0.0f64); (W * H) as usize];
+        each_pixel(&mut px, W, threads, |x, y, p| {
+            for f in 0..SPP {
+                let v = luminance(sample_pixel_lit(&world, &al, &em, &light, &cam, &s, x, y, f, SEED));
+                *p = (p.0 + v, p.1 + v * v);
+            }
+        });
+        let n = SPP as f64;
+        let (mut mu, mut var) = (0.0, 0.0);
+        let mut contrib: Vec<f64> = Vec::new();
+        for &(sum, sq) in &px {
+            let v = (sq - sum * sum / n).max(0.0) / (n - 1.0);
+            mu += sum / n;
+            var += v;
+            contrib.push(v);
+        }
+        contrib.sort_by(|a, b| b.total_cmp(a));
+        let top = |k: usize| 100.0 * contrib.iter().take(k).sum::<f64>() / var.max(1e-300);
+        let floor = var.sqrt() / mu.max(1e-300) * scale_to_1080p;
+        eprintln!(
+            "G4 floor {cname} night: one frame's mean luminance 1-sigma at 1080p {:.2}% (at {W}x{H}: {:.2}%); ages 1 / 4 / 16 / 64: {:.2}% / {:.2}% / {:.2}% / {:.2}%; the noisiest 1% of pixels carry {:.0}% of the variance; {SPP} spp, {:.0} s",
+            100.0 * floor,
+            100.0 * floor / scale_to_1080p,
+            100.0 * floor,
+            100.0 * floor / 2.0,
+            100.0 * floor / 4.0,
+            100.0 * floor / 8.0,
+            top(contrib.len() / 100),
+            t.elapsed().as_secs_f64()
+        );
+    }
+}

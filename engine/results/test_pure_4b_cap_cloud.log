@@ -1,9 +1,4 @@
-   Compiling walk v0.1.0 (/home/user/new_engine_probably/engine/walk)
-   Compiling light v0.1.0 (/home/user/new_engine_probably/engine/light)
-   Compiling derived v0.1.0 (/home/user/new_engine_probably/engine/derived)
-   Compiling world v0.1.0 (/home/user/new_engine_probably/engine/world)
-   Compiling memory v0.1.0 (/home/user/new_engine_probably/engine/memory)
-    Finished `release` profile [optimized] target(s) in 18.21s
+    Finished `release` profile [optimized] target(s) in 0.06s
      Running unittests src/lib.rs (target/release/deps/derived-7961a5b03a1c8991)
 
 running 12 tests
@@ -11,14 +6,14 @@ test mesh::tests::diagonal_edge_ray_is_the_documented_difference ... ok
 test mesh::tests::faces_hidden_by_a_neighbour_brick_are_not_emitted ... ok
 test mesh::tests::greedy_merges_a_slab_but_never_across_materials ... ok
 test mesh::tests::single_voxel_gives_six_unit_quads_facing_out ... ok
-test slots::tests::exhausted_generation_retires_the_slot ... ok
 test slots::tests::double_free_and_stale_free_are_rejected ... ok
+test slots::tests::exhausted_generation_retires_the_slot ... ok
 test slots::tests::free_slots_are_reused_lowest_first ... ok
 test slots::tests::freed_handle_stops_resolving_and_reuse_gets_a_new_generation ... ok
 test surface::tests::affected_keys_interior_edge_and_corner ... ok
 test surface::tests::dependency_check_is_exact_not_brick_granular ... ok
-test surface::tests::single_and_adjacent_voxels ... ok
 test surface::tests::neighbour_brick_hides_boundary_faces ... ok
+test surface::tests::single_and_adjacent_voxels ... ok
 
 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -33,7 +28,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 running 1 test
 test reported_pipeline_memory_brackets_measured_heap ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
 
      Running tests/mesh.rs (target/release/deps/mesh-e84858c0a3663621)
 
@@ -47,35 +42,35 @@ test coverage_is_exact_on_the_street_and_random_worlds ... ok
 test negative_control_unsplit_greedy_has_t_junctions ... ok
 test watertight_triangulation_shares_every_edge ... ok
 
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.70s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.44s
 
      Running tests/persisted.rs (target/release/deps/persisted-004278d3dfab22b4)
 
 running 1 test
 test reloaded_world_publishes_the_oracle_and_commits_feed_edit_batches ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
 
      Running tests/scenarios.rs (target/release/deps/scenarios-138a38b5418e232c)
 
 running 15 tests
 test duplicate_completion_is_rejected ... ok
 test boundary_edit_rederives_the_neighbour_and_removes_empty_bricks ... ok
-test edit_batches_sharing_a_key_merge_into_one_publication ... ok
 test initial_population_matches_oracle ... ok
-test negative_control_retiring_without_readers_is_caught ... ok
 test negative_control_missing_neighbour_dirty_is_caught ... ok
+test negative_control_retiring_without_readers_is_caught ... ok
 test neighbour_interior_change_is_accepted_by_content ... ok
+test edit_batches_sharing_a_key_merge_into_one_publication ... ok
 test publication_holds_the_prior_snapshot_until_the_whole_set_is_ready ... ok
 test redirtied_target_cancels_the_in_flight_job ... ok
 test retirement_waits_for_readers_and_reused_slots_reject_old_handles ... ok
 test staged_result_is_revalidated_at_publication_after_an_unnotified_change ... ok
-test unnotified_face_change_is_rejected_as_stale ... ok
 test sustained_edits_defer_publication_and_recover ... ok
+test unnotified_face_change_is_rejected_as_stale ... ok
 test overload_is_bounded_lossless_and_deterministic ... ok
 test publication_shares_unchanged_shards_and_keeps_old_snapshots_intact ... ok
 
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
 
      Running tests/stress.rs (target/release/deps/stress-da61faa5a4976fd3)
 
@@ -86,7 +81,7 @@ test threaded_workers_with_random_delays ... ok
 test random_interleavings_keep_every_invariant ... ok
 test cancellation_and_stale_check_are_independent_guards ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.29s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.06s
 
      Running unittests src/lib.rs (target/release/deps/light-a7cd5dd657ae2dec)
 
@@ -127,11 +122,12 @@ test sky_ref::tests::correction_is_one_when_uncorrected_and_matches_at_grid_poin
 test sky::tests::sky_table_matches_the_monte_carlo_sky ... ok
 test atmosphere::tests::default_step_count_is_converged_within_one_percent ... ok
 
-test result: ok. 31 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 7.51s
+test result: ok. 31 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 7.39s
 
      Running tests/emitters.rs (target/release/deps/emitters-e12c7ecbd94a3cc9)
 
-running 7 tests
+running 8 tests
+test diagnostic_g4_noise_floor ... ignored
 test diagnostic_magnitudes ... ignored
 test emissive_rectangle_matches_lamberts_formula ... ok
 test emitters_off_ignores_the_table ... ok
@@ -140,20 +136,20 @@ test table_identity_follows_geometry_and_snapshots ... ok
 test night_dressing_light_counts ... ok
 test emissive_furnace_sums_the_bounces ... ok
 
-test result: ok. 6 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 12.39s
+test result: ok. 6 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 12.41s
 
      Running unittests src/lib.rs (target/release/deps/memory-62381af4b1a5e09d)
 
 running 9 tests
-test ledger::tests::device_budget_takes_the_smaller_ceiling_minus_headroom ... ok
-test ledger::tests::refusal_is_deterministic_and_changes_nothing_but_the_counter ... ok
 test ledger::tests::grants_track_live_reserved_high_water_and_peak ... ok
-test ledger::tests::report_lists_used_categories ... ok
+test ledger::tests::device_budget_takes_the_smaller_ceiling_minus_headroom ... ok
 test ledger::tests::foreign_grants_and_overfull_live_are_rejected ... ok
+test ledger::tests::refusal_is_deterministic_and_changes_nothing_but_the_counter ... ok
+test ledger::tests::report_lists_used_categories ... ok
 test tests::category_names_are_unique ... ok
 test tests::container_bounds_hold_live_below_reserved ... ok
-test tests::report_sums_rows_and_splits_host_from_device ... ok
 test tests::tracker_keeps_high_water_per_category_and_total ... ok
+test tests::report_sums_rows_and_splits_host_from_device ... ok
 
 test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -176,12 +172,12 @@ test snaps_down_a_curb_instead_of_falling ... ok
 test ceilings_stop_a_jump ... ok
 test step_up_needs_headroom ... ok
 test night_street_start_is_free ... ok
-test thin_walls_and_floors_do_not_tunnel ... ok
 test street_block_curb_and_shop_front ... ok
+test thin_walls_and_floors_do_not_tunnel ... ok
 test step_height_sweep ... ok
 test random_walks_never_overlap_the_street_block ... ok
 
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.28s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.31s
 
      Running unittests src/lib.rs (target/release/deps/world-73e8cc8a4f4d2efd)
 
@@ -190,20 +186,20 @@ test coords::tests::brick_origin_and_offset_cross_chunk_edges ... ok
 test coords::tests::neighbouring_voxels_across_brick_and_chunk_edges_get_distinct_slots ... ok
 test coords::tests::split_join_round_trip_including_negatives_and_boundaries ... ok
 test coords::tests::negative_voxels_use_floor_division ... ok
-test edit::tests::empty_and_no_op_transactions_keep_the_version ... ok
 test edit::tests::apply_matches_direct_writes_including_versions ... ok
-test edit::tests::transaction_with_an_unknown_material_changes_nothing ... ok
+test edit::tests::empty_and_no_op_transactions_keep_the_version ... ok
 test material::tests::duplicate_name_is_rejected_without_side_effects ... ok
+test edit::tests::transaction_with_an_unknown_material_changes_nothing ... ok
 test material::tests::ids_are_stable_and_in_registration_order ... ok
 test material::tests::unknown_id_is_not_contained ... ok
-test persist::codec::tests::reader_round_trips_and_reports_truncation ... ok
 test persist::codec::tests::crc32_matches_the_standard_check_value ... ok
+test persist::codec::tests::reader_round_trips_and_reports_truncation ... ok
 test reference::tests::exact_edge_graze_is_not_a_hit ... ok
-test reference::tests::half_open_faces ... ok
 test reference::tests::hits_from_each_axis_direction_with_correct_face ... ok
+test reference::tests::half_open_faces ... ok
 test reference::tests::misses_and_empty_world ... ok
-test reference::tests::origin_inside_hits_at_zero_without_face ... ok
 test reference::tests::negative_coordinates_hit ... ok
+test reference::tests::origin_inside_hits_at_zero_without_face ... ok
 test reference::tests::t_max_is_inclusive ... ok
 test material::tests::registry_capacity_is_the_full_u16_range ... ok
 test reference::tests::zero_direction_is_rejected - should panic ... ok
@@ -222,7 +218,7 @@ test scene::tests::scene_contains_every_registered_material ... ok
 test scene::tests::generator_is_deterministic ... ok
 test scene::tests::night_street_keeps_the_day_street_and_adds_lights ... ok
 
-test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.61s
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.54s
 
      Running unittests src/bin/persist_cost.rs (target/release/deps/persist_cost-7a5b6af2bbff0202)
 
@@ -246,22 +242,22 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
      Running tests/persist.rs (target/release/deps/persist-b681e0dc9952ced4)
 
 running 14 tests
-test format_matches_the_checked_in_fixture ... ok
-test journal_must_continue_the_snapshot ... ok
 test every_single_byte_flip_in_a_journal_is_detected_or_dropped_as_the_tail ... ok
+test journal_must_continue_the_snapshot ... ok
+test format_matches_the_checked_in_fixture ... ok
 test materials_map_by_name_and_missing_names_fail_loudly ... ok
-test every_single_byte_flip_in_a_snapshot_is_detected ... ok
-test random_and_empty_worlds_round_trip_exactly ... ok
-test snapshot_plus_journal_replay_equals_the_live_world ... ok
 test remapped_store_requires_a_snapshot_before_commits ... ok
-test store_open_repairs_a_torn_tail_and_continues ... ok
 test crash_between_snapshot_and_journal_restart_loads_and_continues ... ok
+test every_single_byte_flip_in_a_snapshot_is_detected ... ok
+test snapshot_plus_journal_replay_equals_the_live_world ... ok
+test random_and_empty_worlds_round_trip_exactly ... ok
+test store_open_repairs_a_torn_tail_and_continues ... ok
 test unknown_major_version_is_refused_and_unknown_sections_are_skipped ... ok
 test torn_tail_at_every_offset_drops_only_the_last_transaction ... ok
 test store_commits_snapshots_and_reopens_exactly ... ok
 test street_block_round_trips_exactly ... ok
 
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
 
      Running tests/reference_agreement.rs (target/release/deps/reference_agreement-be7a1f946f96dc87)
 
@@ -269,7 +265,7 @@ running 2 tests
 test comparison_detects_a_single_missing_voxel ... ok
 test dda_matches_brute_force_exactly ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.40s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.26s
 
    Doc-tests derived
 
