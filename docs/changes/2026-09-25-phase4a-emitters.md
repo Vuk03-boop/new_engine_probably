@@ -1,8 +1,8 @@
 # Change: Phase 4A — emitters, units and the reference
 
-Status: **in progress. Part 1 passed** (conventions, emitter table, CPU and GPU reference, `street_night`): C1–C5 in the cloud session, G1–G5 and the M3 GPU regressions on the RTX 3050 (`run-local.cmd`, 2026-09-25 19:12). Part 2 (viewer `--scene` and L, night exposure, night references, magnitudes, the table in `GpuScene::update`) has not started.
+Status: **in progress. Part 1 passed** (conventions, emitter table, CPU and GPU reference, `street_night`): C1–C5 in the cloud session, G1–G5 and the M3 GPU regressions on the RTX 3050 (`run-local.cmd`, 2026-09-25 19:12). **Part 2 started**: its criteria are frozen below (C6–C7, G6–G9, M1–M2).
 Date and baseline: 2026-09-25, branch `claude/tender-keller-9u9d6t` from `main` after the cloud rules commit. Written in a cloud session (no GPU; [CLOUD.md](../CLOUD.md)).
-Authorization: S-024 (4A and 4B authorized); the user's "green light for the session" (2026-09-25).
+Authorization: S-024 (4A and 4B authorized); the user's "green light for the session" (2026-09-25); part 2: "For now i accept it part 2 time" (the proposed night lights accepted for now).
 
 ## Objective
 
@@ -18,7 +18,7 @@ Authorization: S-024 (4A and 4B authorized); the user's "green light for the ses
   - `gpu::emitters`: the table from region meshes, and its device upload;
   - `world::scene::street_night` with a dressing parameter;
   - tests for all of the above.
-- **Part 2 (next):** the viewer's `--scene` and L; the metric exposure at night; `ref_light` night references; the magnitudes (bounces ≥ 2 share at dusk, blue hour and night; one-sample noise); the table inside `GpuScene::update` (edit latency).
+- **Part 2:** the table inside `GpuScene` (build, edits, swap, edit latency); the viewer's `--scene`; the lights rule; the metric exposure; `ref_light` night references; the magnitudes (bounces ≥ 2 share at dusk, blue hour and night; one-sample noise). Details and criteria below.
 - **Excluded:** real-time emitter light (4B), reservoirs (4C+), any change to `street_block` or to M3 defaults.
 
 ## Criteria (frozen before the first run)
@@ -43,7 +43,51 @@ Authorization: S-024 (4A and 4B authorized); the user's "green light for the ses
 | G4 | GPU (4096 spp) against CPU (256 spp), 96×54, `street_night` (Full) at 21 h, emission + direct + indirect, `max_bounces` 1, two cameras: image mean |z| < 4 per channel; pixel |z| > 4 rate ≤ max(1%, 1.5 × null + 0.2%) (the 3A metric); "area PDF without solid angle" caught in every arm. |
 | G5 | The emitter table build for `street_night` (Dense) takes ≤ 5 ms on the host (10% of the 50 ms edit budget), median of 20. |
 
-## Proposed night lights (for the user to adjust)
+## Part 2: plan and criteria (frozen 2026-09-25, before its first run)
+
+**What part 2 builds:**
+
+- **The table in the publication set** (ADR-0003 Amendment 3):
+  - `GpuScene::build_lit` builds the table with the meshes. `GpuScene::update` rebuilds it from every region's emissive quads (`gpu::emitters::EmitterSet`, kept on the host per region) and uploads it before the acceleration update. It is swapped with the meshes and the TLAS, and its replaced buffers are retired like mesh buffers.
+  - A refused grant leaves meshes, TLAS and table on the previous snapshot.
+  - `GpuScene::emitters` refuses a table whose snapshot is not the scene's.
+  - Planted faults: `stale_emitters` (the update keeps the old table) and `refuse_emitters` (the table's upload is refused).
+  - `UpdateStats` gains the table's host time.
+  - A scene built with `GpuScene::build` has no table, so every M3 path is unchanged.
+- **Viewer:** `--scene street|night` (default `street`, the M3 scene) and `--dressing lamps|windows|full|dense` (default `full`). The night scene is built with its table, and every edit rebuilds the table inside the update. The JSON line gains the scene, the emitter count and the table's time per edit.
+- **L moves to 4B.** The real-time path has no emitter light until 4B, so in 4A the key would switch nothing on screen. 4B adds L, the automatic switch and the night exposure together.
+- **The lights rule** (Phase 4 decision 3): the lights are on while the sun is below the horizon (elevation < 0°), `light::emitters::lights_on`. So at M4's dusk (17.75 h, +2.65°) they are off, and at blue hour (18.5 h) and night (21 h) they are on.
+- **Metric exposure** (`light::exposure::metric_exposure`): 0.18 divided by the log-average luminance of the reference image, over the pixels whose luminance is at least 2⁻¹⁰ of the image mean.
+  - Leaving darker pixels out stops the black night sky and noise-level pixels from setting the exposure.
+  - By day no pixel is that dark, so it is the plain log-average.
+  - `ref_light` writes its display images with it and prints it.
+- **Night references** (`ref_light --scene night`): 2 cameras × dusk, blue hour and night; 960×540, 16,384 spp, 8 bounces; the lights by the rule (emission and emitter light when on). Cached in `engine/results/phase4a_ref/`.
+- **Magnitudes** (M1–M2) on the CPU reference in the cloud session. It is the same estimator as the GPU's (G2–G4), and the magnitudes are ratios, so they do not need 960×540.
+
+**Pure CPU (cloud and laptop):**
+
+| # | Criterion |
+|---|---|
+| C6 | The table follows edits (host, `gpu --lib`). On `street_night` (Full), chunk regions, through the real 1C pipeline, after each of these edits: remove a lamp-head voxel; remove a bulb voxel; add an emissive voxel in open air; remove a voxel in a region without emitters; restore everything. After each: the incremental table equals a from-scratch build of the snapshot's regions in order, geometry, radiance, probabilities, thresholds and aliases, with the same region keys and quad indices. Emitters of the edited regions carry the new snapshot; all others keep theirs. After the edit without emitters, no emitter id changes. The restored table equals the original except for the edited regions' snapshots. Negative control: leaving the lamp's region out of the update makes the comparison fail. |
+| C7 | Metric exposure and the lights rule (`light` unit tests). A uniform image of luminance c gives 0.18 / c. Scaling an image by k divides its exposure by k (both within 10⁻¹² relative). An image with no pixel below 2⁻¹⁰ of its mean gives the plain log-average. Adding black pixels leaves the exposure unchanged (in a test image with no pixel between the old and new thresholds). An all-black image gives none. The lights are off at every 3A time with the sun up and at M4's dusk, and on at twilight, blue hour and night. |
+
+**GPU and viewer (laptop, `run-local.cmd`):**
+
+| # | Criterion |
+|---|---|
+| G6 | The table in `GpuScene` on the device (`gpu --test emitters`): the C6 sequence through `GpuScene::update` with ray tracing. After each update, `emitters()` returns the table of the scene's snapshot, equal to C6's from-scratch build, and the device buffers read back byte-equal to it (the 80 B rows and the per-material emission). Replaced table buffers are retired, and after collection the `GpuMaterial` ledger holds exactly the table's buffers beyond what it held before the scene. `stale_emitters` is refused (`StaleTable`) after the next edit. `refuse_emitters` leaves meshes, TLAS and table on the previous snapshot and counts a deferral, and the retry succeeds. 0 validation errors, no leaks. |
+| G7 | Edit latency with the table (viewer, release, validation off, 1920×1080, the scripted fly path, as 3G's E1). `--scene night` (Full) with `--edit-script --edit-size N`, N = 1, 8, 32, 2,000 frames each; and Dense at N = 1. Pass: p95 edit-to-visible ≤ 50 ms (N = 1, 8) and ≤ 100 ms (N = 32), every edit shown, 0 deferred. The table's median host time per update is reported. With validation on (400 frames, N = 1, 8, 32, Full): exit 0, 0 errors, 0 warnings. |
+| G8 | Night references (`ref_light --scene night`, 16,384 spp): all 6 images with 0 bad samples, 0 validation errors and no leaked buffers. Recorded per image: the mean, the mean relative standard error, the metric exposure and the render time. |
+| G9 | Regressions: pure suite; `gpu --lib`; `gpu --test emitters` (G1–G5 as before); `gpu --test edit` (M2's edits through the changed update); `gpu --test temporal` (edits with relight). The viewer's M3 edit script on `street` (N = 1, 2,000 frames, validation off): p95 ≤ 50 ms, every edit shown, and the JSON reports no table. |
+
+**Magnitudes (measurements with a fixed method, not pass/fail):**
+
+| # | Measurement |
+|---|---|
+| M1 | Share of the image in bounces ≥ 2: 1 − L̄₁ / L̄₈, on the luminance of the image mean. Emission at the primary hit is left out (bounces do not change it). Paired samples: the same random streams at `max_bounces` 1 and 8, so each difference is exactly the light after 2 or more bounces. `street_night` (Full), 2 cameras × dusk, blue hour and night, the lights by the rule, 128×72 pixels. Samples are added until the standard error is ≤ 0.5 percentage points. Per pixel as well: the median and 90th percentile of the share over pixels with light. |
+| M2 | One-sample noise: σ/μ of a single sample per pixel (median and 90th percentile over pixels with μ > 0). (a) The one-bounce estimator (sun, sky, and emitters at the primary and bounce vertices: the reference at `max_bounces` 1, what 4B computes per frame), same arms as M1. Dusk (lights off) is the noise the M3 filter already handles, for scale. (b) Emitter light alone at the primary hit (one emitter sample, `max_bounces` 0), at night, for each dressing (Lamps, Windows, Full, Dense). |
+
+## Night lights (proposed; accepted by the user for now, 2026-09-25)
 
 Luminance is the value in cd/m² (converted with 1 unit = 128,000 cd/m²); the colour is normalized to Y = 1. They are starting points from the proposal's ranges, chosen so a lamp lights the road below it to tens of lux; they are judged by you from 4B, when the street can be seen at night.
 
