@@ -100,6 +100,18 @@ Cloud session, Linux x86_64, 4 cores, no GPU. The `gpu` crate is built with the 
 
 **`run-local.cmd`** (rewritten for 4B, untested: it cannot run in the cloud; re-read against [CLOUD.md](../CLOUD.md)'s rules): the pure suite, `gpu --lib`, the builds; G1–G6 one test each (`--test lights`, validation on, `NE_GATE_DIR` = `%TEMP%\ne_gate_4b` for G4's 1080p references); G4's FLIP (`results/phase4b/flip.py`, NOT RUN if Python is missing); M1 (validation off); G7 (night edits N = 1, 8, 32, validation off; then validation on with N = 1, 8, 32 and the day running across sunset); G8's M3 street edit run; M2 (the night walk, Full and Dense); the G8 regressions (`emitters`, `shade`, `sky`, `bounce`, `temporal`, `edit`, `denoise` R1 / R2). NOT RUN on purpose: `gate` (35+ min; G1 checks the M3 path bit for bit with the lights off), the rest of `denoise` (accepted failures), `reference`, `raster`, `ray`, `device`. About 90 minutes. Logs in `engine/results/local-run/<date>-4b/`, FLIP in `engine/results/phase4b/`.
 
+## Observations: the user's first look in the viewer (2026-09-25, RTX 3050, not criteria)
+
+The user ran the viewer at night (`--scene night`, 21 h, Full) before the laptop test run; screenshots in the session, with F3 (added for this, commit `aba9730`) showing every setting.
+
+- It runs: the lights, the lights rule, the automatic exposure (about 1.2–1.7 × 10⁴ at 21 h) and the history work; with the day stopped the history is full (age view white, reason view all accepted). About 120–200 fps at 1080p.
+- **The first look was noisier than it should be because the day was running** (`--run-day`): the sun-motion cap held the history at about 15 frames although the sun gives no light at night. Not changed yet; a candidate fix is to skip the cap when the sun is well below the horizon (an ADR-0006 change, for the user to approve).
+- **With a full history, two artefacts remain**, located by toggling B and N:
+  - coloured specks on the road: present with the bounce on and the filter on, absent with the bounce off. They are rare bright samples of the bounce hit's one emitter sample (a bounce landing on a façade near neon), which the filter's luminance edge-stopping keeps and spreads into dots;
+  - blotchy neon light on the shop fronts: present with the bounce off too, so it is the primary vertex's one sample chosen by power, which ignores distance (a façade next to a neon tube rarely picks it). `--emitter-samples 4` visibly reduces it, at about 8.6 ms frame p50 with the filter (within 16.67 ms).
+  - Both are the per-frame night noise 4A measured (p90 σ/μ 13–21) and what reservoir reuse (4C, not authorized) targets.
+- The lit upper windows are blown out to white at the automatic exposure: a look decision (window luminance or exposure key) for the user.
+
 ## Next
 
 1. Done: implemented, cloud checks C1–C4 pass, `run-local.cmd` rewritten, committed and pushed.
