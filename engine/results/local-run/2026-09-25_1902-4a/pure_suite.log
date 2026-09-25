@@ -1,0 +1,8 @@
+   Compiling world v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\world)
+   Compiling derived v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\derived)
+error: could not compile `derived` (lib)
+
+Caused by:
+  process didn't exit successfully: `C:\Users\Vuk Trifunovic\.rustup\toolchains\1.98.1-x86_64-pc-windows-msvc\bin\rustc.exe --crate-name derived --edition=2021 derived\src\lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C opt-level=3 -C embed-bitcode=no --check-cfg cfg(docsrs,test) --check-cfg "cfg(feature, values())" -C metadata=3f4ee532a61b9b1d -C extra-filename=-3739eb592aa379da --out-dir "C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\target\release\deps" -C strip=debuginfo -L "dependency=C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\target\release\deps" --extern "memory=C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\target\release\deps\libmemory-8a1316892a472d1a.rmeta" --extern "world=C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\target\release\deps\libworld-3e7aaa4da4571d61.rmeta"` (exit code: 0xc000013a, STATUS_CONTROL_C_EXIT)
+warning: build failed, waiting for other jobs to finish...
+error

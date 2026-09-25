@@ -1,0 +1,15 @@
+Phase 4A part 1, local run 2026-09-25_1912
+commit 07272fc
+cargo 1.98.1 (797e8a9bc 2026-08-05)
+VULKAN_SDK C:\VulkanSDK\1.4.357.0
+
+PASS  pure_suite  exit 0  log pure_suite.log
+PASS  gpu_lib  exit 0  log gpu_lib.log
+PASS  gpu_emitters_4a  exit 0  log gpu_emitters_4a.log
+PASS  gpu_reference_3a  exit 0  log gpu_reference_3a.log
+PASS  gpu_shade_3b  exit 0  log gpu_shade_3b.log
+PASS  gpu_sky_3c  exit 0  log gpu_sky_3c.log
+PASS  gpu_temporal_3d  exit 0  log gpu_temporal_3d.log
+PASS  gpu_bounce_3f  exit 0  log gpu_bounce_3f.log
+
+NOT RUN on purpose: gpu gate (35+ min; unchanged frame path), gpu denoise (known accepted failures; does not use the reference).

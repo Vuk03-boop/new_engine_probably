@@ -1,0 +1,39 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 9.95s
+     Running tests\emitters.rs (target\release\deps\emitters-44a243a2332e7660.exe)
+
+running 4 tests
+test emission_at_the_primary_hit_matches_the_cpu_per_pixel ... rig: 1143 emitters, 23 materials
+  gpu: 1 frames at 320x180 in 1 ms
+G2 street_view: 3948 emissive pixels, 0 over 1e-6 (worst 0.00e0), bad 0
+  gpu: 1 frames at 320x180 in 1 ms
+G2 low: 1257 emissive pixels, 0 over 1e-6 (worst 0.00e0), bad 0
+validation: 0 errors, 0 warnings
+ok
+test emissive_furnace_on_the_gpu ... rig: 48 emitters, 1 materials
+  gpu: 1024 frames at 64x64 in 84 ms
+G3 EmitterFaults { no_solid_angle: false, double_emission: false, no_emitter_cosine: false }: image mean 1.999681 ± 0.000714 (expect 1.999992), ratio 0.99984, bad 0
+  gpu: 1024 frames at 64x64 in 80 ms
+G3 EmitterFaults { no_solid_angle: false, double_emission: true, no_emitter_cosine: false }: image mean 2.999674 ± 0.000714 (expect 1.999992), ratio 1.49984, bad 0
+validation: 0 errors, 0 warnings
+ok
+test emitter_table_build_fits_the_edit_budget ... G5: 7003 emitters, table build median 2.877 ms, max 3.432 ms
+ok
+test night_street_matches_the_cpu_statistically ... rig: 1143 emitters, 23 materials
+  gpu: 4096 frames at 96x54 in 547 ms
+  gpu: 256 frames at 96x54 in 33 ms
+G4 null street_view: gpu vs gpu |z|>4 0.615%, limit 1.123%
+G4 street_view EmitterFaults { no_solid_angle: false, double_emission: false, no_emitter_cosine: false }: rel [0.0056, -0.0301, -0.0455], z [0.31, -1.88, -2.1], |z|>4 0.649%, cpu 8.7 s
+  gpu: 4096 frames at 96x54 in 532 ms
+G4 street_view EmitterFaults { no_solid_angle: true, double_emission: false, no_emitter_cosine: false }: rel [2429.4844, 2241.8394, 1920.5899], z [1586.55, 1522.06, 1512.24], |z|>4 99.966%, cpu 8.7 s
+  gpu: 4096 frames at 96x54 in 565 ms
+  gpu: 256 frames at 96x54 in 34 ms
+G4 null low: gpu vs gpu |z|>4 0.865%, limit 1.498%
+G4 low EmitterFaults { no_solid_angle: false, double_emission: false, no_emitter_cosine: false }: rel [0.0041, -0.004, -0.0093], z [0.94, -0.33, -0.6], |z|>4 0.791%, cpu 7.2 s
+  gpu: 4096 frames at 96x54 in 533 ms
+G4 low EmitterFaults { no_solid_angle: true, double_emission: false, no_emitter_cosine: false }: rel [2270.9679, 1808.8647, 1474.7304], z [1418.54, 1464.92, 1441.18], |z|>4 99.988%, cpu 7.2 s
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.88s
+

@@ -1,0 +1,109 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 1.68s
+     Running tests\shade.rs (target\release\deps\shade-b0e60d86e3f3f56e.exe)
+
+running 4 tests
+test light_view_images ... wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\shade_3c_6.25.ppm (exposure 16.79)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\shade_3c_8.ppm (exposure 4.23)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\shade_3c_12.ppm (exposure 3.51)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\shade_3c_17.75.ppm (exposure 16.79)
+wrote C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu\../results\shade_3c_18.25.ppm (exposure 1739.70)
+validation: 0 errors, 0 warnings
+ok
+test real_time_sun_equals_the_reference_sample_per_pixel ... sun street 6.25 h disk ok: 129599 equal (38256 lit, worst 3.6e-1), 1 mismatched (0.001%), bad 0 (255, 192) rt [0.003148157, 0.0009722359, 0.00010251371, 0.0] ref [0.002404046943411231, 0.0007247576140798628, 7.543461833847687e-5]
+sun street 6.25 h disk flip_x: 129500 equal (38256 lit, worst 3.6e-1), 100 mismatched (0.077%), bad 0 (327, 0) rt [0.088940725, 0.023652395, 0.0018784215, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun street 6.25 h disk depth: 129003 equal (37881 lit, worst 3.6e-1), 597 mismatched (0.461%), bad 0 (166, 165) rt [0.0, 0.0, 0.0, 0.0] ref [0.002368978690356016, 0.0007141854730434716, 7.433423888869584e-5] (one is 0)
+sun street 6.25 h point ok: 129598 equal (38255 lit, worst 3.6e-1), 2 mismatched (0.002%), bad 0 (255, 192) rt [0.003148805, 0.00097243604, 0.00010253481, 0.0] ref [0.002404541941359639, 0.000724906800314784, 7.545014523202553e-5]
+sun street 6.25 h point flip_x: 129498 equal (38255 lit, worst 3.6e-1), 102 mismatched (0.079%), bad 0 (327, 0) rt [0.08894084, 0.023652425, 0.0018784238, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun street 6.25 h point depth: 129016 equal (37893 lit, worst 3.6e-1), 584 mismatched (0.451%), bad 0 (166, 165) rt [0.0, 0.0, 0.0, 0.0] ref [0.002404541941359639, 0.000724906800314784, 7.545014523202553e-5] (one is 0)
+sun street 8 h disk ok: 129600 equal (17392 lit, worst 0.0e0), 0 mismatched (0.000%), bad 0 
+sun street 8 h disk flip_x: 129563 equal (17392 lit, worst 0.0e0), 37 mismatched (0.029%), bad 0 (325, 0) rt [0.16687544, 0.11476707, 0.05787819, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun street 8 h disk depth: 129489 equal (17296 lit, worst 0.0e0), 111 mismatched (0.086%), bad 0 (160, 164) rt [0.039911147, 0.031116767, 0.020566104, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun street 8 h point ok: 129600 equal (17389 lit, worst 0.0e0), 0 mismatched (0.000%), bad 0 
+sun street 8 h point flip_x: 129563 equal (17389 lit, worst 0.0e0), 37 mismatched (0.029%), bad 0 (325, 0) rt [0.16711335, 0.1149307, 0.057960708, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun street 8 h point depth: 129494 equal (17297 lit, worst 0.0e0), 106 mismatched (0.082%), bad 0 (160, 164) rt [0.03979718, 0.031027913, 0.020507379, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun street 12 h disk ok: 129600 equal (6031 lit, worst 0.0e0), 0 mismatched (0.000%), bad 0 
+sun street 12 h disk flip_x: 129201 equal (5826 lit, worst 0.0e0), 399 mismatched (0.308%), bad 0 (300, 0) rt [0.0, 0.0, 0.0, 0.0] ref [0.0004284396709408611, 0.0003293064655736089, 0.0001990801392821595] (one is 0)
+sun street 12 h disk depth: 129400 equal (5890 lit, worst 0.0e0), 200 mismatched (0.154%), bad 0 (159, 164) rt [0.08704432, 0.0758449, 0.060091633, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun street 12 h point ok: 129600 equal (5824 lit, worst 0.0e0), 0 mismatched (0.000%), bad 0 
+sun street 12 h point flip_x: 129600 equal (5824 lit, worst 0.0e0), 0 mismatched (0.000%), bad 0 
+sun street 12 h point depth: 129408 equal (5687 lit, worst 0.0e0), 192 mismatched (0.148%), bad 0 (159, 164) rt [0.086673796, 0.07552205, 0.05983584, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun street 17.75 h disk ok: 129599 equal (39497 lit, worst 3.6e-1), 1 mismatched (0.001%), bad 0 (255, 192) rt [0.0031234713, 0.00096461235, 0.00010170987, 0.0] ref [0.002385196276009083, 0.0007190746255218983, 7.484311208827421e-5]
+sun street 17.75 h disk flip_x: 129176 equal (39074 lit, worst 3.6e-1), 424 mismatched (0.327%), bad 0 (300, 0) rt [0.0, 0.0, 0.0, 0.0] ref [0.0889337807893753, 0.023650549352169037, 0.0018782749539241195] (one is 0)
+sun street 17.75 h disk depth: 128956 equal (39125 lit, worst 3.6e-1), 644 mismatched (0.497%), bad 0 (287, 115) rt [0.0, 0.0, 0.0, 0.0] ref [0.0061770156025886536, 0.01144577655941248, 0.00041746601345948875] (one is 0)
+sun street 17.75 h point ok: 129599 equal (39501 lit, worst 3.6e-1), 1 mismatched (0.001%), bad 0 (255, 192) rt [0.003148805, 0.00097243604, 0.00010253481, 0.0] ref [0.002404541941359639, 0.000724906800314784, 7.545014523202553e-5]
+sun street 17.75 h point flip_x: 129177 equal (39079 lit, worst 3.6e-1), 423 mismatched (0.326%), bad 0 (300, 0) rt [0.0, 0.0, 0.0, 0.0] ref [0.08894083648920059, 0.023652425035834312, 0.0018784238491207361] (one is 0)
+sun street 17.75 h point depth: 128957 equal (39130 lit, worst 3.6e-1), 643 mismatched (0.496%), bad 0 (287, 115) rt [0.0, 0.0, 0.0, 0.0] ref [0.0061764465644955635, 0.01144472137093544, 0.00041742753819562495] (one is 0)
+sun low 6.25 h disk ok: 129600 equal (37901 lit, worst 0.0e0), 0 mismatched (0.000%), bad 0 
+sun low 6.25 h disk flip_x: 127608 equal (37901 lit, worst 0.0e0), 1992 mismatched (1.537%), bad 0 (142, 14) rt [0.009881459, 0.0034331193, 0.00033391314, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 6.25 h disk depth: 128910 equal (37537 lit, worst 0.0e0), 690 mismatched (0.532%), bad 0 (148, 31) rt [0.00045224582, 0.00015712394, 1.528224e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 6.25 h point ok: 129599 equal (37901 lit, worst 0.0e0), 1 mismatched (0.001%), bad 0 (188, 185) rt [0.0, 0.0, 0.0, 0.0] ref [0.002404541941359639, 0.000724906800314784, 7.545014523202553e-5] (one is 0)
+sun low 6.25 h point flip_x: 127613 equal (37901 lit, worst 0.0e0), 1987 mismatched (1.533%), bad 0 (142, 14) rt [0.009882314, 0.0034334164, 0.000333942, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 6.25 h point depth: 128926 equal (37549 lit, worst 0.0e0), 674 mismatched (0.520%), bad 0 (147, 32) rt [0.00045800797, 0.00015912589, 1.5476953e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 8 h disk ok: 129599 equal (29901 lit, worst 0.0e0), 1 mismatched (0.001%), bad 0 (399, 242) rt [0.005649357, 0.0045119547, 0.0033962817, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 8 h disk flip_x: 127542 equal (29901 lit, worst 0.0e0), 2058 mismatched (1.588%), bad 0 (142, 14) rt [0.018566873, 0.016682342, 0.010303417, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 8 h disk depth: 129261 equal (29685 lit, worst 0.0e0), 339 mismatched (0.262%), bad 0 (148, 21) rt [0.0075621065, 0.006794555, 0.004196482, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 8 h point ok: 129599 equal (29911 lit, worst 0.0e0), 1 mismatched (0.001%), bad 0 (202, 179) rt [0.0, 0.0, 0.0, 0.0] ref [0.03979717940092087, 0.031027913093566895, 0.02050737850368023] (one is 0)
+sun low 8 h point flip_x: 127543 equal (29911 lit, worst 0.0e0), 2057 mismatched (1.587%), bad 0 (142, 14) rt [0.018568149, 0.016683487, 0.010304126, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 8 h point depth: 129252 equal (29682 lit, worst 0.0e0), 348 mismatched (0.269%), bad 0 (148, 21) rt [0.0075804153, 0.0068110055, 0.004206642, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 12 h disk ok: 129598 equal (25403 lit, worst 0.0e0), 2 mismatched (0.002%), bad 0 (189, 178) rt [0.08650804, 0.07537762, 0.059721414, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 12 h disk flip_x: 127378 equal (24231 lit, worst 0.0e0), 2222 mismatched (1.715%), bad 0 (457, 0) rt [0.0, 0.0, 0.0, 0.0] ref [0.00011012853792635724, 8.464677375741303e-5, 5.1172672101529315e-5] (one is 0)
+sun low 12 h disk depth: 128990 equal (24965 lit, worst 0.0e0), 610 mismatched (0.471%), bad 0 (141, 16) rt [0.0, 0.0, 0.0, 0.0] ref [2.165044679713901e-5, 2.174056317016948e-5, 1.609626633580774e-5] (one is 0)
+sun low 12 h point ok: 129599 equal (24247 lit, worst 0.0e0), 1 mismatched (0.001%), bad 0 (190, 178) rt [0.0, 0.0, 0.0, 0.0] ref [0.0866737961769104, 0.0755220502614975, 0.05983584001660347] (one is 0)
+sun low 12 h point flip_x: 129599 equal (24247 lit, worst 0.0e0), 1 mismatched (0.001%), bad 0 (190, 178) rt [0.0, 0.0, 0.0, 0.0] ref [0.0866737961769104, 0.0755220502614975, 0.05983584001660347] (one is 0)
+sun low 12 h point depth: 129152 equal (23976 lit, worst 0.0e0), 448 mismatched (0.346%), bad 0 (148, 21) rt [0.016509293, 0.016578011, 0.0122740185, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 17.75 h disk ok: 129600 equal (41336 lit, worst 0.0e0), 0 mismatched (0.000%), bad 0 
+sun low 17.75 h disk flip_x: 127116 equal (38852 lit, worst 0.0e0), 2484 mismatched (1.917%), bad 0 (457, 0) rt [0.0, 0.0, 0.0, 0.0] ref [0.08893398195505142, 0.023650603368878365, 0.0018782791448757052] (one is 0)
+sun low 17.75 h disk depth: 129217 equal (41063 lit, worst 0.0e0), 383 mismatched (0.296%), bad 0 (149, 22) rt [0.00044341115, 0.00015405452, 1.4983699e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 17.75 h point ok: 129599 equal (41335 lit, worst 0.0e0), 1 mismatched (0.001%), bad 0 (207, 168) rt [0.002404542, 0.0007249068, 7.5450145e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun low 17.75 h point flip_x: 127117 equal (38853 lit, worst 0.0e0), 2483 mismatched (1.916%), bad 0 (457, 0) rt [0.0, 0.0, 0.0, 0.0] ref [0.08894083648920059, 0.023652425035834312, 0.0018784238491207361] (one is 0)
+sun low 17.75 h point depth: 129217 equal (41065 lit, worst 0.0e0), 383 mismatched (0.296%), bad 0 (149, 22) rt [0.00045800797, 0.00015912589, 1.5476953e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 6.25 h disk ok: 129595 equal (33608 lit, worst 0.0e0), 5 mismatched (0.004%), bad 0 (260, 113) rt [0.00029334277, 0.0005435531, 1.9825211e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 6.25 h disk flip_x: 128913 equal (33608 lit, worst 0.0e0), 687 mismatched (0.530%), bad 0 (334, 32) rt [0.02222999, 0.0064838203, 0.00070946023, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 6.25 h disk depth: 127771 equal (32609 lit, worst 0.0e0), 1829 mismatched (1.411%), bad 0 (190, 59) rt [0.0052436474, 0.0014394489, 9.844041e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 6.25 h point ok: 129598 equal (33606 lit, worst 0.0e0), 2 mismatched (0.002%), bad 0 (190, 113) rt [0.00034350596, 0.00010608392, 1.2575024e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 6.25 h point flip_x: 128919 equal (33606 lit, worst 0.0e0), 681 mismatched (0.525%), bad 0 (334, 32) rt [0.02223521, 0.006485342, 0.00070962677, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 6.25 h point depth: 127753 equal (32594 lit, worst 0.0e0), 1847 mismatched (1.425%), bad 0 (190, 59) rt [0.005152589, 0.0014144523, 9.673095e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 8 h disk ok: 129598 equal (26261 lit, worst 0.0e0), 2 mismatched (0.002%), bad 0 (111, 193) rt [0.0, 0.0, 0.0, 0.0] ref [0.03975854814052582, 0.03099779598414898, 0.020487472414970398] (one is 0)
+sun overhead 8 h disk flip_x: 128879 equal (26261 lit, worst 0.0e0), 721 mismatched (0.556%), bad 0 (334, 32) rt [0.041715186, 0.03146562, 0.02186317, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 8 h disk depth: 128721 equal (25653 lit, worst 0.0e0), 879 mismatched (0.678%), bad 0 (327, 61) rt [0.01694144, 0.012778869, 0.0088791065, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 8 h point ok: 129598 equal (26255 lit, worst 0.0e0), 2 mismatched (0.002%), bad 0 (190, 113) rt [0.0056853113, 0.00454067, 0.0034178966, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 8 h point flip_x: 128880 equal (26255 lit, worst 0.0e0), 720 mismatched (0.556%), bad 0 (334, 32) rt [0.041778337, 0.031513255, 0.02189627, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 8 h point depth: 128717 equal (25646 lit, worst 0.0e0), 883 mismatched (0.681%), bad 0 (327, 61) rt [0.017055936, 0.012865232, 0.008939114, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 12 h disk ok: 129599 equal (22881 lit, worst 0.0e0), 1 mismatched (0.001%), bad 0 (111, 193) rt [0.0, 0.0, 0.0, 0.0] ref [0.08661904186010361, 0.0754743367433548, 0.059798043221235275] (one is 0)
+sun overhead 12 h disk flip_x: 127086 equal (21595 lit, worst 0.0e0), 2514 mismatched (1.940%), bad 0 (334, 32) rt [0.0, 0.0, 0.0, 0.0] ref [3.934178675990552e-5, 3.3165142667712644e-5, 2.762413896562066e-5] (one is 0)
+sun overhead 12 h disk depth: 128407 equal (21940 lit, worst 0.0e0), 1193 mismatched (0.921%), bad 0 (318, 67) rt [0.0, 0.0, 0.0, 0.0] ref [0.03712744638323784, 0.031298451125621796, 0.02606932260096073] (one is 0)
+sun overhead 12 h point ok: 129599 equal (21591 lit, worst 0.0e0), 1 mismatched (0.001%), bad 0 (111, 193) rt [0.0, 0.0, 0.0, 0.0] ref [0.0866737961769104, 0.0755220502614975, 0.05983584001660347] (one is 0)
+sun overhead 12 h point flip_x: 129599 equal (21591 lit, worst 0.0e0), 1 mismatched (0.001%), bad 0 (111, 193) rt [0.0, 0.0, 0.0, 0.0] ref [0.0866737961769104, 0.0755220502614975, 0.05983584001660347] (one is 0)
+sun overhead 12 h point depth: 128539 equal (20767 lit, worst 0.0e0), 1061 mismatched (0.819%), bad 0 (182, 81) rt [0.086673796, 0.07552205, 0.05983584, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 17.75 h disk ok: 129598 equal (39982 lit, worst 0.0e0), 2 mismatched (0.002%), bad 0 (293, 192) rt [0.0, 0.0, 0.0, 0.0] ref [0.00037642804090864956, 0.00011625114711932838, 1.3780230801785365e-5] (one is 0)
+sun overhead 17.75 h disk flip_x: 126963 equal (37347 lit, worst 0.0e0), 2637 mismatched (2.035%), bad 0 (334, 32) rt [0.0, 0.0, 0.0, 0.0] ref [0.022231603041291237, 0.006484290584921837, 0.0007095117471180856] (one is 0)
+sun overhead 17.75 h disk depth: 127456 equal (38730 lit, worst 0.0e0), 2144 mismatched (1.654%), bad 0 (259, 9) rt [0.0, 0.0, 0.0, 0.0] ref [0.001079666311852634, 0.00031490621040575206, 3.445706897764467e-5] (one is 0)
+sun overhead 17.75 h point ok: 129598 equal (40006 lit, worst 0.0e0), 2 mismatched (0.002%), bad 0 (190, 113) rt [0.00034350596, 0.00010608392, 1.2575024e-5, 0.0] ref [0.0, 0.0, 0.0] (one is 0)
+sun overhead 17.75 h point flip_x: 126960 equal (37368 lit, worst 0.0e0), 2640 mismatched (2.037%), bad 0 (334, 32) rt [0.0, 0.0, 0.0, 0.0] ref [0.022235209122300148, 0.006485342048108578, 0.0007096267654560506] (one is 0)
+sun overhead 17.75 h point depth: 127465 equal (38741 lit, worst 0.0e0), 2135 mismatched (1.647%), bad 0 (259, 9) rt [0.0, 0.0, 0.0, 0.0] ref [0.0010305179748684168, 0.00030057114781811833, 3.288852531113662e-5] (one is 0)
+tally depth: 22 of 24 arms fail, 18923 mismatched pixels in total
+tally flip_x: 17 of 24 arms fail, 27407 mismatched pixels in total
+tally ok: 0 of 24 arms fail, 29 mismatched pixels in total
+control: frame 18 against reference frame 17: 17384 mismatched
+validation: 0 errors, 0 warnings
+ok
+test shade_cost_at_1080p ... cost street merge greedy region chunk 1920x1080 (validation true): gbuffer median 0.330 p90 0.331 ms | shade (sun + sky, 2 rays) median 1.066 p90 1.069 ms | with the bounce (up to 4 rays) median 1.839 p90 1.843 ms (40 reps, interleaved)
+cost low merge greedy region chunk 1920x1080 (validation true): gbuffer median 0.218 p90 0.221 ms | shade (sun + sky, 2 rays) median 0.671 p90 0.676 ms | with the bounce (up to 4 rays) median 1.067 p90 1.073 ms (40 reps, interleaved)
+cost overhead merge greedy region chunk 1920x1080 (validation true): gbuffer median 0.254 p90 0.254 ms | shade (sun + sky, 2 rays) median 0.594 p90 0.596 ms | with the bounce (up to 4 rays) median 0.903 p90 0.905 ms (40 reps, interleaved)
+cost street merge greedy region 2x2x2_chunks 1920x1080 (validation true): gbuffer median 0.283 p90 0.284 ms | shade (sun + sky, 2 rays) median 0.920 p90 0.923 ms | with the bounce (up to 4 rays) median 1.605 p90 1.607 ms (40 reps, interleaved)
+cost low merge greedy region 2x2x2_chunks 1920x1080 (validation true): gbuffer median 0.217 p90 0.218 ms | shade (sun + sky, 2 rays) median 0.665 p90 0.666 ms | with the bounce (up to 4 rays) median 1.037 p90 1.040 ms (40 reps, interleaved)
+cost overhead merge greedy region 2x2x2_chunks 1920x1080 (validation true): gbuffer median 0.263 p90 0.263 ms | shade (sun + sky, 2 rays) median 0.579 p90 0.581 ms | with the bounce (up to 4 rays) median 0.871 p90 0.873 ms (40 reps, interleaved)
+cost street merge greedy region brick 1920x1080 (validation true): gbuffer median 0.300 p90 0.304 ms | shade (sun + sky, 2 rays) median 1.026 p90 1.031 ms | with the bounce (up to 4 rays) median 1.954 p90 1.957 ms (40 reps, interleaved)
+cost low merge greedy region brick 1920x1080 (validation true): gbuffer median 0.275 p90 0.275 ms | shade (sun + sky, 2 rays) median 0.861 p90 0.863 ms | with the bounce (up to 4 rays) median 1.398 p90 1.401 ms (40 reps, interleaved)
+cost overhead merge greedy region brick 1920x1080 (validation true): gbuffer median 0.295 p90 0.296 ms | shade (sun + sky, 2 rays) median 0.753 p90 0.755 ms | with the bounce (up to 4 rays) median 1.143 p90 1.147 ms (40 reps, interleaved)
+cost street merge none region chunk 1920x1080 (validation true): gbuffer median 0.546 p90 0.549 ms | shade (sun + sky, 2 rays) median 1.128 p90 1.132 ms | with the bounce (up to 4 rays) median 2.214 p90 2.218 ms (40 reps, interleaved)
+cost low merge none region chunk 1920x1080 (validation true): gbuffer median 0.432 p90 0.434 ms | shade (sun + sky, 2 rays) median 0.753 p90 0.755 ms | with the bounce (up to 4 rays) median 1.315 p90 1.317 ms (40 reps, interleaved)
+cost overhead merge none region chunk 1920x1080 (validation true): gbuffer median 0.444 p90 0.446 ms | shade (sun + sky, 2 rays) median 0.615 p90 0.617 ms | with the bounce (up to 4 rays) median 1.075 p90 1.077 ms (40 reps, interleaved)
+ok
+test shade_layout_is_checked ... shade pipeline with the reference reflection refused: 12 errors
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.96s
+
