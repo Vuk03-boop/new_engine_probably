@@ -61,8 +61,7 @@
 - **Emission:** has a unit (1 unit of luminance = 128,000 cd/m², ADR-0005 Amendment 3) and is in the references, off by default. The lights are on while the sun is below the horizon (`lights_on`). The real-time path has none yet (4B). `street_block` is unchanged; `street_night` carries the night lights (in the 4A record; accepted for now).
 - **Repository** (since 2026-09-25):
   - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
-  - 4A (parts 1 and 2) is on branch `claude/tender-keller-9u9d6t`, open as PR https://github.com/Vuk03-boop/new_engine_probably/pull/1 against `main` (not merged; merging is the user's call). The laptop's part 1 results were pushed to the same branch (commit `ceb18d7`).
-  - The 4A part 2 laptop results were pushed to that branch (commit `226390e`). Their analysis and the 4A closure (commit `e96d705`, written on branch `claude/nice-dijkstra-xpg7tr`) were pushed to the PR 1 branch at the user's request, so PR 1 carries them.
+  - **4A is merged into `main`** (PR https://github.com/Vuk03-boop/new_engine_probably/pull/1, merge commit `16edb67`, 2026-09-25, at the user's request; a merge commit, so the hashes cited in the 4A record stay valid). New work starts from `main`; the 4A branches `claude/tender-keller-9u9d6t` and `claude/nice-dijkstra-xpg7tr` are finished.
   - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, still holding the 4A part 2 checks (it ran once, all 15 steps exit 0). 4B will replace its steps. Logs go to `engine/results/local-run/<date>-<tag>/`; the user pushes `engine/results` back.
   - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
   - Binary data is protected from line-ending conversion by `.gitattributes`.
