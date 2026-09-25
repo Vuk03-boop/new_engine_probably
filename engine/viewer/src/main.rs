@@ -4,7 +4,7 @@
 //!
 //! usage: viewer [--merge greedy|none] [--region brick|2x2x2_bricks|chunk|2x2x2_chunks]
 //!               [--present mailbox|fifo|immediate] [--view 0-12] [--hour H] [--run-day] [--max-age N] [--no-denoise] [--no-bounce] [--no-sky-correction] [--source raster|ray]
-//!               [--camera street|low] [--prefilter-age N]
+//!               [--camera street|low] [--prefilter-age N] [--scene street|night [--dressing lamps|windows|full|dense]]
 //!               [--size WxH] [--frames N [--walk] [--cycle-views] [--edit-script [--edit-size N]] [--resize-at FRAME WxH]] [--log PATH]
 //!               [--trace CSV] [--present-wait N]
 //!
@@ -30,6 +30,11 @@
 //!   the default) and `DenoiseSettings::prefilter_age` = `--prefilter-age N` (default 8: pixels at
 //!   least that old compare their own values); the title shows which. `--camera low` starts flying
 //!   at the 3A low camera, where the Q2 miss is (the far shadow edge across the road at midday).
+//! - Scenes (4A): `--scene street` (the default) is the M3 street block; `--scene night` is
+//!   `world::scene::street_night` with `--dressing` (default `full`). The night scene's `GpuScene`
+//!   publishes the emitter table with its meshes, and every edit rebuilds it inside the update
+//!   (ADR-0003 Amendment 3); the JSON line reports the emitter count and the table's time per edit.
+//!   The real-time lighting does not use emitters yet (4B), so the lights are not seen at night.
 //! - Sky correction (S-020): the sky-view table is corrected from the reference baked in
 //!   `light/data/sky_reference_v1.bin`; `--no-sky-correction` runs without it. A missing or refused
 //!   file prints a warning and runs uncorrected; the JSON line reports `"sky_correction"`.
@@ -95,6 +100,7 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use winit::window::{Window, WindowId};
 use world::dims::VOXEL_SIZE_M;
+use world::scene::Dressing;
 use world::{scene, BrickKey, MaterialId, Transaction, VoxelCoord, World};
 
 const FRAMES_IN_FLIGHT: usize = 2;
@@ -144,10 +150,13 @@ struct Args {
     camera_low: bool,
     /// 3G: the `prefilter_age` P switches to (the 3E filter is `u32::MAX`).
     prefilter_age: u32,
+    /// 4A: `--scene night` with its dressing; `None` is the M3 street block.
+    night: Option<Dressing>,
 }
 
 fn parse_args() -> Result<Args, String> {
-    let mut a = Args { merge: Merge::Greedy, region: RegionSize::Chunk, present: vk::PresentModeKHR::MAILBOX, view: View::Light, size: (1280, 720), frames: None, walk_script: false, cycle_views: false, resize_at: None, log: None, trace: None, present_wait: None, edit_script: false, edit_size: 1, source: Source::Raster, hour: 9.0, run_day: false, max_age: 64, no_denoise: false, no_bounce: false, no_sky_correction: false, camera_low: false, prefilter_age: 8 };
+    let mut a = Args { merge: Merge::Greedy, region: RegionSize::Chunk, present: vk::PresentModeKHR::MAILBOX, view: View::Light, size: (1280, 720), frames: None, walk_script: false, cycle_views: false, resize_at: None, log: None, trace: None, present_wait: None, edit_script: false, edit_size: 1, source: Source::Raster, hour: 9.0, run_day: false, max_age: 64, no_denoise: false, no_bounce: false, no_sky_correction: false, camera_low: false, prefilter_age: 8, night: None };
+    let mut dressing = None;
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut val = || it.next().ok_or(format!("{flag} needs a value"));
@@ -189,6 +198,17 @@ fn parse_args() -> Result<Args, String> {
                     "low" => true,
                     v => return Err(format!("--camera: {v}")),
                 }
+            }
+            "--scene" => {
+                a.night = match val()?.as_str() {
+                    "street" => None,
+                    "night" => Some(Dressing::default()),
+                    v => return Err(format!("--scene: {v}")),
+                }
+            }
+            "--dressing" => {
+                let v = val()?;
+                dressing = Some(*Dressing::ALL.iter().find(|d| d.name() == v).ok_or(format!("unknown dressing {v}"))?);
             }
             "--prefilter-age" => {
                 a.prefilter_age = val()?.parse().map_err(|e| format!("--prefilter-age: {e}"))?;
@@ -232,6 +252,12 @@ fn parse_args() -> Result<Args, String> {
             "--trace" => a.trace = Some(val()?),
             "--present-wait" => a.present_wait = Some(val()?.parse().map_err(|e| format!("--present-wait: {e}"))?),
             _ => return Err(format!("unknown argument {flag}")),
+        }
+    }
+    if let Some(d) = dressing {
+        match &mut a.night {
+            Some(n) => *n = d,
+            None => return Err("--dressing needs --scene night".into()),
         }
     }
     Ok(a)
@@ -337,6 +363,8 @@ struct EditTiming {
     accel_ms: f64,
     /// Waiting for the frames in flight, the region table, and the rebuilt descriptor sets.
     rebind_ms: f64,
+    /// 4A: the emitter table's host build and upload inside the update (night scene; else 0).
+    emitters_ms: f64,
     regions: usize,
     /// Edit start to the completion of the first frame showing it (polled once per frame).
     visible_ms: f64,
@@ -580,7 +608,13 @@ impl App {
         let regions = build_regions(brick_meshes.iter().map(|(k, m)| (*k, m)), self.args.region);
         let snap_n = snapshot.raw();
         let rt = gpu.ray_tracing();
-        let scene = GpuScene::build(&gpu, &mut alloc, &mut up, &mut timeline, self.args.region, &regions, snap_n, rt).map_err(e)?;
+        let scene = match self.args.night {
+            Some(_) => GpuScene::build_lit(&gpu, &mut alloc, &mut up, &mut timeline, self.args.region, &regions, snap_n, rt, self.world.materials()).map_err(e)?,
+            None => GpuScene::build(&gpu, &mut alloc, &mut up, &mut timeline, self.args.region, &regions, snap_n, rt).map_err(e)?,
+        };
+        if let Ok(Some(em)) = scene.emitters() {
+            eprintln!("emitters: {} ({} B device, GpuMaterial)", em.table.len(), em.device.device_bytes());
+        }
         let meshes = &scene.meshes;
         let mats: Vec<world::MaterialParams> = self.world.materials().iter().map(|(_, d)| d.params).collect();
         let (tables, _) = Tables::upload(&gpu, &mut alloc, &mut up, &mut timeline, &mats, meshes, snap_n).map_err(e)?;
@@ -1006,7 +1040,7 @@ impl App {
             let gpu_ms: Vec<String> = PASSES.iter().zip(&w.passes).map(|(n, v)| format!("{n} {:.2}", p(v, 50.0))).collect();
             let (avg, low10, low1) = fps_lows(self.recent.iter().copied()).unwrap_or((f64::NAN, f64::NAN, f64::NAN));
             s.window.set_title(&format!(
-                "new-engine viewer | {} | {} ({}, R) | filter {} (P) | sun {:.2} h, {:.1}° ([ ] T) | {:.0} fps (last {} frames: avg {avg:.0}, 10% low {low10:.0}, 1% low {low1:.0}), frame p50 {:.2} p99 {:.2} ms | GPU p50 ms: {} | {:?} {}x{} | snapshot {}, edits {} (last visible in {:.1} ms)",
+                "new-engine viewer | {} | {} ({}, R) | filter {} (P) | sun {:.2} h, {:.1}° ([ ] T) | {:.0} fps (last {} frames: avg {avg:.0}, 10% low {low10:.0}, 1% low {low1:.0}), frame p50 {:.2} p99 {:.2} ms | GPU p50 ms: {} | {:?} {}x{} | snapshot {}, edits {} (last visible in {:.1} ms){}",
                 match self.mode {
                     Mode::Walk => "walk (F: fly)",
                     Mode::Fly => "fly (F: walk)",
@@ -1026,7 +1060,12 @@ impl App {
                 sw.extent.height,
                 s.scene.snapshot,
                 self.edits.applied,
-                self.edits.done.last().map_or(f64::NAN, |t| t.visible_ms)
+                self.edits.done.last().map_or(f64::NAN, |t| t.visible_ms),
+                match (self.args.night, s.scene.emitters()) {
+                    (Some(d), Ok(Some(em))) => format!(" | night ({}), {} emitters", d.name(), em.table.len()),
+                    (Some(d), _) => format!(" | night ({}), emitter table not current", d.name()),
+                    _ => String::new(),
+                }
             ));
             self.window_series = Series::default();
             self.window_start = Instant::now();
@@ -1217,6 +1256,7 @@ impl App {
             t.upload_ms = u.upload_ms;
             t.accel_ms = u.accel_ms;
             t.rebind_ms = rebind_ms;
+            t.emitters_ms = u.emitters_ms;
             t.regions = regions;
         }
         Ok(())
@@ -1243,7 +1283,7 @@ impl App {
         let e = &self.edits;
         let col = |f: fn(&EditTiming) -> f64| Series::summary(&e.done.iter().map(f).collect::<Vec<_>>());
         format!(
-            "{{\"applied\":{},\"shown\":{},\"rejected\":{},\"deferred\":{},\"not_shown_at_exit\":{},\"voxels\":{},\"regions\":{},\"commit_ms\":{},\"layout_ms\":{},\"upload_ms\":{},\"accel_ms\":{},\"rebind_ms\":{},\"visible_ms\":{},\"visible_all_ms\":[{}]}}",
+            "{{\"applied\":{},\"shown\":{},\"rejected\":{},\"deferred\":{},\"not_shown_at_exit\":{},\"voxels\":{},\"regions\":{},\"commit_ms\":{},\"layout_ms\":{},\"upload_ms\":{},\"accel_ms\":{},\"rebind_ms\":{},\"emitters_ms\":{},\"visible_ms\":{},\"visible_all_ms\":[{}]}}",
             e.applied,
             e.done.len(),
             e.rejected,
@@ -1256,6 +1296,7 @@ impl App {
             col(|t| t.upload_ms),
             col(|t| t.accel_ms),
             col(|t| t.rebind_ms),
+            col(|t| t.emitters_ms),
             col(|t| t.visible_ms),
             e.done.iter().map(|t| format!("{:.2}", t.visible_ms)).collect::<Vec<_>>().join(",")
         )
@@ -1310,9 +1351,16 @@ impl App {
         let (errors, warnings) = s.gpu.validation_counts();
         let passes: Vec<String> = PASSES.iter().zip(&self.all.passes).map(|(n, v)| format!("\"{n}\":{}", Series::summary(v))).collect();
         format!(
-            "{{\"run\":\"viewer\",\"device\":{:?},\"validation\":{},\"merge\":\"{}\",\"region\":\"{}\",\"source\":\"{}\",\"edits\":{},\"present\":\"{:?}\",\"extent\":[{},{}],\"frames\":{},\"frames_in_flight\":{},\"swapchain_recreates\":{},\"scripted\":{},\"cycle_views\":{},\"triangles\":{},\"snapshot\":{},\"frame_ms\":{},\"fps\":{},\"gpu_ms\":{{{}}},\"mode\":\"{}\",\"view\":\"{}\",\"hour\":{:.3},\"accumulate\":{},\"denoise\":{},\"prefilter_age\":{},\"bounce\":{},\"sky_correction\":{},\"max_age\":{},\"present_wait\":{},\"present_wait_supported\":{},\"present_wait_timeouts\":{},\"start_unix_ms\":{},\"refresh_mhz\":{},\"focus_lost\":{},\"occluded\":{},\"input_events\":{},\"phases_ms\":{},\"walk\":{},\"validation_errors\":{errors},\"validation_warnings\":{warnings},\"readers_held_at_exit\":{}}}",
+            "{{\"run\":\"viewer\",\"device\":{:?},\"validation\":{},\"scene\":\"{}\",\"dressing\":{},\"emitters\":{},\"merge\":\"{}\",\"region\":\"{}\",\"source\":\"{}\",\"edits\":{},\"present\":\"{:?}\",\"extent\":[{},{}],\"frames\":{},\"frames_in_flight\":{},\"swapchain_recreates\":{},\"scripted\":{},\"cycle_views\":{},\"triangles\":{},\"snapshot\":{},\"frame_ms\":{},\"fps\":{},\"gpu_ms\":{{{}}},\"mode\":\"{}\",\"view\":\"{}\",\"hour\":{:.3},\"accumulate\":{},\"denoise\":{},\"prefilter_age\":{},\"bounce\":{},\"sky_correction\":{},\"max_age\":{},\"present_wait\":{},\"present_wait_supported\":{},\"present_wait_timeouts\":{},\"start_unix_ms\":{},\"refresh_mhz\":{},\"focus_lost\":{},\"occluded\":{},\"input_events\":{},\"phases_ms\":{},\"walk\":{},\"validation_errors\":{errors},\"validation_warnings\":{warnings},\"readers_held_at_exit\":{}}}",
             s.gpu.info.name,
             s.gpu.validation_enabled(),
+            if self.args.night.is_some() { "night" } else { "street" },
+            self.args.night.map_or("null".to_string(), |d| format!("\"{}\"", d.name())),
+            match s.scene.emitters() {
+                Ok(Some(em)) => em.table.len().to_string(),
+                Ok(None) => "null".to_string(),
+                Err(x) => format!("\"stale: {x:?}\""),
+            },
             self.args.merge.name(),
             self.args.region.name(),
             if self.source == Source::Ray { "ray" } else { "raster" },
@@ -1584,11 +1632,14 @@ fn main() {
     let args = match parse_args() {
         Ok(a) => a,
         Err(e) => {
-            eprintln!("{e}\nusage: viewer [--merge greedy|none] [--region brick|2x2x2_bricks|chunk|2x2x2_chunks] [--present mailbox|fifo|immediate] [--view 0-12] [--hour H] [--run-day] [--max-age N] [--no-denoise] [--no-bounce] [--no-sky-correction] [--source raster|ray] [--camera street|low] [--prefilter-age N] [--size WxH] [--frames N [--walk] [--cycle-views] [--edit-script [--edit-size N]] [--resize-at FRAME WxH]] [--log PATH] [--trace CSV] [--present-wait N]");
+            eprintln!("{e}\nusage: viewer [--merge greedy|none] [--region brick|2x2x2_bricks|chunk|2x2x2_chunks] [--present mailbox|fifo|immediate] [--view 0-12] [--hour H] [--run-day] [--max-age N] [--no-denoise] [--no-bounce] [--no-sky-correction] [--source raster|ray] [--camera street|low] [--prefilter-age N] [--scene street|night [--dressing lamps|windows|full|dense]] [--size WxH] [--frames N [--walk] [--cycle-views] [--edit-script [--edit-size N]] [--resize-at FRAME WxH]] [--log PATH] [--trace CSV] [--present-wait N]");
             std::process::exit(2);
         }
     };
-    let (world, view) = scene::street_block();
+    let (world, view) = match args.night {
+        Some(d) => scene::street_night(d),
+        None => scene::street_block(),
+    };
     let vox = |m: [f64; 3]| m.map(|x| x / VOXEL_SIZE_M);
     let (eye, target) = (vox(view.eye_m), vox(view.target_m));
     let d = [target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]];

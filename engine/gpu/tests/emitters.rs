@@ -1,28 +1,30 @@
 //! Phase 4A GPU tests: emission and emitter next-event estimation in the GPU reference against the
-//! CPU reference (ADR-0005 Amendment 3). Criteria G1–G5 of
-//! `docs/changes/2026-09-25-phase4a-emitters.md`. Like the other GPU tests they need the Vulkan SDK
-//! and an RT GPU and fail (never skip) without them.
+//! CPU reference (ADR-0005 Amendment 3), and the emitter table published by `GpuScene` through
+//! edits (ADR-0003 Amendment 3). Criteria G1–G6 of `docs/changes/2026-09-25-phase4a-emitters.md`.
+//! Like the other GPU tests they need the Vulkan SDK and an RT GPU and fail (never skip) without them.
 //! Run: `cargo test --release -j 2 -p gpu --test emitters -- --test-threads=1 --nocapture`.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
-use derived::{extract_world, Merge};
+use derived::{extract_world, Config, Merge, Pipeline};
 use gpu::accel::{Accel, AccelFaults};
 use gpu::alloc::Allocator;
-use gpu::emitters::{self, RefEmitters};
+use gpu::emitters::{self, GpuEmitter, RefEmitters};
 use gpu::layout::{build_regions, RegionKey, RegionMesh, RegionSize};
 use gpu::mesh::GpuMeshes;
 use gpu::raster::Camera;
 use gpu::reference::{RefAccum, RefBindings, RefFaults, RefImage, RefMaterials, Reference};
-use gpu::staging::{Uploader, DEFAULT_RING_BYTES};
-use gpu::{Gpu, Timeline};
-use light::emitters::EmitterTable;
+use gpu::scene::{affected_regions, region_meshes, GpuScene};
+use gpu::staging::{download, Uploader, DEFAULT_RING_BYTES};
+use gpu::{Gpu, GpuError, Timeline};
+use light::emitters::{EmitterTable, StaleTable};
 use light::reference::{self as cpu, Accum, EmitterFaults, Lighting, Pinhole, Settings};
 use light::{Atmosphere, SunPath};
+use memory::{Budget, Category};
 use world::dims::VOXEL_SIZE_M;
 use world::scene::{street_night, Dressing};
-use world::{MaterialParams, MaterialRegistry, VoxelCoord, World};
+use world::{BrickKey, MaterialId, MaterialParams, MaterialRegistry, Transaction, VoxelCoord, World};
 
 const NEAR: f64 = 0.1;
 const SEED: u32 = 0x4A;
@@ -356,4 +358,177 @@ fn emitter_table_build_fits_the_edit_budget() {
     let n = emitters::table(&rs, world.materials(), SNAPSHOT).unwrap().len();
     eprintln!("G5: {n} emitters, table build median {:.3} ms, max {:.3} ms", ms[10], ms[19]);
     assert!(ms[10] <= 5.0, "median {} ms", ms[10]);
+}
+
+/// Runs every job inline and publishes; the published brick keys.
+fn drain(p: &mut Pipeline, w: &World) -> BTreeSet<BrickKey> {
+    loop {
+        let jobs = p.dispatch(w);
+        if jobs.is_empty() {
+            break;
+        }
+        for j in jobs {
+            p.complete(w, j.run());
+        }
+    }
+    let published = p.try_publish(w);
+    assert!(p.is_idle(), "pipeline did not drain");
+    published.map(|x| x.groups.into_iter().flatten().collect()).unwrap_or_default()
+}
+
+/// Every region of the pipeline's current snapshot, built from scratch.
+fn full_regions(p: &mut Pipeline, size: RegionSize) -> BTreeMap<RegionKey, RegionMesh> {
+    let t = p.acquire();
+    let keys: Vec<BrickKey> = p.current().keys().collect();
+    let meshes: Vec<_> = keys.iter().map(|&k| (k, p.read(&t, k).unwrap().unwrap().clone())).collect();
+    p.release(t).unwrap();
+    build_regions(meshes.iter().map(|(k, m)| (*k, m)), size)
+}
+
+/// Commits `edits`, runs the jobs, publishes; the regions to rebuild.
+fn edit(w: &mut World, p: &mut Pipeline, edits: &[(VoxelCoord, Option<MaterialId>)], size: RegionSize) -> BTreeSet<RegionKey> {
+    let mut tx = Transaction::new();
+    for &(v, m) in edits {
+        tx.set(v, m);
+    }
+    let applied = w.apply(&tx).unwrap();
+    assert!(!applied.changed.is_empty(), "the edit changes the world");
+    p.notify_edits(&applied.changed);
+    affected_regions(drain(p, w), size)
+}
+
+/// The meshes of `regions` in the pipeline's current snapshot (read again for a retry, as the viewer does).
+fn meshes(p: &mut Pipeline, regions: &BTreeSet<RegionKey>, size: RegionSize) -> BTreeMap<RegionKey, Option<RegionMesh>> {
+    let token = p.acquire();
+    let changed = region_meshes(p, &token, regions, size).unwrap();
+    p.release(token).unwrap();
+    changed
+}
+
+/// One emitter without the snapshot of its id: geometry, radiance, sampling, region and quad.
+type Row = (u8, [f64; 3], [f64; 3], [f64; 3], [f64; 3], f64, u32, u32, [i32; 3], u32);
+
+/// Voxel edits: (voxel, new material).
+type Edits = Vec<(VoxelCoord, Option<MaterialId>)>;
+
+/// Everything but the snapshot in the ids, in table order.
+fn content(t: &EmitterTable) -> Vec<Row> {
+    t.emitters.iter().map(|e| (e.face, e.p0, e.eu, e.ev, e.radiance, e.pdf, e.threshold, e.alias, e.id.key, e.id.quad)).collect()
+}
+
+fn material_live(alloc: &Allocator) -> u64 {
+    alloc.ledger().account(Category::GpuMaterial).usage.live
+}
+
+/// G6 (a)–(c): the published table is the snapshot's, equals a from-scratch build, is on the device
+/// byte for byte, and after collection the ledger holds exactly it beyond `before`.
+#[allow(clippy::too_many_arguments)]
+fn check_published(g: &Gpu, alloc: &mut Allocator, check: &mut Allocator, tl: &mut Timeline, s: &mut GpuScene, p: &mut Pipeline, w: &World, before: u64, label: &str) {
+    g.wait_idle().unwrap();
+    let done = tl.completed(g).unwrap();
+    s.collect(g, alloc, done);
+    assert_eq!(s.retiring_len(), 0, "{label}: everything retired was collected");
+    let e = s.emitters().unwrap_or_else(|x| panic!("{label}: stale table {x:?}")).expect("a lit scene");
+    assert_eq!((e.table.snapshot, e.device.snapshot), (s.snapshot, s.snapshot), "{label}: snapshots");
+    let scratch = emitters::table(&full_regions(p, s.size()), w.materials(), s.snapshot).unwrap();
+    assert_eq!(content(&e.table), content(&scratch), "{label}: the published table differs from a from-scratch build");
+    let rows = GpuEmitter::bytes(&GpuEmitter::of(&e.table));
+    let em = emitters::emission_bytes(&e.table);
+    assert_eq!(e.device.count as usize, e.table.len());
+    let got = download(g, check, tl, &[(&e.device.emitters, 0, rows.len() as u64), (&e.device.emission, 0, em.len() as u64)]).unwrap();
+    assert!(got[0] == rows && got[1] == em, "{label}: the device holds another table");
+    assert_eq!(material_live(alloc), before + s.emitter_bytes(), "{label}: GpuMaterial ledger");
+    eprintln!("G6 {label}: {} emitters at snapshot {}, device bytes equal ({} + {} B)", e.table.len(), s.snapshot, rows.len(), em.len());
+}
+
+/// G6 (4A part 2): the emitter table in `GpuScene` through edits, on the device: equal to a
+/// from-scratch build after every update, byte-equal on the device, retired when replaced; a stale
+/// table is refused; a refused table upload leaves the whole previous snapshot.
+#[test]
+fn the_scene_publishes_the_table_with_its_meshes() {
+    let g = gpu();
+    let mut alloc = Allocator::new(g.device_budget());
+    let mut check = Allocator::new(Budget::unlimited());
+    let mut tl = Timeline::new(&g).unwrap();
+    let mut up = Uploader::new(&g, &mut alloc, DEFAULT_RING_BYTES).unwrap();
+    let size = RegionSize::Chunk;
+    let (mut w, _) = street_night(Dressing::Full);
+    let mut p = Pipeline::new(Config { merge: Merge::Greedy, ..Config::default() });
+    p.mark_all(&w);
+    drain(&mut p, &w);
+    let before = material_live(&alloc);
+    let mut s = GpuScene::build_lit(&g, &mut alloc, &mut up, &mut tl, size, &full_regions(&mut p, size), p.current().id.raw(), true, w.materials()).unwrap();
+    check_published(&g, &mut alloc, &mut check, &mut tl, &mut s, &mut p, &w, before, "build");
+
+    // The C6 sequence.
+    let mats = w.materials().clone();
+    let id = |n: &str| mats.id_of(n).unwrap();
+    let first = |w: &World, m| w.occupied().find(|&(_, x)| x == m).map(|(v, _)| v).unwrap();
+    let lamp = first(&w, id("lamp"));
+    let bulb = first(&w, id("bulb"));
+    let air = VoxelCoord::new(136, 40, 64);
+    assert_eq!(w.get(air), None, "open air above the road");
+    let emits: Vec<bool> = light::emitters::emission(&mats).unwrap().iter().map(|l| light::emitters::luminance(*l) > 0.0).collect();
+    let lit_regions: BTreeSet<RegionKey> = s.emitters().unwrap().unwrap().table.emitters.iter().map(|e| RegionKey { x: e.id.key[0], y: e.id.key[1], z: e.id.key[2] }).collect();
+    let inside = |c: i32| (1..7).contains(&c.rem_euclid(8));
+    let (quiet, quiet_mat) = w.occupied().find(|&(v, m)| !emits[m.raw() as usize] && inside(v.x) && inside(v.y) && inside(v.z) && !lit_regions.contains(&RegionKey::of(v.split().0, size))).unwrap();
+    let steps: Vec<(&str, Edits)> = vec![
+        ("remove a lamp voxel", vec![(lamp, None)]),
+        ("remove a bulb voxel", vec![(bulb, None)]),
+        ("add an emissive voxel in open air", vec![(air, Some(id("neon_pink")))]),
+        ("remove a voxel in a region without emitters", vec![(quiet, None)]),
+        ("restore everything", vec![(lamp, Some(id("lamp"))), (bulb, Some(id("bulb"))), (air, None), (quiet, Some(quiet_mat))]),
+    ];
+    for (label, edits) in &steps {
+        let regions = edit(&mut w, &mut p, edits, size);
+        let changed = meshes(&mut p, &regions, size);
+        let old_bytes = s.emitter_bytes();
+        let u = s.update(&g, &mut alloc, &mut up, &mut tl, changed, p.current().id.raw()).unwrap();
+        // (c) The replaced table is retired, not freed at the swap.
+        assert!(s.retiring_len() >= 2, "{label}: the old table is retired");
+        assert_eq!(material_live(&alloc), before + s.emitter_bytes() + old_bytes, "{label}: old and new tables both live until retirement");
+        eprintln!("G6 {label}: update with {} emitters, table {:.3} ms (host build and upload)", u.emitters.unwrap(), u.emitters_ms);
+        check_published(&g, &mut alloc, &mut check, &mut tl, &mut s, &mut p, &w, before, label);
+    }
+
+    // (e) A refused table upload leaves meshes, TLAS and table on the previous snapshot; the retry works.
+    let (snap, rows) = (s.snapshot, s.region_rows());
+    let blas: Vec<RegionKey> = s.accel.as_ref().unwrap().blas_keys().collect();
+    let regions = edit(&mut w, &mut p, &[(lamp, None)], size);
+    s.faults.refuse_emitters = true;
+    match s.update(&g, &mut alloc, &mut up, &mut tl, meshes(&mut p, &regions, size), p.current().id.raw()) {
+        Err(GpuError::OverBudget(_)) => {}
+        other => panic!("the planted refusal must be an over-budget error, got {:?}", other.map(|u| u.regions_changed)),
+    }
+    assert_eq!((s.snapshot, s.region_rows(), s.deferred), (snap, rows, 1), "refused: the previous snapshot stays");
+    assert_eq!(s.accel.as_ref().unwrap().blas_keys().collect::<Vec<_>>(), blas, "refused: the previous BLAS set stays");
+    assert_eq!(s.emitters().unwrap().unwrap().table.snapshot, snap, "refused: the previous table stays");
+    g.wait_idle().unwrap();
+    assert_eq!(material_live(&alloc), before + s.emitter_bytes(), "refused: nothing of the new table is left");
+    s.faults.refuse_emitters = false;
+    s.update(&g, &mut alloc, &mut up, &mut tl, meshes(&mut p, &regions, size), p.current().id.raw()).unwrap();
+    check_published(&g, &mut alloc, &mut check, &mut tl, &mut s, &mut p, &w, before, "retry after a refusal");
+
+    // (d) A stale table is refused.
+    let published = s.snapshot;
+    s.faults.stale_emitters = true;
+    let regions = edit(&mut w, &mut p, &[(lamp, Some(id("lamp")))], size);
+    s.update(&g, &mut alloc, &mut up, &mut tl, meshes(&mut p, &regions, size), p.current().id.raw()).unwrap();
+    match s.emitters() {
+        Err(StaleTable { table, expected }) => {
+            assert_eq!((table, expected), (published, s.snapshot));
+            eprintln!("G6 stale table: refused (table {table}, scene {expected})");
+        }
+        Ok(_) => panic!("a stale table must be refused"),
+    }
+
+    g.wait_idle().unwrap();
+    s.free_now(&g, &mut alloc);
+    up.destroy(&g, &mut alloc);
+    let (errors, warnings) = g.validation_counts();
+    eprintln!("validation: {errors} errors, {warnings} warnings");
+    assert_eq!(errors, 0, "validation errors: {:?}", g.first_validation_errors());
+    tl.destroy(&g);
+    assert_eq!(alloc.destroy(&g), 0, "leaked buffers");
+    assert_eq!(check.destroy(&g), 0, "leaked readback buffers");
 }

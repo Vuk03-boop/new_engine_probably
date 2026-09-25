@@ -1,5 +1,6 @@
 //! Phase 4A: emitters in the CPU reference (ADR-0005 Amendment 3). Criteria C2–C4 of the
-//! [4A record](../../docs/changes/2026-09-25-phase4a-emitters.md).
+//! [4A record](../../docs/changes/2026-09-25-phase4a-emitters.md), and the part 2 magnitudes
+//! (M1–M2, `diagnostic_magnitudes`, ignored: about an hour on 4 threads).
 
 use std::collections::BTreeMap;
 use std::f64::consts::PI;
@@ -254,4 +255,204 @@ fn night_street_renders_finite() {
     let mean = |a: &Accum| a.sum.iter().map(|p| p[1]).sum::<f64>() / (a.sum.len() as f64 * a.samples as f64);
     eprintln!("night street at 21 h: mean G with lights {:.3e}, without {:.3e}", mean(&lit), mean(&off));
     assert!(mean(&lit) > 100.0 * mean(&off), "the lights dominate the night street");
+}
+
+// ---- 4A part 2: the magnitudes (M1–M2), measurements with a fixed method. ----
+
+/// Luminance sums of one pixel's paired samples: `a` at `max_bounces` 1, `b` at 8, `d = b − a`
+/// (exactly the light after 2 or more bounces: the same random stream, so `a` is `b`'s prefix).
+#[derive(Clone, Copy, Debug, Default)]
+struct Paired {
+    a: f64,
+    aa: f64,
+    b: f64,
+    bb: f64,
+    d: f64,
+    dd: f64,
+    db: f64,
+}
+
+/// A pinhole with the `gpu::raster::Camera::look_at` conventions.
+fn look_at(eye: V3, target: V3, fov_deg: f64, w: u32, h: u32) -> Pinhole {
+    let f = normalize(sub(target, eye));
+    let r = normalize(cross(f, [0.0, 1.0, 0.0]));
+    let u = cross(r, f);
+    let ty = (fov_deg.to_radians() / 2.0).tan();
+    Pinhole { eye, forward: f, right: scale(r, ty * w as f64 / h as f64), up: scale(u, ty), width: w, height: h }
+}
+
+/// The two reference cameras of `ref_light` (3A).
+fn reference_cameras(w: u32, h: u32) -> [(&'static str, Pinhole); 2] {
+    let (_, view) = world::scene::street_block();
+    let vox = |m: V3| m.map(|x| x / world::dims::VOXEL_SIZE_M);
+    [("street", look_at(vox(view.eye_m), vox(view.target_m), view.vertical_fov_deg, w, h)), ("low", look_at([4.3, 30.0, 20.2], [380.0, 60.0, 30.0], 70.0, w, h))]
+}
+
+/// `f(x, y, acc)` for every pixel on `threads` threads (rows interleaved), accumulating into `px`.
+fn each_pixel<T: Send>(px: &mut [T], w: u32, threads: usize, f: impl Fn(u32, u32, &mut T) + Sync) {
+    let rows: Vec<&mut [T]> = px.chunks_mut(w as usize).collect();
+    let mut by_thread: Vec<Vec<(u32, &mut [T])>> = (0..threads).map(|_| Vec::new()).collect();
+    for (y, row) in rows.into_iter().enumerate() {
+        by_thread[y % threads].push((y as u32, row));
+    }
+    std::thread::scope(|s| {
+        for rows in by_thread {
+            let f = &f;
+            s.spawn(move || {
+                for (y, row) in rows {
+                    for (x, p) in row.iter_mut().enumerate() {
+                        f(x as u32, y, p);
+                    }
+                }
+            });
+        }
+    });
+}
+
+/// The `q` quantile (nearest rank) of `v`; NaN when empty.
+fn quantile(v: &[f64], q: f64) -> f64 {
+    let mut v = v.to_vec();
+    v.sort_by(f64::total_cmp);
+    v.get(((v.len() as f64 - 1.0) * q).round() as usize).copied().unwrap_or(f64::NAN)
+}
+
+/// σ/μ of one sample per pixel from `n` samples' sums; `None` where μ = 0.
+fn one_sample_noise(sum: f64, sum_sq: f64, n: f64) -> Option<f64> {
+    let mu = sum / n;
+    (mu > 0.0).then(|| ((sum_sq - sum * sum / n).max(0.0) / (n - 1.0)).sqrt() / mu)
+}
+
+/// M1 and M2 (4A part 2): the share of bounces ≥ 2 and the one-sample noise on `street_night`
+/// (Full) at the M4 times with the lights by the rule, and the direct one-sample noise per dressing
+/// at night. Measurements, not pass/fail; the method is frozen in the 4A record. CPU only.
+/// Run: `cargo test --release -j 2 -p light --test emitters diagnostic_magnitudes -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn diagnostic_magnitudes() {
+    use light::emitters::{lights_on, luminance};
+    use light::exposure::DARK_FRACTION;
+    use light::reference::sample_pixel_lit;
+    use light::sun::{elevation_deg, NIGHT_TIMES};
+    use world::scene::{street_night, Dressing};
+
+    const W: u32 = 128;
+    const H: u32 = 72;
+    const SEED: u32 = 0x4A2;
+    /// M1's precision target (percentage points of the image) and the sample schedule.
+    const TARGET_PP: f64 = 0.5;
+    const FIRST: u32 = 1024;
+    const MAX_SPP: u32 = 16_384;
+    let threads = std::thread::available_parallelism().map_or(4, |n| n.get());
+    let (world, _) = street_night(Dressing::Full);
+    let al = albedos(world.materials()).unwrap();
+    let em = table(&world, 4);
+    let n_px = (W * H) as usize;
+    eprintln!("magnitudes: street_night (full), {} emitters, {W}x{H}, {threads} threads, seed {SEED:#x}", em.len());
+
+    for (cname, cam) in reference_cameras(W, H) {
+        for (tname, hour) in NIGHT_TIMES {
+            let sun = SunPath::default().direction(hour);
+            let light = Lighting::new(Atmosphere::default(), sun);
+            let on = lights_on(sun);
+            // Emission at the primary hit is left out: bounces do not change it.
+            let s1 = Settings { max_bounces: 1, emitters_direct: on, emitters_indirect: on, ..Settings::default() };
+            let s8 = Settings { max_bounces: 8, ..s1 };
+            let t = std::time::Instant::now();
+            let mut px = vec![Paired::default(); n_px];
+            let (mut done, mut batch) = (0u32, FIRST);
+            loop {
+                let first = done;
+                each_pixel(&mut px, W, threads, |x, y, p| {
+                    for f in first..first + batch {
+                        let a = luminance(sample_pixel_lit(&world, &al, &em, &light, &cam, &s1, x, y, f, SEED));
+                        let b = luminance(sample_pixel_lit(&world, &al, &em, &light, &cam, &s8, x, y, f, SEED));
+                        let d = b - a;
+                        *p = Paired { a: p.a + a, aa: p.aa + a * a, b: p.b + b, bb: p.bb + b * b, d: p.d + d, dd: p.dd + d * d, db: p.db + d * b };
+                    }
+                });
+                done += batch;
+                let n = done as f64;
+                let (sa, sb, sd) = px.iter().fold((0.0, 0.0, 0.0), |(x, y, z), p| (x + p.a, y + p.b, z + p.d));
+                let share = sd / sb;
+                // Ratio estimator: Var(Σd − R Σb) over independent pixels, from each pixel's samples.
+                let var: f64 = px
+                    .iter()
+                    .map(|p| {
+                        let (sz, szz) = (p.d - share * p.b, p.dd - 2.0 * share * p.db + share * share * p.bb);
+                        n * (szz - sz * sz / n).max(0.0) / (n - 1.0)
+                    })
+                    .sum();
+                let se = var.sqrt() / sb;
+                if 100.0 * se <= TARGET_PP || done >= MAX_SPP {
+                    let mean_b = sb / (n_px as f64 * n);
+                    let lit: Vec<&Paired> = px.iter().filter(|p| p.b / n >= DARK_FRACTION * mean_b && p.b > 0.0).collect();
+                    let shares: Vec<f64> = lit.iter().map(|p| p.d / p.b).collect();
+                    let noise: Vec<f64> = px.iter().filter_map(|p| one_sample_noise(p.a, p.aa, n)).collect();
+                    let noise_lit: Vec<f64> = lit.iter().filter_map(|p| one_sample_noise(p.a, p.aa, n)).collect();
+                    // Emission at the primary hit, deterministic (one sample), for context only.
+                    let mut e = vec![0.0f64; n_px];
+                    if on {
+                        let es = Settings { sun: false, sky: false, max_bounces: 0, emission: true, ..Settings::default() };
+                        each_pixel(&mut e, W, threads, |x, y, v| *v = luminance(sample_pixel_lit(&world, &al, &em, &light, &cam, &es, x, y, 0, SEED)));
+                    }
+                    let mean_e = e.iter().sum::<f64>() / n_px as f64;
+                    eprintln!(
+                        "M1 {cname} {tname} ({:+.2}°, lights {}): bounces >= 2 share {:.2}% ± {:.2} pp (image L1 {:.4e}, L8 {:.4e}); per lit pixel ({} of {n_px}) median {:.2}%, p90 {:.2}%; {done} spp, {:.0} s",
+                        elevation_deg(sun),
+                        if on { "on" } else { "off" },
+                        100.0 * share,
+                        100.0 * se,
+                        sa / (n_px as f64 * n),
+                        mean_b,
+                        lit.len(),
+                        100.0 * quantile(&shares, 0.5),
+                        100.0 * quantile(&shares, 0.9),
+                        t.elapsed().as_secs_f64()
+                    );
+                    eprintln!(
+                        "M2a {cname} {tname}: one-sample σ/μ of the one-bounce estimator: median {:.2}, p90 {:.2} over {} pixels with μ > 0 (lit pixels: median {:.2}, p90 {:.2}); emission at the primary hit {:.1}% of the full image mean",
+                        quantile(&noise, 0.5),
+                        quantile(&noise, 0.9),
+                        noise.len(),
+                        quantile(&noise_lit, 0.5),
+                        quantile(&noise_lit, 0.9),
+                        100.0 * mean_e / (mean_e + mean_b)
+                    );
+                    break;
+                }
+                batch = done;
+            }
+        }
+    }
+
+    // M2b: emitter light alone at the primary hit, one emitter sample, at night, per dressing.
+    const SPP_B: u32 = 256;
+    let light = Lighting::new(Atmosphere::default(), SunPath::default().direction(21.0));
+    let s = Settings { sun: false, sky: false, max_bounces: 0, emitters_direct: true, ..Settings::default() };
+    for d in Dressing::ALL {
+        let (world, _) = street_night(d);
+        let al = albedos(world.materials()).unwrap();
+        let em = table(&world, 4);
+        for (cname, cam) in reference_cameras(W, H) {
+            let t = std::time::Instant::now();
+            let mut px = vec![(0.0f64, 0.0f64); n_px];
+            each_pixel(&mut px, W, threads, |x, y, p| {
+                for f in 0..SPP_B {
+                    let v = luminance(sample_pixel_lit(&world, &al, &em, &light, &cam, &s, x, y, f, SEED));
+                    *p = (p.0 + v, p.1 + v * v);
+                }
+            });
+            let noise: Vec<f64> = px.iter().filter_map(|p| one_sample_noise(p.0, p.1, SPP_B as f64)).collect();
+            let mean = px.iter().map(|p| p.0).sum::<f64>() / (n_px as f64 * SPP_B as f64);
+            eprintln!(
+                "M2b {} {cname}: {} emitters; direct emitter light at the primary hit, one sample: σ/μ median {:.2}, p90 {:.2} over {} pixels with μ > 0; image mean {mean:.4e}; {SPP_B} spp, {:.0} s",
+                d.name(),
+                em.len(),
+                quantile(&noise, 0.5),
+                quantile(&noise, 0.9),
+                noise.len(),
+                t.elapsed().as_secs_f64()
+            );
+        }
+    }
 }

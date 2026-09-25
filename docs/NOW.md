@@ -1,4 +1,4 @@
-# NOW — Phase 4 (M4): 4A part 1 passed; part 2 next
+# NOW — Phase 4 (M4): 4A part 2 built; the laptop run is next
 
 **Updated 2026-09-25.** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
 
@@ -22,7 +22,11 @@
 - **4A in progress** ([record](changes/2026-09-25-phase4a-emitters.md)), written in a cloud session (no GPU; [CLOUD.md](CLOUD.md)) and checked on the RTX 3050 through `run-local.cmd`:
   - part 1 built: emitter units and sampling ([ADR-0005 Amendment 3](adr/ADR-0005-light-transport-conventions.md)), the emitter table ([ADR-0003 Amendment 3](adr/ADR-0003-device-budget-and-visibility-buffers.md)), emitters in the CPU and GPU references, `street_night`;
   - **part 1 passed:** C1–C5 (cloud), G1–G5 and the M3 GPU regressions (RTX 3050, 2026-09-25 19:12);
-  - part 2 not started: viewer `--scene` and L, night exposure, night references, magnitudes, the table in `GpuScene::update`.
+  - the user accepted the proposed night lights for now and started part 2 ("For now i accept it part 2 time");
+  - **part 2 built** (criteria frozen first, commit `ae3ffb8`): the table in `GpuScene` (build, edits, swap, stale refusal), the viewer's `--scene` and `--dressing`, the lights rule, the metric exposure, `ref_light --scene night`, and the magnitudes;
+  - **part 2 cloud checks pass:** C6, C7; the magnitudes M1–M2 are measured (below);
+  - **G6–G9 are NOT RUN** until the laptop run of `run-local.cmd`;
+  - **L moved to 4B** with the rendering it switches (in 4A it would switch nothing on screen).
 - **Not authorized:**
   - 4C–4G: reservoir reuse, P05, P08, the M4 gate;
   - glass and water;
@@ -39,25 +43,26 @@
   - the change records in `docs/changes/`;
   - [BUILD-ROADMAP](../BUILD-ROADMAP.md) and [TECHNIQUE-MAP](../TECHNIQUE-MAP.md).
 - **`engine/`** ([README](../engine/README.md): crates, verified commands, notes):
-  - pure crates `memory`, `world`, `derived`, `walk`, `light` (150 tests);
-  - 4A: `light::emitters` (table, alias selection, solid-angle sampling), the reference's emitter terms (off by default), `world::scene::street_night(Dressing)`, `gpu::emitters` and `Reference::bind_lit`, `gpu/tests/emitters.rs`;
+  - pure crates `memory`, `world`, `derived`, `walk`, `light` (153 tests);
+  - 4A: `light::emitters` (table, alias selection, solid-angle sampling, `lights_on`), `light::exposure::metric_exposure`, the reference's emitter terms (off by default), `world::scene::street_night(Dressing)`, `gpu::emitters` (`EmitterSet`, `SceneEmitters`, `RefEmitters`) and `Reference::bind_lit`, `GpuScene::build_lit` and `GpuScene::emitters`, `gpu/tests/emitters.rs`;
   - `gpu`, on Vulkan:
     - raster, ray query and scene updates;
     - the reference path tracer;
     - real-time shade with sun, sky and bounce, the temporal pass and the filter;
-    - the tools `ref_light` and `sky_bake`.
+    - the tools `ref_light` (4A: `--scene night`) and `sky_bake`.
   - `viewer`:
     - walking and flying; edits (left click, E); R switches raster / ray query;
     - views: 0 the light view, 1–7 debug views, 9 the M1 lit view;
     - lighting keys: [ ] and T move the sun; H accumulation, N the filter, B the bounce;
     - flags: `--no-bounce`, `--no-sky-correction`, `--edit-size N`;
     - the Q2 comparison: P, `--prefilter-age N`, `--camera low`;
-    - fps in the title and on exit.
-- **Emission:** has a unit (1 unit of luminance = 128,000 cd/m², ADR-0005 Amendment 3) and is in the references, off by default. The real-time path has none yet (4B). `street_block` is unchanged; `street_night` carries the proposed night lights (colours and luminances in the 4A record, for the user to adjust).
+    - fps in the title and on exit;
+    - 4A: `--scene street|night` and `--dressing` (the night scene keeps its emitter table through edits; its lights are not rendered until 4B).
+- **Emission:** has a unit (1 unit of luminance = 128,000 cd/m², ADR-0005 Amendment 3) and is in the references, off by default. The lights are on while the sun is below the horizon (`lights_on`). The real-time path has none yet (4B). `street_block` is unchanged; `street_night` carries the night lights (in the 4A record; accepted for now).
 - **Repository** (since 2026-09-25):
   - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
-  - 4A part 1 is on branch `claude/tender-keller-9u9d6t`, open as PR https://github.com/Vuk03-boop/new_engine_probably/pull/1 against `main` (not merged; merging is the user's call). The laptop's results were pushed to the same branch (commit `ceb18d7`).
-  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run; it still holds the 4A part 1 checks (already run) until the next cloud task rewrites it. Logs go to `engine/results/local-run/<date>-<task>/`; the user pushes that folder back.
+  - 4A (parts 1 and 2) is on branch `claude/tender-keller-9u9d6t`, open as PR https://github.com/Vuk03-boop/new_engine_probably/pull/1 against `main` (not merged; merging is the user's call). The laptop's part 1 results were pushed to the same branch (commit `ceb18d7`).
+  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, now holding the **4A part 2** checks (G6–G9; about 45–60 min; untested, as it cannot run in the cloud). Logs go to `engine/results/local-run/<date>-4a2/`, the night references to `engine/results/phase4a_ref/`; the user pushes `engine/results` back.
   - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
   - Binary data is protected from line-ending conversion by `.gitattributes`.
   - Commits and pushes happen only on the user's request.
@@ -68,6 +73,11 @@
 
 ## Last checks (2026-09-25, RTX 3050)
 
+- **4A part 2 (2026-09-25, cloud, Linux, no GPU; [record](changes/2026-09-25-phase4a-emitters.md)):**
+  - pure suite: exit 0, 153 pass, 4 ignored (`test_pure_4a2_cloud.log`); `gpu --lib` 15 pass (`test_gpu_lib_4a2_cloud.log`); clippy: exit 0, only the 6 old `world` lints (`clippy_4a2_cloud.log`); every `gpu` test binary, `viewer` and `ref_light` build;
+  - C6 pass (the incremental table equals a from-scratch build through 5 edits; a missed region is caught); C7 pass (metric exposure, lights rule); the night street's walking start is free;
+  - magnitudes (`magnitudes_4a_cloud.log`, CPU reference, 22 min): bounces ≥ 2 carry 7–10% of the reflected light at night, 3–7% at blue hour, 0.2–0.5% at dusk; one sample of the one-bounce estimator at night has σ/μ median 3.3–4.7 (dusk 1.7–1.9) and 90th percentile 13–21 (dusk 2.3–2.6); emitter light alone: median 2.4 → 2.8 and 90th percentile 3.7–4.1 → 8.5–8.6 from 165 to 7,003 emitter quads; directly seen emission is 86–90% of the night image mean;
+  - **NOT RUN:** G6–G9 (the laptop run).
 - **4A part 1 (2026-09-25, cloud, Linux, no GPU; [record](changes/2026-09-25-phase4a-emitters.md)):**
   - pure suite: exit 0, 150 pass, 3 ignored (`test_pure_4a_cloud.log`); clippy with `gpu`: exit 0, only the 6 old `world` lints;
   - C1–C5 pass (alias χ², the rectangle's closed form, the emissive furnace, table identity, emitters-off images bit-identical); the planted faults are caught;
@@ -96,24 +106,20 @@
 ## Milestone progress
 
 - M1, M2 and M3: 100%, accepted (M2 34 units, M3 35 units).
-- **M4: 0 of 33 units** (S-024). 4A part 1 passed; 4A's 6 units count when part 2 passes too.
+- **M4: 0 of 33 units** (S-024). 4A part 1 passed and part 2 is built; 4A's 6 units count when G6–G9 pass on the laptop.
   - Weights: 4A 6, 4B 3, 4C 7, 4D 8, 4E 3, 4F 3, 4G 3.
   - 4E and 4F count once they are measured and recorded, admitted or not.
 
 ## Exact next action
 
-1. **The user adjusts the proposed night colours and luminances** (4A record table), or accepts them. Not blocking part 2's first steps.
-2. **4A part 2** (authorized; criteria frozen in the 4A record before its first run), in order:
-   - the emitter table inside `GpuScene::update`, swapped with the meshes (ADR-0003 Amendment 3), and its edit latency;
-   - the viewer's `--scene` and L;
-   - `ref_light` night references (the 3 times × 2 cameras, cached) and the metric exposure from them;
-   - the magnitudes: bounces ≥ 2 at dusk, blue hour and night, and one-sample noise (R06);
-   - its GPU parts go into `run-local.cmd` when written in the cloud.
+1. **The user runs `run-local.cmd`** on the laptop (pull the branch, double-click; about 45–60 min; viewer windows fly by themselves, so hands off), then commits and pushes `engine/results`.
+2. **I analyse G6–G9** from those logs (G7's p95 from `viewer_edits.jsonl`; G8's JSON lines). If they pass, 4A is done (6 units) and its record is closed; failures are diagnosed, not rebaselined.
 3. **Then 4B** (authorized):
-   - one emitter sample per pixel;
+   - one emitter sample per pixel at the primary and bounce hits, then the temporal pass and the filter;
+   - L, the automatic switch and the night exposure (moved from 4A);
    - relight rules for emitters;
-   - the equal-time curve;
-   - automatic exposure in the viewer.
+   - the equal-time curve over samples per pixel and light counts.
+   - From the magnitudes (recommendations): an energy criterion on reflected light, not on the whole image mean (emission dominates it at night); the night per-frame noise (2–3× dusk's median, 5–8× its 90th percentile, a tail that grows with the light count) is what 4B's filtered error must show, and that decides 4C.
 4. **Before 4C** (not authorized):
    - the user points to the P05 / P08 reviews and PDFs;
    - the ReSTIR direct-light sources need the user's copies or a download request.

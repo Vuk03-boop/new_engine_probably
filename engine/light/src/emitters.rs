@@ -250,6 +250,12 @@ impl EmitterTable {
     }
 }
 
+/// Whether the street's lights are on with the sun at `sun_dir` (Phase 4 decision 3): on while the
+/// sun is below the horizon (elevation < 0°), so daytime stays exactly as accepted in M3.
+pub fn lights_on(sun_dir: V3) -> bool {
+    sun_dir[1] < 0.0
+}
+
 /// Below this solid angle (sr) an emitter is sampled by area instead of by solid angle. In f32 (the
 /// GPU) the solid angle Σgᵢ − 2π carries about 10⁻⁶ sr of cancellation error, ≤ 10⁻⁴ relative here;
 /// and a quad this small in solid angle is far enough away that area sampling's 1/d² is bounded.
@@ -333,7 +339,22 @@ pub fn uniform_index(n: u32, rng: &mut Rng) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sun::{SunPath, NIGHT_TIMES, REFERENCE_TIMES};
     use world::MaterialParams;
+
+    /// C7 (4A part 2): the lights are off whenever the sun is up and on once it has set.
+    #[test]
+    fn lights_follow_the_sun() {
+        let path = SunPath::default();
+        let on = |h: f64| lights_on(path.direction(h));
+        for (name, hour) in REFERENCE_TIMES {
+            assert_eq!(on(hour), name == "twilight", "{name}");
+        }
+        let got: Vec<(&str, bool)> = NIGHT_TIMES.iter().map(|&(n, h)| (n, on(h))).collect();
+        assert_eq!(got, [("dusk", false), ("blue_hour", true), ("night", true)]);
+        // The switch sits at sunset (elevation 0°, 18 h at the equinox).
+        assert!(!on(17.99) && on(18.01));
+    }
 
     fn reg() -> (MaterialRegistry, MaterialId, MaterialId, MaterialId) {
         let mut r = MaterialRegistry::new();

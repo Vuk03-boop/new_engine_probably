@@ -141,6 +141,45 @@ Cloud session, Linux x86_64, 4 cores, no GPU. The `gpu` crate was built with the
 | M3 regressions (emitters off) | `reference` 4 pass (1 ignored): all 39 result lines equal the 3A log's (`results/test_gpu_3a_reference.log`, whose lines were saved cut at a fixed width): the same GPU image means, point sun to ≤ 1.7 × 10⁻⁷ with 0 shadow disagreements, the furnace exactly 1. `shade` 4, `sky` 7 (1 ignored as recorded), `temporal` 7, `bounce` 4 (1 ignored) pass; 0 validation errors |
 | **NOT RUN** on purpose | `gate` (35+ min; the frame path did not change) and `denoise` (its accepted failures C1/D4; it does not bind the reference) |
 
+## Part 2: evidence
+
+Cloud session (as part 1: Linux, 4 cores, no GPU; the pinned slangc's Linux release and a non-SDK `spirv-val` for the compile check).
+
+| Check | Result | Scope |
+|---|---|---|
+| C6 the table follows edits (`gpu --lib`, `emitters::tests::edits_keep_the_table_equal_to_a_fresh_build`) | pass. Remove a lamp-head voxel: 3 regions rebuilt, 1,143 → 1,147 emitters. Remove a bulb voxel: 3 regions, 1,142. Add a neon voxel in open air: 2 regions, 1,148. Remove a voxel in a region without emitters: 1 region, no emitter id changed. Restore everything: 8 regions, the original 1,143 with the original geometry and probabilities. After every edit, the incremental table equals the from-scratch one; the negative control (the lamp's region left out) is caught | cloud |
+| C7 metric exposure and lights rule (`light`: `exposure::tests::exposure_follows_the_lit_pixels`, `emitters::tests::lights_follow_the_sun`) | pass | cloud |
+| The viewer's night start (`walk`: `night_street_start_is_free`) | pass for all four dressings (the reference feet are free) | cloud |
+| Builds: `gpu` (every test binary, G6 included), `viewer`, `ref_light` | exit 0, no warnings | cloud, substitute SDK |
+| Pure suite (`cargo test --release -j 2`) | exit 0, **153 pass** (150 + the 3 new), 4 ignored (+ `diagnostic_magnitudes`); `engine/results/test_pure_4a2_cloud.log` | cloud |
+| `gpu --lib` | exit 0, 15 pass (14 + C6); `engine/results/test_gpu_lib_4a2_cloud.log` | cloud, no device |
+| Clippy (`--workspace --all-targets`) | exit 0; only the 6 pre-existing `world` lints (5 new ones in my test code were fixed first); `engine/results/clippy_4a2_cloud.log` | cloud |
+| M1–M2 magnitudes (`light`: `diagnostic_magnitudes`) | below; `engine/results/magnitudes_4a_cloud.log` (22 min on 4 threads) | cloud CPU |
+
+**Magnitudes** (CPU reference, `street_night` Full, 128×72, the method frozen above):
+
+| Arm (sun, lights) | M1: bounces ≥ 2, image | M1 per pixel: median / p90 | M2a one-bounce σ/μ: median / p90 | Emission seen directly, share of the full image mean |
+|---|---|---|---|---|
+| street, dusk (+2.65°, off) | 0.48% ± 0.00 (1,024 spp) | 0.54% / 3.4% | 1.87 / 2.60 | 0 |
+| street, blue hour (−5.3°, on) | 6.63% ± 0.34 (4,096 spp) | 0.68% / 6.2% | 11.65 / 27.62 † | 78.8% |
+| street, night (−30°, on) | 10.11% ± 0.38 (8,192 spp) | 1.62% / 10.5% (7,035 lit pixels; the rest is black sky) | 4.74 / 21.40 | 85.7% |
+| low, dusk | 0.22% ± 0.00 (1,024 spp) | 0.07% / 1.5% | 1.70 / 2.32 | 0 |
+| low, blue hour | 3.25% ± 0.41 (1,024 spp) | 0.04% / 2.0% | 13.16 / 22.97 † | 81.8% |
+| low, night | 6.80% ± 0.48 (4,096 spp) | 0.64% / 6.0% (4,810 lit pixels) | 3.31 / 12.96 | 90.5% |
+
+† The reference estimates the sky radiance of every ray by Monte Carlo (`Atmosphere::sky_sample`); the real-time path reads the sky table. So M2a at blue hour, and a little at dusk, includes noise the real-time path does not have: those values are upper bounds. At night the sky is black and M2a is clean.
+
+M2b, emitter light alone at the primary hit, one sample, night (σ/μ median / p90):
+
+| Dressing (emitter quads) | street | low |
+|---|---|---|
+| Lamps (165) | 2.37 / 4.08 | 2.38 / 3.74 |
+| Windows (325) | 2.48 / 4.11 | 2.46 / 3.82 |
+| Full (1,143) | 2.88 / 7.02 | 2.78 / 5.55 |
+| Dense (7,003) | 2.76 / 8.62 | 2.82 / 8.45 |
+
+**Laptop (`run-local.cmd`, 45–60 min):** G6–G9 are **NOT RUN** until the user runs it and pushes `engine/results`. Steps: the pure suite; `gpu --lib`; `gpu --test emitters` (G1–G6); `gpu --test edit`; `gpu --test temporal`; the viewer's edit runs (night Full at N = 1, 8, 32 and Dense at N = 1 with validation off; the street at N = 1; night Full at N = 1, 8, 32 with validation on, 400 frames), all appending to `viewer_edits.jsonl`; `ref_light --scene night --spp 16384` into `results/phase4a_ref/`. Not rerun on purpose: `gate`, `denoise`, and `reference`, `shade`, `sky`, `bounce` (their code did not change since part 1's run).
+
 ## Failures and changes on the way (diagnosed, not rebaselined)
 
 1. **Area sampling had infinite variance (C3, first runs).** At 256 spp the furnace mean was 0.9932 ± 0.0092: inside 1 SE, but the standard error could not resolve the 0.5% bound. At 8192 and 32768 spp the standard error went *up* (0.21% → 0.27%). Cause: near the edge of an adjacent emitting wall, area sampling's 1/d² term has a second moment ∝ 1/δ² (δ the distance to that wall), which diverges when averaged over receivers. `street_night` has this everywhere (façade points next to neon). **Change:** emitters are sampled uniformly in solid angle (spherical rectangles, Ureña et al. 2013), with area sampling below 10⁻² sr and as a control setting. ADR-0005 Amendment 3 was revised before any GPU run. By solid angle the standard error now halves per 4× samples (0.30% / 0.15% / 0.075% at 1k / 4k / 16k spp); by area at the same seeds 0.56% / 0.26% / 0.15%. The criterion is unchanged; the test uses 4096 spp.
@@ -153,10 +192,23 @@ The spherical-rectangle code is written from the published algorithm as I recall
 
 ## Observations
 
+**Part 2 magnitudes** (observations; what they suggest is under Next):
+
+- Bounces ≥ 2 carry 7–10% of the reflected light at night (street 10.1%, low 6.8%) and 3–7% at blue hour, against 0.2–0.5% at dusk (as by day in 3F). Per pixel the share is concentrated: median 0.6–1.6%, 90th percentile 6–10.5% at night.
+- Directly seen emission is 86–90% of the night image's mean luminance (79–82% at blue hour). A criterion on the mean of the whole displayed image would therefore hide a 7–10% loss in reflected light.
+- One sample of the one-bounce estimator is noisier at night than at dusk: median σ/μ 3.3–4.7 against 1.7–1.9, and at the 90th percentile 13–21 against 2.3–2.6.
+- Emitter light alone: the median σ/μ barely changes with the light count (2.4 → 2.8 from 165 to 7,003 emitter quads), but the 90th percentile doubles (3.7–4.1 → 8.5–8.6). The pixels lit by many comparable small lights (string lights, neon) are where one sample chosen by power is noisiest.
+
+**Part 1:**
+
 - Night luminance of the Full street at 21 h (street camera, CPU smoke render): mean G about 1.6 × 10⁻⁴ units, about 20 cd/m². With the lights off the image is exactly 0 (the sky is fully dark at −30°).
 - Lamps and signs are 165 quads by themselves (greedy quads split at brick boundaries), not 6; the proposal's counts were for lights.
 
 ## Next
 
-1. The user adjusts or accepts the proposed night lights (table above).
-2. Part 2: the table inside `GpuScene::update` (swap, stale-table refusal, edit latency); the viewer's `--scene` and L; `ref_light` night references and the night exposure; the magnitudes. Its criteria are frozen in this record before its first run.
+1. **The laptop run:** the user runs `run-local.cmd` (45–60 min) and pushes `engine/results`. G6–G9 are then analysed from the logs (G7's p95 from `viewer_edits.jsonl`). If they pass, 4A is done (its 6 units count).
+2. **Then 4B** (authorized): one emitter sample per pixel at the primary and bounce hits, then the temporal pass and the filter; L, the automatic switch and the night exposure (moved here from 4A); relight rules for emitters; the equal-time curve over samples per pixel and light counts.
+3. **What the magnitudes suggest** (recommendations, not decisions):
+   - 4B's energy criterion should be on reflected light (emission excluded) or per region, not on the mean of the whole image, which emission dominates at night.
+   - Per-frame noise at night is 2–3× dusk's in the median and 5–8× in the 90th percentile, and its tail grows with the light count. That is the case reservoir reuse (4C) targets; 4B's filtered error decides whether it pays.
+   - One bounce misses 7–10% of the reflected light at night (0.2–0.5% at dusk). That bears on 4D's entry condition ("the indirect term matters at night as a share of bounces ≥ 2"), which set no threshold: the call is yours once 4B shows whether the loss is visible after filtering.

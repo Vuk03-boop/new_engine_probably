@@ -1,49 +1,93 @@
 //! Phase 4A: the emitter table on the device (ADR-0005 Amendment 3, ADR-0003 Amendment 3).
 //!
-//! - [`region_quads`] turns region meshes into `light::emitters::EmitterQuad`s with their identity
-//!   (region key, quad index in the region, the region's snapshot). `light::emitters::EmitterTable`
-//!   sorts them by geometry, so the CPU reference and the GPU sample the same table.
+//! - [`EmitterSet`] keeps the emissive quads of every region with their identity (region key, quad
+//!   index in the region, the snapshot the region was built from), so an edit replaces only its
+//!   regions' share. `light::emitters::EmitterTable` sorts them by geometry, so the CPU reference and
+//!   the GPU sample the same table.
 //! - [`GpuEmitter`] is one emitter as the shaders read it (80 bytes); [`RefEmitters`] holds the
 //!   emitters and the per-material emitted radiance on the device under `Category::GpuMaterial`.
+//! - [`SceneEmitters`] is the table a `GpuScene` publishes with its meshes and TLAS
+//!   (`GpuScene::build_lit`); `GpuScene::update` builds the next one before the swap.
 
 use std::collections::BTreeMap;
 use std::mem::{offset_of, size_of};
 
 use ash::vk;
-use light::emitters::{EmitterId, EmitterQuad, EmitterTable};
-use memory::Category;
-use world::MaterialRegistry;
+use light::emitters::{luminance, EmitterId, EmitterQuad, EmitterTable};
+use memory::{Category, LedgerError};
+use world::{MaterialId, MaterialRegistry};
 
 use crate::alloc::{Allocator, Buffer, Kind};
-use crate::context::{Gpu, Result};
+use crate::context::{Gpu, GpuError, Result};
 use crate::layout::{RegionKey, RegionMesh};
 use crate::reflect::Field;
 use crate::staging::Uploader;
 use crate::timeline::Timeline;
 
-/// Every quad of `regions` as an emitter candidate; `snapshot` gives each region's snapshot.
-pub fn region_quads<'a>(regions: impl IntoIterator<Item = (&'a RegionKey, &'a RegionMesh)>, registry: &MaterialRegistry, snapshot: impl Fn(RegionKey) -> u64) -> Vec<EmitterQuad> {
-    let ids: Vec<_> = registry.iter().map(|(id, _)| id).collect();
-    let mut out = Vec::new();
-    for (&k, r) in regions {
-        let o = k.origin(r.size);
-        let s = snapshot(k);
-        for (i, q) in r.quads.iter().enumerate() {
-            // Quads carry registered ids (the mesh is built from the world); an unknown one is a bug
-            // that `EmitterTable::build` would refuse, so it is skipped only if the registry shrank.
-            let Some(&material) = ids.get(q.material as usize) else {
-                continue;
-            };
-            let id = EmitterId { key: [k.x, k.y, k.z], quad: i as u32, snapshot: s };
-            out.push(EmitterQuad::from_local(id, material, q.face, q.plane, q.u0, q.v0, q.u1, q.v1, [o.x, o.y, o.z]));
+/// The emissive quads of every region of a scene, per region.
+#[derive(Clone, Debug)]
+pub struct EmitterSet {
+    registry: MaterialRegistry,
+    /// Per material index (as region quads store it): its id, if the material emits.
+    emitting: Vec<Option<MaterialId>>,
+    quads: BTreeMap<RegionKey, Vec<EmitterQuad>>,
+}
+
+impl EmitterSet {
+    /// No regions yet. Refuses emitted radiance that is negative or not finite.
+    pub fn new(registry: &MaterialRegistry) -> std::result::Result<EmitterSet, String> {
+        let emission = light::emitters::emission(registry)?;
+        let emitting = registry.iter().zip(&emission).map(|((id, _), l)| (luminance(*l) > 0.0).then_some(id)).collect();
+        Ok(EmitterSet { registry: registry.clone(), emitting, quads: BTreeMap::new() })
+    }
+
+    /// Region `key` as built from snapshot `snapshot`; `None`: the region has no quads now.
+    pub fn set_region(&mut self, key: RegionKey, mesh: Option<&RegionMesh>, snapshot: u64) {
+        let quads = mesh.map_or_else(Vec::new, |r| self.emissive_quads(key, r, snapshot));
+        if quads.is_empty() {
+            self.quads.remove(&key);
+        } else {
+            self.quads.insert(key, quads);
         }
     }
-    out
+
+    fn emissive_quads(&self, key: RegionKey, r: &RegionMesh, snapshot: u64) -> Vec<EmitterQuad> {
+        let o = key.origin(r.size);
+        r.quads
+            .iter()
+            .enumerate()
+            .filter_map(|(i, q)| {
+                // Quads carry registered ids (the mesh is built from the world); an unknown one could
+                // only come from a shrunken registry, and emits nothing.
+                let material = (*self.emitting.get(q.material as usize)?)?;
+                let id = EmitterId { key: [key.x, key.y, key.z], quad: i as u32, snapshot };
+                Some(EmitterQuad::from_local(id, material, q.face, q.plane, q.u0, q.v0, q.u1, q.v1, [o.x, o.y, o.z]))
+            })
+            .collect()
+    }
+
+    /// Emissive quads in the set.
+    pub fn len(&self) -> usize {
+        self.quads.values().map(Vec::len).sum()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.quads.is_empty()
+    }
+
+    /// The table of scene snapshot `snapshot` over every region's emissive quads.
+    pub fn table(&self, snapshot: u64) -> std::result::Result<EmitterTable, String> {
+        EmitterTable::build(&self.registry, snapshot, self.quads.values().flatten().copied())
+    }
 }
 
 /// The emitter table of `regions` for scene snapshot `snapshot`, every region at that snapshot.
 pub fn table(regions: &BTreeMap<RegionKey, RegionMesh>, registry: &MaterialRegistry, snapshot: u64) -> std::result::Result<EmitterTable, String> {
-    EmitterTable::build(registry, snapshot, region_quads(regions, registry, |_| snapshot))
+    let mut set = EmitterSet::new(registry)?;
+    for (&k, r) in regions {
+        set.set_region(k, Some(r), snapshot);
+    }
+    set.table(snapshot)
 }
 
 /// One emitter as `reference.slang` reads it (std430, 80 bytes).
@@ -74,6 +118,11 @@ impl GpuEmitter {
             .collect()
     }
 
+    /// The rows as the device holds them (little-endian std430).
+    pub fn bytes(rows: &[GpuEmitter]) -> Vec<u8> {
+        rows.iter().flat_map(|e| e.p0_area.iter().chain(&e.eu_pdf).chain(&e.ev).chain(&e.radiance).flat_map(|x| x.to_le_bytes()).chain(e.meta.iter().flat_map(|x| x.to_le_bytes())).collect::<Vec<u8>>()).collect()
+    }
+
     /// The fields the host assumes (checked against the shader's reflection).
     pub fn fields() -> Vec<Field> {
         let d = GpuEmitter::default();
@@ -97,13 +146,19 @@ pub struct RefEmitters {
     pub snapshot: u64,
 }
 
+/// The per-material emitted radiance as the device holds it (RGBA32F, little-endian).
+pub fn emission_bytes(table: &EmitterTable) -> Vec<u8> {
+    table.emission.iter().flat_map(|l| [l[0] as f32, l[1] as f32, l[2] as f32, 0.0]).flat_map(f32::to_le_bytes).collect()
+}
+
 impl RefEmitters {
     /// Uploads `table`; returns the timeline value after which it is on the device.
     pub fn upload(gpu: &Gpu, alloc: &mut Allocator, up: &mut Uploader, timeline: &mut Timeline, table: &EmitterTable) -> Result<(RefEmitters, u64)> {
         let rows = GpuEmitter::of(table);
-        let bytes: Vec<u8> = rows.iter().flat_map(|e| e.p0_area.iter().chain(&e.eu_pdf).chain(&e.ev).chain(&e.radiance).flat_map(|x| x.to_le_bytes()).chain(e.meta.iter().flat_map(|x| x.to_le_bytes())).collect::<Vec<u8>>()).collect();
-        let em: Vec<u8> = table.emission.iter().flat_map(|l| [l[0] as f32, l[1] as f32, l[2] as f32, 0.0]).flat_map(f32::to_le_bytes).collect();
-        let usage = vk::BufferUsageFlags::STORAGE_BUFFER | vk::BufferUsageFlags::TRANSFER_DST;
+        let bytes = GpuEmitter::bytes(&rows);
+        let em = emission_bytes(table);
+        // TRANSFER_SRC: the checks read the table back (4A G6).
+        let usage = vk::BufferUsageFlags::STORAGE_BUFFER | vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::TRANSFER_SRC;
         let emitters = alloc.create_buffer(gpu, (bytes.len() as u64).max(size_of::<GpuEmitter>() as u64), usage, Category::GpuMaterial, Kind::Device)?;
         let emission = match alloc.create_buffer(gpu, (em.len() as u64).max(16), usage, Category::GpuMaterial, Kind::Device) {
             Ok(b) => b,
@@ -131,18 +186,61 @@ impl RefEmitters {
         }
     }
 
+    /// Device bytes of both buffers.
+    pub fn device_bytes(&self) -> u64 {
+        self.emitters.range().2 + self.emission.range().2
+    }
+
     pub fn free(self, gpu: &Gpu, alloc: &mut Allocator) {
         alloc.free(gpu, self.emitters);
         alloc.free(gpu, self.emission);
     }
 }
 
+/// The emitter table a `GpuScene` publishes with its meshes and TLAS (ADR-0003 Amendment 3): the
+/// regions' emissive quads, the table of the snapshot shown, and that table on the device.
+pub struct SceneEmitters {
+    pub set: EmitterSet,
+    pub table: EmitterTable,
+    pub device: RefEmitters,
+}
+
+impl SceneEmitters {
+    /// The table of `set` for snapshot `snapshot`, uploaded. `refuse` plants a refused grant (as by the
+    /// budget) before anything is allocated. Returns the timeline value of the upload.
+    pub fn publish(gpu: &Gpu, alloc: &mut Allocator, up: &mut Uploader, timeline: &mut Timeline, set: EmitterSet, snapshot: u64, refuse: bool) -> Result<(SceneEmitters, u64)> {
+        let table = set.table(snapshot).map_err(|e| GpuError::Layout(vec![format!("emitter table: {e}")]))?;
+        if refuse {
+            let requested = (table.len() * size_of::<GpuEmitter>()) as u64;
+            return Err(GpuError::OverBudget(LedgerError::OverBudget { category: Category::GpuMaterial, requested, category_reserved: 0, total_reserved: 0, limit: 0, limit_is_total: false }));
+        }
+        let (device, v) = RefEmitters::upload(gpu, alloc, up, timeline, &table)?;
+        Ok((SceneEmitters { set, table, device }, v))
+    }
+
+    /// The next table: `changes` (region, its mesh at `snapshot` or `None`) applied to a copy of the
+    /// set, then [`SceneEmitters::publish`]. `self` is unchanged, so a refusal keeps it whole.
+    #[allow(clippy::too_many_arguments)]
+    pub fn next<'a>(&self, gpu: &Gpu, alloc: &mut Allocator, up: &mut Uploader, timeline: &mut Timeline, changes: impl IntoIterator<Item = (RegionKey, Option<&'a RegionMesh>)>, snapshot: u64, refuse: bool) -> Result<(SceneEmitters, u64)> {
+        let mut set = self.set.clone();
+        for (k, m) in changes {
+            set.set_region(k, m, snapshot);
+        }
+        Self::publish(gpu, alloc, up, timeline, set, snapshot, refuse)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use super::*;
     use crate::layout::{build_regions, RegionSize};
-    use derived::{extract_world, Merge};
+    use crate::scene::{affected_regions, region_meshes};
+    use derived::{extract_world, Config, Merge, Pipeline};
+    use world::dims::BRICK_EDGE;
     use world::scene::{street_night, Dressing};
+    use world::{BrickKey, Transaction, VoxelCoord, World};
 
     /// C4 on the GPU's own grouping: every region size gives the same table (order, geometry,
     /// probabilities), with region identities.
@@ -163,5 +261,140 @@ mod tests {
         let rows = GpuEmitter::of(&tables[1]);
         assert_eq!(rows.len(), tables[1].len());
         assert!(rows.iter().all(|r| r.meta[0] <= light::emitters::COIN_ONE && (r.meta[1] as usize) < rows.len() && r.meta[2] < 6));
+    }
+
+    /// Runs every job inline and publishes; the published brick keys.
+    fn drain(p: &mut Pipeline, w: &World) -> BTreeSet<BrickKey> {
+        loop {
+            let jobs = p.dispatch(w);
+            if jobs.is_empty() {
+                break;
+            }
+            for j in jobs {
+                p.complete(w, j.run());
+            }
+        }
+        let published = p.try_publish(w);
+        assert!(p.is_idle(), "pipeline did not drain");
+        published.map(|x| x.groups.into_iter().flatten().collect()).unwrap_or_default()
+    }
+
+    /// Every region of the pipeline's current snapshot, built from scratch.
+    fn full(p: &mut Pipeline, size: RegionSize) -> BTreeMap<RegionKey, RegionMesh> {
+        let t = p.acquire();
+        let keys: Vec<BrickKey> = p.current().keys().collect();
+        let meshes: Vec<_> = keys.iter().map(|&k| (k, p.read(&t, k).unwrap().unwrap().clone())).collect();
+        p.release(t).unwrap();
+        build_regions(meshes.iter().map(|(k, m)| (*k, m)), size)
+    }
+
+    /// One emitter without the snapshot of its id: geometry, radiance, sampling, region and quad.
+    type Row = (u8, [f64; 3], [f64; 3], [f64; 3], [f64; 3], f64, u32, u32, [i32; 3], u32);
+
+    /// Voxel edits: (voxel, new material).
+    type Edits = Vec<(VoxelCoord, Option<world::MaterialId>)>;
+
+    /// Everything but the snapshot in the ids, in table order.
+    fn content(t: &EmitterTable) -> Vec<Row> {
+        t.emitters.iter().map(|e| (e.face, e.p0, e.eu, e.ev, e.radiance, e.pdf, e.threshold, e.alias, e.id.key, e.id.quad)).collect()
+    }
+
+    /// C6 (4A part 2): the scene's incremental table equals a from-scratch build after every edit of
+    /// the sequence, through the real 1C pipeline, with ids that follow the edited regions.
+    #[test]
+    fn edits_keep_the_table_equal_to_a_fresh_build() {
+        let size = RegionSize::Chunk;
+        let (mut w, _) = street_night(Dressing::Full);
+        let mut p = Pipeline::new(Config { merge: Merge::Greedy, ..Config::default() });
+        p.mark_all(&w);
+        drain(&mut p, &w);
+        let snap0 = p.current().id.raw();
+        let mut set = EmitterSet::new(w.materials()).unwrap();
+        for (k, m) in &full(&mut p, size) {
+            set.set_region(*k, Some(m), snap0);
+        }
+        let original = set.table(snap0).unwrap();
+        assert_eq!(content(&original), content(&table(&full(&mut p, size), w.materials(), snap0).unwrap()));
+        assert!(original.len() > 1000);
+
+        let mats = w.materials().clone();
+        let id = |n: &str| mats.id_of(n).unwrap();
+        let first = |w: &World, m| w.occupied().find(|&(_, x)| x == m).map(|(v, _)| v).unwrap();
+        let lamp = first(&w, id("lamp"));
+        let bulb = first(&w, id("bulb"));
+        let air = VoxelCoord::new(136, 40, 64);
+        assert_eq!(w.get(air), None, "open air above the road");
+        let region_of = |v: VoxelCoord| RegionKey::of(v.split().0, size);
+        let emitting = |s: &EmitterSet, r: RegionKey| s.quads.contains_key(&r);
+        // A non-emitting voxel inside its brick, in a region without emitters: its edit touches no light.
+        let inside = |c: i32| (1..BRICK_EDGE - 1).contains(&c.rem_euclid(BRICK_EDGE));
+        let (quiet, quiet_mat) = w.occupied().find(|&(v, m)| set.emitting[m.raw() as usize].is_none() && inside(v.x) && inside(v.y) && inside(v.z) && !emitting(&set, region_of(v))).unwrap();
+
+        let steps: Vec<(&str, Edits)> = vec![
+            ("remove a lamp voxel", vec![(lamp, None)]),
+            ("remove a bulb voxel", vec![(bulb, None)]),
+            ("add an emissive voxel in open air", vec![(air, Some(id("neon_pink")))]),
+            ("remove a voxel in a region without emitters", vec![(quiet, None)]),
+            ("restore everything", vec![(lamp, Some(id("lamp"))), (bulb, Some(id("bulb"))), (air, None), (quiet, Some(quiet_mat))]),
+        ];
+        let mut prev = original.clone();
+        let mut edited_ever = BTreeSet::new();
+        for (label, edits) in steps {
+            let mut tx = Transaction::new();
+            for &(v, m) in &edits {
+                tx.set(v, m);
+            }
+            let applied = w.apply(&tx).unwrap();
+            assert!(!applied.changed.is_empty(), "{label}: the edit changes the world");
+            p.notify_edits(&applied.changed);
+            let keys = drain(&mut p, &w);
+            let snap = p.current().id.raw();
+            let regions = affected_regions(keys, size);
+            let token = p.acquire();
+            let changed = region_meshes(&p, &token, &regions, size).unwrap();
+            p.release(token).unwrap();
+            let before = set.clone();
+            for (k, m) in &changed {
+                set.set_region(*k, m.as_ref(), snap);
+            }
+            let inc = set.table(snap).unwrap();
+            let scratch = table(&full(&mut p, size), w.materials(), snap).unwrap();
+            assert_eq!(content(&inc), content(&scratch), "{label}: incremental and from-scratch tables differ");
+            assert_eq!(inc.snapshot, snap);
+            let old: BTreeMap<_, _> = prev.emitters.iter().map(|e| ((e.id.key, e.id.quad), e.id.snapshot)).collect();
+            for e in &inc.emitters {
+                let r = RegionKey { x: e.id.key[0], y: e.id.key[1], z: e.id.key[2] };
+                let want = if regions.contains(&r) { snap } else { old[&(e.id.key, e.id.quad)] };
+                assert_eq!(e.id.snapshot, want, "{label}: emitter {:?}", e.id);
+            }
+            eprintln!("C6 {label}: {} regions rebuilt, {} emitters (was {}), snapshot {snap}", regions.len(), inc.len(), prev.len());
+            match label {
+                "remove a lamp voxel" => {
+                    assert!(inc.len() != prev.len() || content(&inc) != content(&prev), "the lamp edit changes the table");
+                    // Negative control: the lamp's region left out of the update is caught.
+                    let mut faulty = before.clone();
+                    for (k, m) in changed.iter().filter(|(k, _)| **k != region_of(lamp)) {
+                        faulty.set_region(*k, m.as_ref(), snap);
+                    }
+                    assert_ne!(content(&faulty.table(snap).unwrap()), content(&scratch), "a missed region must be caught");
+                }
+                "remove a voxel in a region without emitters" => {
+                    assert!(regions.iter().all(|&r| !emitting(&before, r) && !emitting(&set, r)), "the quiet edit's regions hold no emitters");
+                    assert_eq!(inc.emitters.iter().map(|e| e.id).collect::<Vec<_>>(), prev.emitters.iter().map(|e| e.id).collect::<Vec<_>>(), "no emitter id changes");
+                }
+                "restore everything" => {
+                    let geometry = |t: &EmitterTable| t.emitters.iter().map(|e| (e.face, e.p0, e.eu, e.ev, e.radiance, e.pdf, e.threshold, e.alias)).collect::<Vec<_>>();
+                    assert_eq!(geometry(&inc), geometry(&original), "restoring gives the original table back");
+                    edited_ever.extend(regions.iter().copied());
+                    for (a, o) in inc.emitters.iter().zip(&original.emitters) {
+                        let r = RegionKey { x: a.id.key[0], y: a.id.key[1], z: a.id.key[2] };
+                        assert_eq!(a.id.snapshot == o.id.snapshot, !edited_ever.contains(&r), "{:?}", a.id);
+                    }
+                }
+                _ => {}
+            }
+            edited_ever.extend(regions.iter().copied());
+            prev = inc;
+        }
     }
 }

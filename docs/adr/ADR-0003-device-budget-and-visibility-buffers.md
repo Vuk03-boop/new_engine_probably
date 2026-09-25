@@ -114,4 +114,7 @@ The CPU side of this contract is already met in 2A: both merge modes cover the s
 - **Order.** The table is sorted by geometry (face, plane, u0, v0), so the same set of quads gives the same table whatever the region size, and the CPU reference and the GPU agree on every index.
 - **Staleness.** The table records the snapshot it was built for; a reader that finds a different snapshot refuses it (a planted stale table must be caught).
 - **Budget.** 80 B per emitter on the device, plus 16 B per material for emitted radiance, under `Category::GpuMaterial`. The table build is part of the edit-to-visible latency and must keep the S-016 edit budget.
-- **Implementation status (2026-09-25):** the table is built from region meshes (`gpu::emitters::table`) and uploaded for the reference (`RefEmitters`); building it inside `GpuScene::update`, the swap with the meshes and the edit-latency measurement are 4A part 2.
+- **Implementation status (2026-09-25):**
+  - Part 1: the table is built from region meshes (`gpu::emitters::table`) and uploaded for the reference (`RefEmitters`).
+  - Part 2: `GpuScene::build_lit` publishes it with the meshes and TLAS. Every update rebuilds it from the regions' emissive quads (`gpu::emitters::EmitterSet`) and uploads it before the acceleration update; the swap replaces all of them together, and the old table is retired like mesh buffers. `GpuScene::emitters` refuses a table of another snapshot. Scenes built with `GpuScene::build` (every M3 path) have no table.
+  - The host check passes (4A C6: the incremental table equals a from-scratch build through a sequence of edits). The device check (G6) and the edit latency with the table (G7) are **NOT RUN** until the laptop run of `run-local.cmd`.
