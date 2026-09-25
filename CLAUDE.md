@@ -17,6 +17,7 @@ This file governs work in the directory containing it. **One model, one active t
 3. Check actual files and local modifications before editing. Inspect Git status if Git exists; if absent, say so. Never reset, restore or overwrite unknown user changes.
 4. State the objective, allowed paths, invariants, smallest discriminating check and stop condition in a short plan. Ask only about ambiguity that affects correctness, scope or an irreversible action.
 5. Do not reread the whole paper library or reference archive every session. [docs/LESSONS-AND-ROI.md](docs/LESSONS-AND-ROI.md) is an on-demand failure guide, not startup context to load wholesale.
+6. Cloud sessions only (env `CLAUDE_CODE_REMOTE=true`): also read [docs/CLOUD.md](docs/CLOUD.md). Local sessions: do not open it.
 
 ## Modification boundaries
 
