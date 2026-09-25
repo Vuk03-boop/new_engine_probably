@@ -5,7 +5,8 @@ Read this only when `CLAUDE_CODE_REMOTE=true`. Local sessions ignore it; nothing
 ## What the cloud container can and cannot do
 
 - **Can:** edit code and docs; build and run the pure CPU crates (`cargo test --release -j 2`); reach crates.io, PyPI and GitHub.
-- **Cannot:** no GPU, no Vulkan driver, no display, no `slangc`/`spirv-val`. So `-p gpu`, `viewer`, the gate, FLIP and every perf or fps number are **NOT RUN** in the cloud, never "passed".
+- **Can, as a supplemental compile check (4A):** build `gpu` and `viewer`, run clippy on the workspace, and run the device-free tests (`gpu --lib`, CPU-only diagnostics). Setup, in the session's scratch space, never in the repo: download the pinned slangc's Linux release (`https://github.com/shader-slang/slang/releases/download/v2026.13.1/slang-2026.13.1-linux-x86_64.tar.gz`), `apt-get install spirv-tools`, `rustup component add clippy`, and point `VULKAN_SDK` at a folder whose `Bin/slangc.exe` and `Bin/spirv-val.exe` are shell wrappers calling them. This `spirv-val` is not the SDK's, so it is not ADR-0001 proof.
+- **Cannot:** no GPU, no Vulkan driver, no display. So GPU tests, `viewer` runs, the gate, FLIP and every perf or fps number are **NOT RUN** in the cloud, never "passed".
 - CPU timings from the cloud are not evidence for the laptop. Do not report them as performance.
 
 ## The one-click handoff

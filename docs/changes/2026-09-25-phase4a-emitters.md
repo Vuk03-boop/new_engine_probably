@@ -1,6 +1,6 @@
 # Change: Phase 4A — emitters, units and the reference
 
-Status: **in progress.** Part 1 (conventions, emitter table, CPU and GPU reference, `street_night`) is built. Its GPU checks are **NOT RUN**: they wait for `run-local.cmd` on the RTX 3050. Part 2 (viewer `--scene` and L, night exposure, magnitudes) has not started.
+Status: **in progress. Part 1 passed** (conventions, emitter table, CPU and GPU reference, `street_night`): C1–C5 in the cloud session, G1–G5 and the M3 GPU regressions on the RTX 3050 (`run-local.cmd`, 2026-09-25 19:12). Part 2 (viewer `--scene` and L, night exposure, night references, magnitudes, the table in `GpuScene::update`) has not started.
 Date and baseline: 2026-09-25, branch `claude/tender-keller-9u9d6t` from `main` after the cloud rules commit. Written in a cloud session (no GPU; [CLOUD.md](../CLOUD.md)).
 Authorization: S-024 (4A and 4B authorized); the user's "green light for the session" (2026-09-25).
 
@@ -82,13 +82,28 @@ Cloud session, Linux x86_64, 4 cores, no GPU. The `gpu` crate was built with the
 | `gpu --lib` | 14 pass (`engine/results/test_gpu_lib_4a_cloud.log`), including the reflection check with a negative control (a moved field is refused) | cloud, no device |
 | Clippy (`--workspace --all-targets`, with `gpu`) | exit 0; only the 6 pre-existing `world` lints (`engine/results/clippy_4a_cloud.log`) | cloud |
 | G5 table build (host only) | Dense, 7,003 emitters: median 3.16 ms, max 4.82 ms | cloud CPU: **not** evidence for the laptop |
-| G1–G4, and G5 on the laptop | **NOT RUN** | `run-local.cmd` |
+
+**RTX 3050 laptop**, `run-local.cmd` at commit `07272fc` (cargo 1.98.1, Vulkan SDK 1.4.357.0), logs in `engine/results/local-run/2026-09-25_1912-4a/` (`summary.txt`: 8 of 8 steps exit 0). An earlier start (`2026-09-25_1902-4a/`) was stopped with Ctrl+C during the build (`STATUS_CONTROL_C_EXIT`); it is not a result.
+
+| Check | Result |
+|---|---|
+| Pure suite | exit 0, 150 pass, 3 ignored |
+| `gpu --lib` | 14 pass (the reflection check included) |
+| G1 layout and validation | pass: `Reference::new` accepts the module with the emitter bindings; 0 validation errors and 0 warnings in all four `emitters` tests; 0 bad surface ids |
+| G2 emission at the primary hit | pass: 3,948 (street view) and 1,257 (low) emissive pixels, 0 over 10⁻⁶, worst difference exactly 0 |
+| G3 furnace on the GPU | pass: 1.999681 ± 0.000714 against 1.999992 (ratio 0.99984, 0.44 SE); double emission 2.999674 (caught) |
+| G4 night street, GPU against CPU | pass. Street view: z [0.31, −1.88, −2.10], \|z\| > 4 in 0.649% (limit 1.123%); low: z [0.94, −0.33, −0.60], 0.791% (limit 1.498%). Fault "no solid angle": z ≈ 1,400–1,600 in both (caught) |
+| G5 table build (Dense, 7,003 emitters) | pass: median 2.877 ms, max 3.432 ms (≤ 5 ms) |
+| M3 regressions (emitters off) | `reference` 4 pass (1 ignored): all 39 result lines equal the 3A log's (`results/test_gpu_3a_reference.log`, whose lines were saved cut at a fixed width): the same GPU image means, point sun to ≤ 1.7 × 10⁻⁷ with 0 shadow disagreements, the furnace exactly 1. `shade` 4, `sky` 7 (1 ignored as recorded), `temporal` 7, `bounce` 4 (1 ignored) pass; 0 validation errors |
+| **NOT RUN** on purpose | `gate` (35+ min; the frame path did not change) and `denoise` (its accepted failures C1/D4; it does not bind the reference) |
 
 ## Failures and changes on the way (diagnosed, not rebaselined)
 
 1. **Area sampling had infinite variance (C3, first runs).** At 256 spp the furnace mean was 0.9932 ± 0.0092: inside 1 SE, but the standard error could not resolve the 0.5% bound. At 8192 and 32768 spp the standard error went *up* (0.21% → 0.27%). Cause: near the edge of an adjacent emitting wall, area sampling's 1/d² term has a second moment ∝ 1/δ² (δ the distance to that wall), which diverges when averaged over receivers. `street_night` has this everywhere (façade points next to neon). **Change:** emitters are sampled uniformly in solid angle (spherical rectangles, Ureña et al. 2013), with area sampling below 10⁻² sr and as a control setting. ADR-0005 Amendment 3 was revised before any GPU run. By solid angle the standard error now halves per 4× samples (0.30% / 0.15% / 0.075% at 1k / 4k / 16k spp); by area at the same seeds 0.56% / 0.26% / 0.15%. The criterion is unchanged; the test uses 4096 spp.
 2. **The solid-angle oracle (unit test, first version)** was a 400² quadrature, which is too coarse 0.01 voxel below an edge (it was the side in error: 3.079 against the exact 3.128). Replaced by exact formulas.
 3. **Switch threshold:** first 10⁻³ sr, raised to 10⁻² sr before any GPU run, because the f32 solid angle Σgᵢ − 2π carries about 10⁻⁶ sr of cancellation error (10⁻³ relative at the old threshold).
+
+4. **G4's colour pattern (passed, then diagnosed).** On the street view the GPU image mean was +0.56% / −3.01% / −4.55% (R / G / B) against the CPU's 256 samples, z ≈ −2 in G and B, with the same signs, smaller, on the low camera: within the criterion, but a colour-dependent sign could have been a per-emitter bias. Discriminating diagnostic (`diagnostic_g4_cpu_convergence`, CPU only, run in the cloud session): the CPU at 4096 independent samples against the CPU at G4's 256 moves by −0.06% / −2.89% / −4.58% on the street view (low: +0.69% / +0.09% / −0.36%). So the 256-sample CPU image carried a few bright G/B samples, and the GPU agrees with the 4096-sample CPU within +0.6% / −0.1% / +0.03% (street) and 0.6% (low). No bias; heavy tails at 256 samples, as at twilight in 3A.
 
 The spherical-rectangle code is written from the published algorithm as I recall it; it is validated by the exact-formula tests above, not by a copy of the paper.
 
@@ -99,5 +114,5 @@ The spherical-rectangle code is written from the published algorithm as I recall
 
 ## Next
 
-1. Run `run-local.cmd` on the RTX 3050 and read its logs against G1–G5.
-2. Part 2: the viewer's `--scene` and L; the night exposure; `ref_light` night references; the magnitudes; the table inside `GpuScene::update`.
+1. The user adjusts or accepts the proposed night lights (table above).
+2. Part 2: the table inside `GpuScene::update` (swap, stale-table refusal, edit latency); the viewer's `--scene` and L; `ref_light` night references and the night exposure; the magnitudes. Its criteria are frozen in this record before its first run.

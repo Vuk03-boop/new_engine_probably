@@ -280,7 +280,9 @@ fn night_street_matches_the_cpu_statistically() {
             let g = if f == EmitterFaults::default() { big.accum.clone() } else { rig.render_from(&out, &b, &cam, &light, &Settings { emitter_faults: f, ..s }, 0, gpu_spp, 256).accum };
             let st = compare(&g, &c);
             eprintln!(
-                "G4 {cname} {f:?}: rel {:?}, z {:?}, |z|>4 {:.3}%, cpu {cpu_s:.1} s",
+                "G4 {cname} {f:?}: image mean gpu {} cpu {}, rel {:?}, z {:?}, |z|>4 {:.3}%, cpu {cpu_s:.1} s",
+                fmt3(image_mean(&g)),
+                fmt3(image_mean(&c)),
                 st.rel_mean.map(|x| (x * 1e4).round() / 1e4),
                 st.mean_z.map(|x| (x * 100.0).round() / 100.0),
                 st.frac_over_4 * 100.0
@@ -296,6 +298,44 @@ fn night_street_matches_the_cpu_statistically() {
     }
     rig.finish();
     assert!(failed.is_empty(), "failed: {failed:?}");
+}
+
+fn fmt3(v: [f64; 3]) -> String {
+    format!("[{:.4e} {:.4e} {:.4e}]", v[0], v[1], v[2])
+}
+
+fn image_mean(a: &Accum) -> [f64; 3] {
+    let n = a.sum.len() as f64;
+    [0, 1, 2].map(|k| (0..a.sum.len()).map(|i| a.mean(i)[k]).sum::<f64>() / n)
+}
+
+/// Diagnostic (on demand, `--ignored`; CPU only, no device): is G4's colour pattern CPU noise? The
+/// first laptop run showed R +0.6%, G −3.0%, B −4.6% (GPU against CPU, z ≈ −2) on the street view.
+/// Here the CPU at G4's 256 samples is compared with the CPU at 4096 independent samples: if the
+/// better CPU estimate moves by the same amounts, the GPU agreed with it.
+#[test]
+#[ignore]
+fn diagnostic_g4_cpu_convergence() {
+    let (world, _) = street_night(Dressing::Full);
+    let albedo = cpu::albedos(world.materials()).unwrap();
+    let table = emitters::table(&regions(&world), world.materials(), SNAPSHOT).unwrap();
+    let s = Settings { max_bounces: 1, emission: true, emitters_direct: true, emitters_indirect: true, ..Settings::default() };
+    let light = light_night();
+    let threads = std::thread::available_parallelism().map_or(2, |n| n.get());
+    for (cname, cam) in [("street_view", street_camera(96, 54)), ("low", low_camera(96, 54))] {
+        let t = Instant::now();
+        let a = cpu::render_lit(&world, &albedo, &table, &light, &pinhole(&cam), &s, 1_000_000, 256, SEED, threads);
+        let b = cpu::render_lit(&world, &albedo, &table, &light, &pinhole(&cam), &s, 3_000_000, 4096, SEED, threads);
+        let st = compare(&b, &a);
+        eprintln!(
+            "G4 diagnostic {cname}: cpu 256 {}, cpu 4096 {}; 4096 / 256 − 1 = {:?}, z {:?} ({:.0} s, {threads} threads)",
+            fmt3(image_mean(&a)),
+            fmt3(image_mean(&b)),
+            st.rel_mean.map(|x| (x * 1e4).round() / 1e4),
+            st.mean_z.map(|x| (x * 100.0).round() / 100.0),
+            t.elapsed().as_secs_f64()
+        );
+    }
 }
 
 /// G5: building the emitter table of `street_night` (Dense) from region meshes on the host takes
