@@ -16,7 +16,8 @@
 //! the light view (the start: real-time lighting of `gpu::shade` in ADR-0005 units: the direct sun
 //! with real shadows (3B), the physically based sky and its light (3C) and one bounce of both (3F)),
 //! key 9 the M1 lit view (sun and ambient, no shadows), keys 1-7 the debug views (material, normal,
-//! region, brick, surface id, depth, snapshot); - and = change exposure; Esc quits.
+//! region, brick, surface id, depth, snapshot); - and = change exposure; F3 shows every setting (on /
+//! off, with its key) and the GPU time of each pass in the title, and prints it once a second; Esc quits.
 //! - Time of day (3B): [ and ] move the sun a quarter hour back / forward along `light::SunPath`
 //!   (45° N, equinox); T runs the day (one hour per 4 s). `--hour H` sets the start (default 9).
 //! - Temporal accumulation (3D, ADR-0006): on by default, H toggles it; key 8 cycles the history age,
@@ -117,8 +118,9 @@ const FRAMES_IN_FLIGHT: usize = 2;
 const NEAR: f64 = 0.1;
 /// Passes timed on the GPU, in order. `ray_trace` is empty unless the ray-query source is shown;
 /// `shade` (3B) is empty unless the light view is shown (it holds the shade, temporal and filter
-/// passes); `exposure` (4B) is empty unless the automatic exposure runs.
-const PASSES: [&str; 5] = ["gbuffer", "debug_view", "ray_trace", "shade", "exposure"];
+/// passes); `exposure` (4B) is empty unless the automatic exposure runs. `shade_only`, `temporal` and
+/// `filter` split the `shade` slot into its passes (intervals inside it; `shade` keeps its meaning).
+const PASSES: [&str; 8] = ["gbuffer", "debug_view", "ray_trace", "shade", "exposure", "shade_only", "temporal", "filter"];
 /// Seed of the real-time lighting's random streams (ADR-0005 PCG32).
 const SHADE_SEED: u32 = 0x3B;
 /// Longest edit reach, voxels.
@@ -478,7 +480,7 @@ struct Phases {
     /// `--present-wait`: waiting for earlier presents to reach the display (before `begin`).
     pwait: f64,
     /// GPU pass times (G-buffer, view, ray trace, shade, exposure) of the frame that last used this slot, read in this frame.
-    gpu: [f64; 5],
+    gpu: [f64; 8],
     /// Start of this frame, milliseconds after the run's first frame.
     at: f64,
 }
@@ -638,6 +640,8 @@ struct App {
     adaptation: light::exposure::Adaptation,
     exposure_floor: f64,
     exposure_pending: [bool; FRAMES_IN_FLIGHT],
+    /// F3: the title (and the console, once a second) lists every setting and the GPU time per pass.
+    details: bool,
 }
 
 fn prepare_meshes(world: &World, merge: Merge) -> (Pipeline, Vec<(world::BrickKey, derived::BrickMesh)>) {
@@ -994,7 +998,7 @@ impl App {
         let slot = scene.slot;
         // The slot's previous frame has completed: its timestamps are ready and its token can go.
         if let Some(ms) = s.timer.read(&s.gpu, slot).map_err(e)? {
-            ph.gpu = [ms[0], ms[1], ms[2], ms[3], ms[4]];
+            ph.gpu = std::array::from_fn(|i| ms[i]);
             for (i, v) in ms.iter().enumerate() {
                 for series in [&mut self.all, &mut self.window_series] {
                     series.passes.resize(PASSES.len(), Vec::new());
@@ -1055,6 +1059,8 @@ impl App {
             self.light_switches += 1;
         }
         s.timer.begin_pass(&s.gpu, scene.cmd, slot, 3);
+        // Sub-intervals of slot 3 (F3), always written: shade pass, temporal pass, filter.
+        let mut stamped = [false; 3];
         if let (true, Some(sh), Some(b), Some(o)) = (shaded, &s.shade, &s.shade_bindings, &s.shade_out) {
             // 3C: the sky-view table follows the sun (rebuilt only when the hour changed).
             if self.sky_hour != Some(self.hour) {
@@ -1066,22 +1072,37 @@ impl App {
             targets_to_read(&s.gpu, scene.cmd, targets);
             let set = ShadeSettings { bounce: self.bounce, emitters: lights, emitter_samples: self.args.emitter_samples, ..ShadeSettings::default() };
             let p = shade::Params::new(&camera, &self.sun, set, ShadeFaults::default(), self.frame_index as u32, SHADE_SEED);
+            s.timer.begin_pass(&s.gpu, scene.cmd, slot, 5);
             sh.record(&s.gpu, scene.cmd, b, o, &p);
+            s.timer.end_pass(&s.gpu, scene.cmd, slot, 5);
+            stamped[0] = true;
             // 3D: accumulate. A gap in shading (another view was shown) or turning it back on resets.
             if let (true, Some(tp), Some(tb), Some(h)) = (self.accumulate, &s.temporal, &s.temporal_bindings, s.history.as_mut()) {
                 let gap = self.last_shaded.is_none_or(|f| f + 1 != self.frame_index);
                 let ts = TemporalSettings { max_age: self.args.max_age, ..TemporalSettings::default() };
                 // 4B: a switch of the lights is a light jump.
                 h.set_lights(lights);
+                s.timer.begin_pass(&s.gpu, scene.cmd, slot, 6);
                 tp.record(&s.gpu, scene.cmd, tb, h, &camera, self.sun.sun_dir, ts, TemporalFaults::default(), gap, &self.edits.relight);
+                s.timer.end_pass(&s.gpu, scene.cmd, slot, 6);
+                stamped[1] = true;
                 // 3E: the filter shows the accumulated lighting reconstructed; the history stays raw.
                 if let (true, Some(d), Some(db), Some(dt)) = (self.denoise, &s.denoise, &s.denoise_bindings, &s.denoise_targets) {
                     let ds = DenoiseSettings { prefilter_age: self.prefilter_age, ..DenoiseSettings::default() };
+                    s.timer.begin_pass(&s.gpu, scene.cmd, slot, 7);
                     d.record(&s.gpu, scene.cmd, db, h, dt, ds, DenoiseFaults::default());
+                    s.timer.end_pass(&s.gpu, scene.cmd, slot, 7);
+                    stamped[2] = true;
                 }
             }
             self.edits.relight.clear();
             self.last_shaded = Some(self.frame_index);
+        }
+        for (k, done) in stamped.iter().enumerate() {
+            if !done {
+                s.timer.begin_pass(&s.gpu, scene.cmd, slot, 5 + k as u32);
+                s.timer.end_pass(&s.gpu, scene.cmd, slot, 5 + k as u32);
+            }
         }
         s.timer.end_pass(&s.gpu, scene.cmd, slot, 3);
         // 4B: the automatic exposure's sums of the shown image, read when this slot comes round again.
@@ -1174,7 +1195,7 @@ impl App {
             let p = |v: &[f64], q| percentile(v, q).unwrap_or(f64::NAN);
             let gpu_ms: Vec<String> = PASSES.iter().zip(&w.passes).map(|(n, v)| format!("{n} {:.2}", p(v, 50.0))).collect();
             let (avg, low10, low1) = fps_lows(self.recent.iter().copied()).unwrap_or((f64::NAN, f64::NAN, f64::NAN));
-            s.window.set_title(&format!(
+            let title = format!(
                 "new-engine viewer | {} | {} ({}, R) | filter {} (P) | sun {:.2} h, {:.1}° ([ ] T){} | exposure {} {:.3e} | {:.0} fps (last {} frames: avg {avg:.0}, 10% low {low10:.0}, 1% low {low1:.0}), frame p50 {:.2} p99 {:.2} ms | GPU p50 ms: {} | {:?} {}x{} | snapshot {}, edits {} (last visible in {:.1} ms){}",
                 match self.mode {
                     Mode::Walk => "walk (F: fly)",
@@ -1204,7 +1225,44 @@ impl App {
                     (Some(d), _) => format!(" | night ({}), emitter table not current", d.name()),
                     _ => String::new(),
                 }
-            ));
+            );
+            if self.details {
+                let on = |b: bool| if b { "on" } else { "off" };
+                let g = |i: usize| w.passes.get(i).map_or(f64::NAN, |v| p(v, 50.0));
+                let details = format!(
+                    "F3 details | view {} | [B] bounce {} | [N] filter {} | [H] accumulate {} | [L] lights {}{} | emitter samples {} | exposure {} {:.3e} ([-/=] {:+.2} stops) | [T] day {} at {:.2} h, sun {:.1} deg | history max age {}, cap now {} | {:.0} fps, 1% low {:.0}, frame p50 {:.2} p99 {:.2} ms | GPU p50 ms: gbuffer {:.2}, shade {:.2} = shade pass {:.2} + temporal {:.2} + filter {:.2}, exposure {:.3}, view {:.2}",
+                    self.view.name(),
+                    on(self.bounce),
+                    if !self.denoise || !self.accumulate { "off".to_string() } else if self.prefilter_age == u32::MAX { "3E".to_string() } else { format!("prefilter_age {}", self.prefilter_age) },
+                    on(self.accumulate),
+                    if self.args.night.is_none() { "n/a (street)" } else { on(lights) },
+                    if self.args.night.is_some() { format!(" ({}{})", self.args.lights.name(), if self.lights_flip { ", flipped" } else { "" }) } else { String::new() },
+                    if lights { self.args.emitter_samples.to_string() } else { "-".to_string() },
+                    if self.exposure_auto { "auto" } else { "sky" },
+                    lighting.light_exposure,
+                    self.light_stops,
+                    if self.run_day { "running" } else { "stopped" },
+                    self.hour,
+                    light::sun::elevation_deg(self.sun.sun_dir),
+                    self.args.max_age,
+                    s.history.as_ref().map_or(0, |h| h.age_cap),
+                    avg,
+                    low1,
+                    p(&w.frame, 50.0),
+                    p(&w.frame, 99.0),
+                    g(0),
+                    g(3),
+                    g(5),
+                    g(6),
+                    g(7),
+                    g(4),
+                    g(1)
+                );
+                eprintln!("{details}");
+                s.window.set_title(&details);
+            } else {
+                s.window.set_title(&title);
+            }
             self.window_series = Series::default();
             self.window_start = Instant::now();
         }
@@ -1725,6 +1783,9 @@ impl ApplicationHandler for App {
                         if code == KeyCode::KeyL {
                             self.lights_flip = !self.lights_flip;
                         }
+                        if code == KeyCode::F3 {
+                            self.details = !self.details;
+                        }
                         if code == KeyCode::Digit8 {
                             self.view = match self.view {
                                 View::HistoryAge => View::HistoryReason,
@@ -1891,6 +1952,7 @@ fn main() {
         adaptation: light::exposure::Adaptation::default(),
         exposure_floor: 0.0,
         exposure_pending: [false; FRAMES_IN_FLIGHT],
+        details: false,
     };
     if app.args.night.is_some() {
         app.emission = light::emitters::emission(app.world.materials()).expect("the night scene's emission is valid (4A)");
