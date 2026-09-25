@@ -9,3 +9,6 @@
 *.png binary
 *.bmp binary
 *.xls binary
+
+# Windows batch files need CRLF line endings (run-local.cmd, docs/CLOUD.md).
+*.cmd text eol=crlf

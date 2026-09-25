@@ -1,0 +1,7 @@
+# 4A: diagnostic_g4_cpu_convergence (gpu/tests/emitters.rs, --ignored; CPU only), cloud session, Linux x86_64, 4 threads, 2026-09-25.
+# Command: cargo test --release -j 2 -p gpu --test emitters diagnostic_g4 -- --ignored --nocapture (gpu crate built with a substitute VULKAN_SDK holding the pinned slangc's Linux release).
+# Lines as printed (filtered with grep for the result lines):
+G4 diagnostic street_view: cpu 256 [2.0729e-4 1.3535e-4 9.6433e-5], cpu 4096 [2.0716e-4 1.3143e-4 9.2014e-5]; 4096 / 256 − 1 = [-0.0006, -0.0289, -0.0458], z [-0.03, -1.81, -2.12] (90 s, 4 threads)
+G4 diagnostic low: cpu 256 [1.6737e-4 1.4440e-4 1.0663e-4], cpu 4096 [1.6853e-4 1.4453e-4 1.0624e-4]; 4096 / 256 − 1 = [0.0069, 0.0009, -0.0036], z [1.47, 0.08, -0.23] (74 s, 4 threads)
+test diagnostic_g4_cpu_convergence ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 163.77s

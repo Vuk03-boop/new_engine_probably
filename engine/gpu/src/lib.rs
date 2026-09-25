@@ -25,6 +25,7 @@
 //! - [`temporal`] (3D): reprojection, per-pixel history with age and rejection reasons (ADR-0006);
 //!   3E: relight boxes and the sun-motion age cap (Amendment 1).
 //! - [`denoise`] (3E): the native reconstruction (SVGF-style, on the exact guides).
+//! - [`emitters`] (4A): the emitter table from region meshes, and its device upload.
 
 pub mod accel;
 pub mod alloc;
@@ -32,6 +33,7 @@ pub mod context;
 pub mod debug_view;
 pub mod decode;
 pub mod denoise;
+pub mod emitters;
 pub mod equivalence;
 pub mod layout;
 pub mod mesh;

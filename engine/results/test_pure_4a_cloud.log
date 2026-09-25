@@ -1,0 +1,431 @@
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running unittests src/lib.rs (target/release/deps/derived-7961a5b03a1c8991)
+
+running 12 tests
+test mesh::tests::diagonal_edge_ray_is_the_documented_difference ... ok
+test mesh::tests::single_voxel_gives_six_unit_quads_facing_out ... ok
+test mesh::tests::faces_hidden_by_a_neighbour_brick_are_not_emitted ... ok
+test slots::tests::exhausted_generation_retires_the_slot ... ok
+test slots::tests::double_free_and_stale_free_are_rejected ... ok
+test mesh::tests::greedy_merges_a_slab_but_never_across_materials ... ok
+test slots::tests::free_slots_are_reused_lowest_first ... ok
+test slots::tests::freed_handle_stops_resolving_and_reuse_gets_a_new_generation ... ok
+test surface::tests::affected_keys_interior_edge_and_corner ... ok
+test surface::tests::dependency_check_is_exact_not_brick_granular ... ok
+test surface::tests::single_and_adjacent_voxels ... ok
+test surface::tests::neighbour_brick_hides_boundary_faces ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/perf_phase1.rs (target/release/deps/perf_phase1-d1d86e0c8bf79ca5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/memory_account.rs (target/release/deps/memory_account-2659d47286a15827)
+
+running 1 test
+jobs in flight 0: live 761488 <= measured 1089704 <= reserved 1596040 (0.683 of reserved)
+one snapshot 0: live 1530380 <= measured 3031376 <= reserved 5036448 (0.602 of reserved)
+two snapshots 0: live 1661016 <= measured 3276512 <= reserved 5444992 (0.602 of reserved)
+after release 0: live 1609732 <= measured 3184896 <= reserved 5280144 (0.603 of reserved)
+publish transient peak above the pre-publish heap: 2481896 bytes; snapshot tables: one Usage { live: 1283060, reserved: 4595776 }, two Usage { live: 1398016, reserved: 4993632 }
+test reported_pipeline_memory_brackets_measured_heap ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests/mesh.rs (target/release/deps/mesh-e84858c0a3663621)
+
+running 8 tests
+test negative_controls_coverage_checker_reports_planted_defects ... ok
+test pipeline_publishes_meshes_equal_to_direct_extraction_in_both_modes ... ok
+random seed 11, merge none: 2000 rays, 593 hits, 0 disagreements
+random seed 11, merge greedy: 2000 rays, 593 hits, 0 disagreements
+random seed 12, merge none: 2000 rays, 474 hits, 0 disagreements
+random seed 12, merge greedy: 2000 rays, 474 hits, 0 disagreements
+random seed 13, merge none: 2000 rays, 634 hits, 0 disagreements
+random seed 13, merge greedy: 2000 rays, 634 hits, 0 disagreements
+rays in the chunk plane x = 0: 200 rays, 62 hits, 0 disagreements
+test rays_agree_with_the_voxel_dda_across_chunk_boundaries ... ok
+street greedy, corners only: 1170 unmatched directed edges, e.g. Some("edge [0, 0, -16]→[0, 0, -4] ×1 has no matching reverse")
+test negative_control_ray_checker_reports_a_shifted_face ... ok
+street, merge none: 3000 rays, 1311 hits, 0 disagreements
+street, merge greedy: 3000 rays, 1311 hits, 0 disagreements
+test rays_agree_with_the_voxel_dda_on_the_street ... ok
+street, merge none: 520540 quads, 1041080 watertight triangles, 2082160 vertices
+test coverage_is_exact_on_the_street_and_random_worlds ... ok
+test negative_control_unsplit_greedy_has_t_junctions ... ok
+street, merge greedy: 10503 quads, 275890 watertight triangles, 286546 vertices
+random seed 1, merge none: 14840 quads, 29680 watertight triangles, 59360 vertices
+random seed 1, merge greedy: 1642 quads, 12586 watertight triangles, 14496 vertices
+random seed 2, merge none: 14784 quads, 29568 watertight triangles, 59136 vertices
+random seed 2, merge greedy: 1660 quads, 12426 watertight triangles, 14385 vertices
+random seed 3, merge none: 13816 quads, 27632 watertight triangles, 55264 vertices
+random seed 3, merge greedy: 1582 quads, 12072 watertight triangles, 13978 vertices
+random seed 4, merge none: 14760 quads, 29520 watertight triangles, 59040 vertices
+random seed 4, merge greedy: 1644 quads, 12680 watertight triangles, 14585 vertices
+test watertight_triangulation_shares_every_edge ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
+
+     Running tests/persisted.rs (target/release/deps/persisted-004278d3dfab22b4)
+
+running 1 test
+test reloaded_world_publishes_the_oracle_and_commits_feed_edit_batches ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s
+
+     Running tests/scenarios.rs (target/release/deps/scenarios-138a38b5418e232c)
+
+running 15 tests
+test boundary_edit_rederives_the_neighbour_and_removes_empty_bricks ... ok
+test duplicate_completion_is_rejected ... ok
+test edit_batches_sharing_a_key_merge_into_one_publication ... ok
+test initial_population_matches_oracle ... ok
+test negative_control_missing_neighbour_dirty_is_caught ... ok
+test negative_control_retiring_without_readers_is_caught ... ok
+test neighbour_interior_change_is_accepted_by_content ... ok
+test publication_holds_the_prior_snapshot_until_the_whole_set_is_ready ... ok
+test redirtied_target_cancels_the_in_flight_job ... ok
+test retirement_waits_for_readers_and_reused_slots_reject_old_handles ... ok
+test staged_result_is_revalidated_at_publication_after_an_unnotified_change ... ok
+test unnotified_face_change_is_rejected_as_stale ... ok
+test overload_is_bounded_lossless_and_deterministic ... ok
+test sustained_edits_defer_publication_and_recover ... ok
+1-voxel edit: 292 shards, 291 shared with the previous snapshot, 1 chunks touched
+test publication_shares_unchanged_shards_and_keeps_old_snapshots_intact ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests/stress.rs (target/release/deps/stress-da61faa5a4976fd3)
+
+running 5 tests
+skip_neighbour_dirty: detected on 4 of 4 seeds; first: Some("step 822: snapshot SnapshotId(1) published an edit batch half-way: 8 of 9 keys; first unpublished [BrickKey { chunk: ChunkCoord { x: 0, y: -1, z: -1 }, brick: BrickIndex(48) }]")
+retire_without_readers: detected on 4 of 4 seeds; first: Some("step 1017: snapshot SnapshotId(1) entry BrickKey { chunk: ChunkCoord { x: -1, y: 0, z: -1 }, brick: BrickIndex(51) } dangles (handle Handle { index: 131, generation: 1 })")
+test stress_is_deterministic ... ok
+skip_cancel + skip_stale_check: detected on 4 of 4 seeds; first: Some("step 950: snapshot SnapshotId(1): key BrickKey { chunk: ChunkCoord { x: 0, y: -1, z: 0 }, brick: BrickIndex(26) } is stale: got Some(BrickMesh { quads: [Quad { material: MaterialId(2), face: 0, plane: 0, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(0), face: 0, plane: 0, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(2), face: 0, plane: 0, u0: 4, v0: 3, u1: 5, v1: 4 }, Quad { material: MaterialId(2), face: 0, plane: 0, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(2), face: 0, plane: 0, u0: 3, v0: 7, u1: 4, v1: 8 }, Quad { material: MaterialId(1), face: 0, plane: 0, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(1), face: 0, plane: 1, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(1), face: 0, plane: 1, u0: 7, v0: 5, u1: 8, v1: 6 }, Quad { material: MaterialId(3), face: 0, plane: 2, u0: 3, v0: 4, u1: 4, v1: 5 }, Quad { material: MaterialId(3), face: 0, plane: 3, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 0, plane: 3, u0: 0, v0: 2, u1: 1, v1: 3 }, Quad { material: MaterialId(2), face: 0, plane: 4, u0: 7, v0: 3, u1: 8, v1: 4 }, Quad { material: MaterialId(1), face: 0, plane: 5, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 0, plane: 7, u0: 0, v0: 0, u1: 1, v1: 2 }, Quad { material: MaterialId(2), face: 0, plane: 7, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 0, plane: 7, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 0, plane: 7, u0: 0, v0: 4, u1: 1, v1: 5 }, Quad { material: MaterialId(3), face: 0, plane: 7, u0: 7, v0: 4, u1: 8, v1: 5 }, Quad { material: MaterialId(0), face: 0, plane: 7, u0: 1, v0: 5, u1: 2, v1: 6 }, Quad { material: MaterialId(3), face: 0, plane: 7, u0: 7, v0: 6, u1: 8, v1: 7 }, Quad { material: MaterialId(2), face: 0, plane: 7, u0: 1, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(0), face: 0, plane: 7, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(0), face: 1, plane: 1, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 4, v0: 3, u1: 5, v1: 4 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 3, v0: 7, u1: 4, v1: 8 }, Quad { material: MaterialId(1), face: 1, plane: 1, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(1), face: 1, plane: 2, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(1), face: 1, plane: 2, u0: 7, v0: 5, u1: 8, v1: 6 }, Quad { material: MaterialId(3), face: 1, plane: 3, u0: 3, v0: 4, u1: 4, v1: 5 }, Quad { material: MaterialId(3), face: 1, plane: 4, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 1, plane: 4, u0: 0, v0: 2, u1: 1, v1: 3 }, Quad { material: MaterialId(2), face: 1, plane: 5, u0: 7, v0: 3, u1: 8, v1: 4 }, Quad { material: MaterialId(1), face: 1, plane: 6, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 1, plane: 8, u0: 0, v0: 0, u1: 1, v1: 2 }, Quad { material: MaterialId(2), face: 1, plane: 8, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 1, plane: 8, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 1, plane: 8, u0: 0, v0: 4, u1: 1, v1: 5 }, Quad { material: MaterialId(3), face: 1, plane: 8, u0: 7, v0: 4, u1: 8, v1: 5 }, Quad { material: MaterialId(0), face: 1, plane: 8, u0: 1, v0: 5, u1: 2, v1: 6 }, Quad { material: MaterialId(3), face: 1, plane: 8, u0: 7, v0: 6, u1: 8, v1: 7 }, Quad { material: MaterialId(2), face: 1, plane: 8, u0: 1, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(0), face: 1, plane: 8, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 0, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(0), face: 2, plane: 0, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(1), face: 2, plane: 0, u0: 2, v0: 3, u1: 3, v1: 4 }, Quad { material: MaterialId(2), face: 2, plane: 0, u0: 0, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(3), face: 2, plane: 0, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(0), face: 2, plane: 1, u0: 5, v0: 7, u1: 6, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 1, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 3, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 2, plane: 3, u0: 0, v0: 1, u1: 1, v1: 2 }, Quad { material: MaterialId(3), face: 2, plane: 3, u0: 4, v0: 2, u1: 5, v1: 3 }, Quad { material: MaterialId(2), face: 2, plane: 3, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 4, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 2, plane: 4, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 7, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(1), face: 2, plane: 7, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 2, plane: 7, u0: 5, v0: 1, u1: 6, v1: 2 }, Quad { material: MaterialId(3), face: 2, plane: 7, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(2), face: 2, plane: 7, u0: 3, v0: 4, u1: 4, v1: 5 }, Quad { material: MaterialId(1), face: 2, plane: 7, u0: 7, v0: 5, u1: 8, v1: 6 }, Quad { material: MaterialId(0), face: 2, plane: 7, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(3), face: 2, plane: 7, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(3), face: 2, plane: 7, u0: 6, v0: 7, u1: 7, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 1, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(0), face: 3, plane: 1, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(2), face: 3, plane: 1, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 3, plane: 1, u0: 2, v0: 3, u1: 3, v1: 4 }, Quad { material: MaterialId(2), face: 3, plane: 1, u0: 0, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(3), face: 3, plane: 1, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(0), face: 3, plane: 2, u0: 5, v0: 7, u1: 6, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 2, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 4, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 3, plane: 4, u0: 0, v0: 1, u1: 1, v1: 2 }, Quad { material: MaterialId(3), face: 3, plane: 4, u0: 4, v0: 2, u1: 5, v1: 3 }, Quad { material: MaterialId(2), face: 3, plane: 4, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 5, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 3, plane: 5, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 8, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(1), face: 3, plane: 8, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 3, plane: 8, u0: 5, v0: 1, u1: 6, v1: 2 }, Quad { material: MaterialId(3), face: 3, plane: 8, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(2), face: 3, plane: 8, u0: 3, v0: 4, u1: 4, v1: 5 }, Quad { material: MaterialId(1), face: 3, plane: 8, u0: 7, v0: 5, u1: 8, v1: 6 }, Quad { material: MaterialId(0), face: 3, plane: 8, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(3), face: 3, plane: 8, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(3), face: 3, plane: 8, u0: 6, v0: 7, u1: 7, v1: 8 }, Quad { material: MaterialId(2), face: 4, plane: 0, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 4, plane: 0, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 4, plane: 0, u0: 1, v0: 3, u1: 2, v1: 4 }, Quad { material: MaterialId(2), face: 4, plane: 0, u0: 7, v0: 3, u1: 8, v1: 4 }, Quad { material: MaterialId(3), face: 4, plane: 0, u0: 3, v0: 7, u1: 4, v1: 8 }, Quad { material: MaterialId(0), face: 4, plane: 0, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(1), face: 4, plane: 2, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 4, plane: 3, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 4, plane: 3, u0: 0, v0: 4, u1: 1, v1: 5 }, Quad { material: MaterialId(2), face: 4, plane: 3, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(3), face: 4, plane: 4, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 4, plane: 4, u0: 2, v0: 3, u1: 3, v1: 4 }, Quad { material: MaterialId(3), face: 4, plane: 4, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(0), face: 4, plane: 5, u0: 7, v0: 1, u1: 8, v1: 2 }, Quad { material: MaterialId(1), face: 4, plane: 5, u0: 1, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(3), face: 4, plane: 6, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 4, plane: 7, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 4, plane: 7, u0: 7, v0: 1, u1: 8, v1: 2 }, Quad { material: MaterialId(2), face: 4, plane: 7, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(0), face: 4, plane: 7, u0: 7, v0: 4, u1: 8, v1: 5 }, Quad { material: MaterialId(1), face: 4, plane: 7, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(1), face: 4, plane: 7, u0: 5, v0: 7, u1: 6, v1: 8 }, Quad { material: MaterialId(2), face: 5, plane: 1, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(1), face: 5, plane: 1, u0: 1, v0: 3, u1: 2, v1: 4 }, Quad { material: MaterialId(2), face: 5, plane: 1, u0: 7, v0: 3, u1: 8, v1: 4 }, Quad { material: MaterialId(2), face: 5, plane: 1, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(3), face: 5, plane: 1, u0: 3, v0: 7, u1: 4, v1: 8 }, Quad { material: MaterialId(0), face: 5, plane: 1, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 5, plane: 2, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 5, plane: 3, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 5, plane: 4, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 5, plane: 4, u0: 0, v0: 4, u1: 1, v1: 5 }, Quad { material: MaterialId(2), face: 5, plane: 4, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(3), face: 5, plane: 5, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 5, plane: 5, u0: 2, v0: 3, u1: 3, v1: 4 }, Quad { material: MaterialId(3), face: 5, plane: 5, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(0), face: 5, plane: 6, u0: 7, v0: 1, u1: 8, v1: 2 }, Quad { material: MaterialId(1), face: 5, plane: 6, u0: 1, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(3), face: 5, plane: 7, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 5, plane: 8, u0: 7, v0: 1, u1: 8, v1: 2 }, Quad { material: MaterialId(2), face: 5, plane: 8, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(0), face: 5, plane: 8, u0: 7, v0: 4, u1: 8, v1: 5 }, Quad { material: MaterialId(1), face: 5, plane: 8, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(1), face: 5, plane: 8, u0: 5, v0: 7, u1: 6, v1: 8 }] }), want Some(BrickMesh { quads: [Quad { material: MaterialId(2), face: 0, plane: 0, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(0), face: 0, plane: 0, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(2), face: 0, plane: 0, u0: 4, v0: 3, u1: 5, v1: 4 }, Quad { material: MaterialId(2), face: 0, plane: 0, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(2), face: 0, plane: 0, u0: 3, v0: 7, u1: 4, v1: 8 }, Quad { material: MaterialId(1), face: 0, plane: 0, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(1), face: 0, plane: 1, u0: 7, v0: 5, u1: 8, v1: 6 }, Quad { material: MaterialId(3), face: 0, plane: 2, u0: 3, v0: 4, u1: 4, v1: 5 }, Quad { material: MaterialId(3), face: 0, plane: 3, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 0, plane: 3, u0: 0, v0: 2, u1: 1, v1: 3 }, Quad { material: MaterialId(2), face: 0, plane: 4, u0: 7, v0: 3, u1: 8, v1: 4 }, Quad { material: MaterialId(1), face: 0, plane: 5, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 0, plane: 7, u0: 0, v0: 0, u1: 1, v1: 2 }, Quad { material: MaterialId(2), face: 0, plane: 7, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 0, plane: 7, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 0, plane: 7, u0: 0, v0: 4, u1: 1, v1: 5 }, Quad { material: MaterialId(3), face: 0, plane: 7, u0: 7, v0: 4, u1: 8, v1: 5 }, Quad { material: MaterialId(0), face: 0, plane: 7, u0: 1, v0: 5, u1: 2, v1: 6 }, Quad { material: MaterialId(3), face: 0, plane: 7, u0: 7, v0: 6, u1: 8, v1: 7 }, Quad { material: MaterialId(2), face: 0, plane: 7, u0: 1, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(0), face: 0, plane: 7, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(0), face: 1, plane: 1, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 4, v0: 3, u1: 5, v1: 4 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(2), face: 1, plane: 1, u0: 3, v0: 7, u1: 4, v1: 8 }, Quad { material: MaterialId(1), face: 1, plane: 1, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(1), face: 1, plane: 2, u0: 7, v0: 5, u1: 8, v1: 6 }, Quad { material: MaterialId(3), face: 1, plane: 3, u0: 3, v0: 4, u1: 4, v1: 5 }, Quad { material: MaterialId(3), face: 1, plane: 4, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 1, plane: 4, u0: 0, v0: 2, u1: 1, v1: 3 }, Quad { material: MaterialId(2), face: 1, plane: 5, u0: 7, v0: 3, u1: 8, v1: 4 }, Quad { material: MaterialId(1), face: 1, plane: 6, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 1, plane: 8, u0: 0, v0: 0, u1: 1, v1: 2 }, Quad { material: MaterialId(2), face: 1, plane: 8, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 1, plane: 8, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 1, plane: 8, u0: 0, v0: 4, u1: 1, v1: 5 }, Quad { material: MaterialId(3), face: 1, plane: 8, u0: 7, v0: 4, u1: 8, v1: 5 }, Quad { material: MaterialId(0), face: 1, plane: 8, u0: 1, v0: 5, u1: 2, v1: 6 }, Quad { material: MaterialId(3), face: 1, plane: 8, u0: 7, v0: 6, u1: 8, v1: 7 }, Quad { material: MaterialId(2), face: 1, plane: 8, u0: 1, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(0), face: 1, plane: 8, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 0, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(0), face: 2, plane: 0, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(1), face: 2, plane: 0, u0: 2, v0: 3, u1: 3, v1: 4 }, Quad { material: MaterialId(2), face: 2, plane: 0, u0: 0, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(3), face: 2, plane: 0, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(0), face: 2, plane: 1, u0: 5, v0: 7, u1: 6, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 1, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 3, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 2, plane: 3, u0: 4, v0: 2, u1: 5, v1: 3 }, Quad { material: MaterialId(2), face: 2, plane: 3, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 4, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 2, plane: 4, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 2, plane: 7, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(1), face: 2, plane: 7, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 2, plane: 7, u0: 5, v0: 1, u1: 6, v1: 2 }, Quad { material: MaterialId(3), face: 2, plane: 7, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(2), face: 2, plane: 7, u0: 3, v0: 4, u1: 4, v1: 5 }, Quad { material: MaterialId(1), face: 2, plane: 7, u0: 7, v0: 5, u1: 8, v1: 6 }, Quad { material: MaterialId(0), face: 2, plane: 7, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(3), face: 2, plane: 7, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(3), face: 2, plane: 7, u0: 6, v0: 7, u1: 7, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 1, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(0), face: 3, plane: 1, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(2), face: 3, plane: 1, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 3, plane: 1, u0: 2, v0: 3, u1: 3, v1: 4 }, Quad { material: MaterialId(2), face: 3, plane: 1, u0: 0, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(3), face: 3, plane: 1, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(0), face: 3, plane: 2, u0: 5, v0: 7, u1: 6, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 2, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 4, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 3, plane: 4, u0: 4, v0: 2, u1: 5, v1: 3 }, Quad { material: MaterialId(2), face: 3, plane: 4, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 5, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 3, plane: 5, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 3, plane: 8, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(1), face: 3, plane: 8, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 3, plane: 8, u0: 5, v0: 1, u1: 6, v1: 2 }, Quad { material: MaterialId(3), face: 3, plane: 8, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(2), face: 3, plane: 8, u0: 3, v0: 4, u1: 4, v1: 5 }, Quad { material: MaterialId(1), face: 3, plane: 8, u0: 7, v0: 5, u1: 8, v1: 6 }, Quad { material: MaterialId(0), face: 3, plane: 8, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(3), face: 3, plane: 8, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(3), face: 3, plane: 8, u0: 6, v0: 7, u1: 7, v1: 8 }, Quad { material: MaterialId(2), face: 4, plane: 0, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 4, plane: 0, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(2), face: 4, plane: 0, u0: 7, v0: 3, u1: 8, v1: 4 }, Quad { material: MaterialId(3), face: 4, plane: 0, u0: 3, v0: 7, u1: 4, v1: 8 }, Quad { material: MaterialId(0), face: 4, plane: 0, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(1), face: 4, plane: 2, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 4, plane: 3, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 4, plane: 3, u0: 0, v0: 4, u1: 1, v1: 5 }, Quad { material: MaterialId(2), face: 4, plane: 3, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(3), face: 4, plane: 4, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 4, plane: 4, u0: 2, v0: 3, u1: 3, v1: 4 }, Quad { material: MaterialId(3), face: 4, plane: 4, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(0), face: 4, plane: 5, u0: 7, v0: 1, u1: 8, v1: 2 }, Quad { material: MaterialId(1), face: 4, plane: 5, u0: 1, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(3), face: 4, plane: 6, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 4, plane: 7, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 4, plane: 7, u0: 7, v0: 1, u1: 8, v1: 2 }, Quad { material: MaterialId(2), face: 4, plane: 7, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(0), face: 4, plane: 7, u0: 7, v0: 4, u1: 8, v1: 5 }, Quad { material: MaterialId(1), face: 4, plane: 7, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(1), face: 4, plane: 7, u0: 5, v0: 7, u1: 6, v1: 8 }, Quad { material: MaterialId(2), face: 5, plane: 1, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 5, plane: 1, u0: 7, v0: 3, u1: 8, v1: 4 }, Quad { material: MaterialId(2), face: 5, plane: 1, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(3), face: 5, plane: 1, u0: 3, v0: 7, u1: 4, v1: 8 }, Quad { material: MaterialId(0), face: 5, plane: 1, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 5, plane: 2, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(1), face: 5, plane: 3, u0: 3, v0: 0, u1: 4, v1: 1 }, Quad { material: MaterialId(0), face: 5, plane: 4, u0: 0, v0: 0, u1: 1, v1: 1 }, Quad { material: MaterialId(2), face: 5, plane: 4, u0: 0, v0: 4, u1: 1, v1: 5 }, Quad { material: MaterialId(2), face: 5, plane: 4, u0: 4, v0: 7, u1: 5, v1: 8 }, Quad { material: MaterialId(3), face: 5, plane: 5, u0: 7, v0: 0, u1: 8, v1: 1 }, Quad { material: MaterialId(3), face: 5, plane: 5, u0: 2, v0: 3, u1: 3, v1: 4 }, Quad { material: MaterialId(3), face: 5, plane: 5, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(0), face: 5, plane: 6, u0: 7, v0: 1, u1: 8, v1: 2 }, Quad { material: MaterialId(1), face: 5, plane: 6, u0: 1, v0: 7, u1: 2, v1: 8 }, Quad { material: MaterialId(3), face: 5, plane: 7, u0: 7, v0: 7, u1: 8, v1: 8 }, Quad { material: MaterialId(2), face: 5, plane: 8, u0: 7, v0: 1, u1: 8, v1: 2 }, Quad { material: MaterialId(2), face: 5, plane: 8, u0: 0, v0: 3, u1: 1, v1: 4 }, Quad { material: MaterialId(0), face: 5, plane: 8, u0: 7, v0: 4, u1: 8, v1: 5 }, Quad { material: MaterialId(1), face: 5, plane: 8, u0: 0, v0: 7, u1: 1, v1: 8 }, Quad { material: MaterialId(1), face: 5, plane: 8, u0: 5, v0: 7, u1: 6, v1: 8 }] })")
+publish_partial_groups: detected on 4 of 4 seeds; first: Some("step 6: snapshot SnapshotId(1) published an edit batch half-way: 3 of 216 keys; first unpublished [BrickKey { chunk: ChunkCoord { x: -1, y: -1, z: -1 }, brick: BrickIndex(21) }, BrickKey { chunk: ChunkCoord { x: -1, y: -1, z: -1 }, brick: BrickIndex(22) }, BrickKey { chunk: ChunkCoord { x: -1, y: -1, z: -1 }, brick: BrickIndex(23) }]")
+test negative_controls_each_guard_is_needed ... ok
+seed 0x1: Stats { dirtied: 1878, coalesced: 118, overflow_deferred: 912, max_queue: 8, max_overflow: 208, groups_merged: 99, max_group_len: 248, dispatched: 1769, accepted: 1742, accepted_by_content: 23, rejected_cancelled: 18, rejected_stale: 9, rejected_stale_at_publish: 0, rejected_unknown: 0, staged_discarded: 197, publish_deferred: 424, published: 107, groups_published: 136, retired: 1139, freed: 1139 }, publishes checked 107, reader reads checked 206266, batches checked 235
+seed 0xdeadbeef: Stats { dirtied: 1973, coalesced: 101, overflow_deferred: 1055, max_queue: 8, max_overflow: 208, groups_merged: 122, max_group_len: 237, dispatched: 1884, accepted: 1849, accepted_by_content: 31, rejected_cancelled: 23, rejected_stale: 12, rejected_stale_at_publish: 0, rejected_unknown: 0, staged_discarded: 296, publish_deferred: 469, published: 103, groups_published: 131, retired: 1162, freed: 1162 }, publishes checked 103, reader reads checked 355006, batches checked 253
+threaded: Stats { dirtied: 1162, coalesced: 103, overflow_deferred: 308, max_queue: 16, max_overflow: 200, groups_merged: 78, max_group_len: 237, dispatched: 1059, accepted: 1051, accepted_by_content: 14, rejected_cancelled: 8, rejected_stale: 0, rejected_stale_at_publish: 0, rejected_unknown: 0, staged_discarded: 87, publish_deferred: 916, published: 229, groups_published: 254, retired: 654, freed: 654 }, publishes checked 229
+test threaded_workers_with_random_delays ... ok
+seed 0x2a: Stats { dirtied: 2068, coalesced: 189, overflow_deferred: 1327, max_queue: 8, max_overflow: 208, groups_merged: 170, max_group_len: 283, dispatched: 1890, accepted: 1848, accepted_by_content: 30, rejected_cancelled: 31, rejected_stale: 11, rejected_stale_at_publish: 0, rejected_unknown: 0, staged_discarded: 594, publish_deferred: 532, published: 66, groups_published: 77, retired: 853, freed: 853 }, publishes checked 66, reader reads checked 111118, batches checked 247
+seed 0x123456789abc: Stats { dirtied: 2066, coalesced: 210, overflow_deferred: 1248, max_queue: 8, max_overflow: 208, groups_merged: 149, max_group_len: 273, dispatched: 1869, accepted: 1841, accepted_by_content: 32, rejected_cancelled: 15, rejected_stale: 13, rejected_stale_at_publish: 0, rejected_unknown: 0, staged_discarded: 575, publish_deferred: 492, published: 74, groups_published: 94, retired: 867, freed: 867 }, publishes checked 74, reader reads checked 40240, batches checked 243
+test random_interleavings_keep_every_invariant ... ok
+test cancellation_and_stale_check_are_independent_guards ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.59s
+
+     Running unittests src/lib.rs (target/release/deps/light-a7cd5dd657ae2dec)
+
+running 31 tests
+test atmosphere::tests::diagnostic_step_dependence_at_twilight ... ignored
+test atmosphere::tests::ground_blocks_a_set_sun ... ok
+test atmosphere::tests::step_layout_covers_the_segment_in_order ... ok
+zenith transmittance, 32 steps: [0.940552609899877, 0.8679503236877831, 0.7628335139085406] vs [0.9403780047209187, 0.8676467557483813, 0.762367200572427], max relative error 6.12e-4
+zenith transmittance, 64 steps: [0.940436061940315, 0.8677608249379953, 0.7624855271703048] vs [0.9403780047209187, 0.8676467557483813, 0.762367200572427], max relative error 1.55e-4
+zenith transmittance, 4096 steps: [0.9403780191381637, 0.8676467842224246, 0.7623672295044414] vs [0.9403780047209187, 0.8676467557483813, 0.762367200572427], max relative error 3.80e-8
+test atmosphere::tests::zenith_transmittance_matches_the_closed_form ... ok
+alias chi2 = 34.78 (df 49, limit 85.35); negative control 1957940679
+test emitters::tests::alias_selection_matches_the_realized_probabilities ... ok
+test emitters::tests::bad_emission_and_stale_snapshots_are_refused ... ok
+test emitters::tests::geometry_and_order_are_canonical ... ok
+test emitters::tests::spherical_rectangle_is_uniform_in_solid_angle ... ok
+test emitters::tests::tiny_emitters_are_never_impossible ... ok
+test emitters::tests::uniform_index_is_uniform_and_in_range ... ok
+test reference::fingerprint::diagnostic_street_fingerprint ... ignored
+test reference::tests::albedos_outside_the_unit_range_are_refused ... ok
+test reference::tests::point_sun_on_a_plane_matches_the_closed_form ... ok
+quadrature hour 6.25 dir [0.0, 1.0, 0.0]: default vs fine [0.00014349649169287382, 0.0006806033682038581, 0.0011961195710454842]
+test reference::tests::white_furnace_is_one ... ok
+test sample::tests::basis_is_orthonormal ... ok
+test sample::tests::phases_integrate_to_one ... ok
+test sample::tests::rng_is_uniform_and_deterministic ... ok
+single [0.0034900801908442983, 0.007159935039578588, 0.014792640697933476], all orders [0.00524357477902471, 0.011531327193267384, 0.02719394991832354]
+test atmosphere::tests::multiple_scattering_adds_light_and_the_sky_is_blue ... ok
+test sky::tests::diagnostic_sky_error_by_elevation_and_ground ... ignored
+test sample::tests::samplers_match_their_pdfs ... ok
+quadrature hour 6.25 dir [0.5270462766947298, 0.10540925533894596, 0.8432740427115677]: default vs fine [0.0004403747699242011, 0.0013026321299907107, 0.002717424162152371]
+dir [0.0, 1.0, 0.0] ch 0: MC 2.817978e-3 ± 3.5e-5, quadrature 2.867386e-3, z -1.40, rel -1.72e-2
+dir [0.0, 1.0, 0.0] ch 1: MC 5.462338e-3 ± 6.9e-5, quadrature 5.554216e-3, z -1.34, rel -1.65e-2
+dir [0.0, 1.0, 0.0] ch 2: MC 1.063105e-2 ± 1.3e-4, quadrature 1.080195e-2, z -1.27, rel -1.58e-2
+quadrature hour 6.25 dir [-0.9936414126574186, 0.022080920281275968, 0.11040460140637985]: default vs fine [0.0010044556846040553, 0.002438575222003303, 0.004104469610027195]
+quadrature hour 6.25 dir [0.10783277320343841, -0.21566554640687682, 0.9704949588309456]: default vs fine [0.0019556083905869492, 0.0040153721803464215, 0.005403056585282284]
+quadrature hour 8 dir [0.0, 1.0, 0.0]: default vs fine [-0.0003770661843035539, -7.724061518743497e-5, 0.00041140305540743327]
+dir [0.34188172937891387, 0.22792115291927592, 0.9116846116771037] ch 0: MC 1.563720e-2 ± 8.7e-5, quadrature 1.560449e-2, z 0.37, rel 2.10e-3
+dir [0.34188172937891387, 0.22792115291927592, 0.9116846116771037] ch 1: MC 2.653046e-2 ± 1.5e-4, quadrature 2.647399e-2, z 0.38, rel 2.13e-3
+dir [0.34188172937891387, 0.22792115291927592, 0.9116846116771037] ch 2: MC 3.944005e-2 ± 2.2e-4, quadrature 3.933760e-2, z 0.46, rel 2.60e-3
+quadrature hour 8 dir [0.5270462766947298, 0.10540925533894596, 0.8432740427115677]: default vs fine [-0.0002585158677277377, 0.00020746567759388768, 0.000913969057591224]
+quadrature hour 8 dir [-0.9936414126574186, 0.022080920281275968, 0.11040460140637985]: default vs fine [0.0002662640816832873, 0.0006380631415090487, 0.0006434071198964109]
+  h 2 mu 0.01 ch 1: table 0.02427 integral(40 steps) 0.02414 exact 0.02414
+transmittance table worst relative error 5.29e-3
+test sky::tests::transmittance_table_matches_the_integral ... ok
+test sky::tests::view_mapping_round_trips ... ok
+sun >= 0°: 82944 values, relative se p50 0.00117 p95 0.00311 max 0.01019
+sun < 0°: 18432 values, relative se p50 0.00332 p95 0.00734 max 0.01220
+samples per texel by slice [67108864, 33554432, 16777216, 4194304, 2097152, 2097152, 2097152, 2097152, 2097152, 2097152, 2097152, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576, 1048576], seed 0x5c0
+test sky_ref::tests::baked_reference_noise_is_within_budget ... ok
+dir [-0.9933387592397013, 0.03311129197465671, 0.1103709732488557] ch 0: MC 4.682238e-2 ± 1.7e-4, quadrature 4.677574e-2, z 0.27, rel 9.97e-4
+dir [-0.9933387592397013, 0.03311129197465671, 0.1103709732488557] ch 1: MC 5.767498e-2 ± 1.5e-4, quadrature 5.761327e-2, z 0.41, rel 1.07e-3
+dir [-0.9933387592397013, 0.03311129197465671, 0.1103709732488557] ch 2: MC 4.772135e-2 ± 1.2e-4, quadrature 4.767602e-2, z 0.36, rel 9.51e-4
+quadrature hour 8 dir [0.10783277320343841, -0.21566554640687682, 0.9704949588309456]: default vs fine [0.0005754337447283486, 0.0011623126937361228, 0.0016507247989054896]
+quadrature hour 12 dir [0.0, 1.0, 0.0]: default vs fine [-0.0006185948774621863, -0.00037328356779564587, 1.770794111344287e-6]
+quadrature hour 12 dir [0.5270462766947298, 0.10540925533894596, 0.8432740427115677]: default vs fine [-0.00029990443048821813, -6.064866202759589e-5, 0.00035265645296522763]
+quadrature hour 12 dir [-0.9936414126574186, 0.022080920281275968, 0.11040460140637985]: default vs fine [4.7596609557665204e-5, 0.00010441026901197858, -0.00012811590336547773]
+quadrature hour 12 dir [0.10783277320343841, -0.21566554640687682, 0.9704949588309456]: default vs fine [0.00027086497509110075, 0.000521474511911979, 0.0008570114375501259]
+quadrature hour 17.75 dir [0.0, 1.0, 0.0]: default vs fine [0.00014349649169287382, 0.0006806033682038581, 0.0011961195710454842]
+dir [0.20628424925175867, -0.309426373877638, 0.9282791216329139] ch 0: MC 2.842803e-2 ± 4.8e-7, quadrature 2.842605e-2, z 4.09, rel 6.97e-5
+dir [0.20628424925175867, -0.309426373877638, 0.9282791216329139] ch 1: MC 2.270461e-2 ± 5.3e-7, quadrature 2.270323e-2, z 2.59, rel 6.08e-5
+dir [0.20628424925175867, -0.309426373877638, 0.9282791216329139] ch 2: MC 1.578085e-2 ± 2.0e-6, quadrature 1.577545e-2, z 2.73, rel 3.42e-4
+test atmosphere::tests::one_event_monte_carlo_matches_single_scattering_quadrature ... ok
+sky reference: wrong magic
+sky reference: 811331 bytes, expected 811332
+quadrature hour 17.75 dir [0.5270462766947298, 0.10540925533894596, 0.8432740427115677]: default vs fine [0.0005176735794147902, 0.0013917216754075756, 0.00276756963874103]
+test sky_ref::tests::file_round_trips_and_refuses_mismatches ... ok
+test sky_ref::tests::grid_directions_map_to_their_texels ... ok
+test sun::tests::equinox_path_at_45_degrees ... ok
+test sun::tests::sun_radiance_times_solid_angle_is_the_irradiance ... ok
+quadrature hour 17.75 dir [-0.9936414126574186, 0.022080920281275968, 0.11040460140637985]: default vs fine [0.0005755709280941268, 0.0020148438838885063, 0.003907893147762298]
+quadrature hour 17.75 dir [0.10783277320343841, -0.21566554640687682, 0.9704949588309456]: default vs fine [0.0019555782254452314, 0.004015281841559748, 0.005403061559402067]
+quadrature hour 18.25 dir [0.0, 1.0, 0.0]: default vs fine [-0.00034877029288771233, 0.0015584348079253907, 0.001438830304978822]
+quadrature hour 18.25 dir [0.5270462766947298, 0.10540925533894596, 0.8432740427115677]: default vs fine [0.00033084062270671843, 0.0032257901473313755, 0.0031253286108128275]
+  dawn el 0.5 az 45: table [0.04224105683536088, 0.022259288171199557, 0.00847715202261327] mc [0.04562980975631972, 0.024733179531526456, 0.009880380676503384] (se [0.0005227115504736084, 0.0002931159202014396, 0.0003595986707111065]) excess 0.058
+quadrature hour 18.25 dir [-0.9936414126574186, 0.022080920281275968, 0.11040460140637985]: default vs fine [0.006752461600023185, 0.003614977506781303, 0.0040600859390524935]
+quadrature hour 18.25 dir [0.10783277320343841, -0.21566554640687682, 0.9704949588309456]: default vs fine [0.0, 0.0, 0.0]
+  dawn el 0.5 az 270: table [0.023077259721167455, 0.013373766047021786, 0.007059310956934358] mc [0.024960000044997575, 0.014761427146306638, 0.00802258926900275] (se [0.00032087383323487184, 0.0001995647392004539, 0.00036477785813672964]) excess 0.051
+CorrectionStats { min: 2.0, max: 2.0, clamped: 0, dark: 0 }
+hour 6.25 dir [0.0, 1.0, 0.0]: 64 vs 512 steps relative difference [0.00027211201883203806, 0.001693728956655205, 0.006524601001054897]
+test sky_ref::tests::correction_is_one_when_uncorrected_and_matches_at_grid_points ... ok
+sky table vs MC dawn: luminance |rel| raw mean 0.0425 p95 0.0845 max 0.0922; beyond 3 se: p95 0.0490; channel beyond 3 se p95 0.0484
+hour 6.25 dir [0.5270462766947298, 0.10540925533894596, 0.8432740427115677]: 64 vs 512 steps relative difference [-0.0004514226949731137, 0.0006335602335449941, 0.0028084617715715687]
+sky table vs MC morning: luminance |rel| raw mean 0.0286 p95 0.0588 max 0.0653; beyond 3 se: p95 0.0290; channel beyond 3 se p95 0.0311
+hour 6.25 dir [-0.9936414126574186, 0.022080920281275968, 0.11040460140637985]: 64 vs 512 steps relative difference [0.0004621310003363188, 0.0016700347698050955, 0.0028032317902888515]
+hour 6.25 dir [0.10783277320343841, -0.21566554640687682, 0.9704949588309456]: 64 vs 512 steps relative difference [0.0012808759738747177, 0.0014807394643054916, 0.00020779798069736621]
+sky table vs MC midday: luminance |rel| raw mean 0.0197 p95 0.0477 max 0.0665; beyond 3 se: p95 0.0117; channel beyond 3 se p95 0.0134
+hour 12 dir [0.0, 1.0, 0.0]: 64 vs 512 steps relative difference [-0.0010890794274280857, -0.0006474718081314057, 0.0007808013081431753]
+  dusk el 0.5 az 45: table [0.027826421325796467, 0.014537901768568378, 0.00692585436517461] mc [0.030419653710395185, 0.016317387873073068, 0.008198031444354107] (se [0.00039562166628953437, 0.00021021184515192007, 0.0003545193200761247]) excess 0.066
+  dusk el 0.5 az 270: table [0.02307725972116746, 0.013373766047021786, 0.007059310956934359] mc [0.024976752162873272, 0.014780953758506956, 0.007974436395236342] (se [0.00032139884353426336, 0.0002000010312758882, 0.0003548405381802729]) excess 0.051
+hour 12 dir [0.5270462766947298, 0.10540925533894596, 0.8432740427115677]: 64 vs 512 steps relative difference [1.5517888937610635e-5, -0.00016452074697070884, -0.00010009542128308624]
+sky table vs MC dusk: luminance |rel| raw mean 0.0445 p95 0.0847 max 0.1023; beyond 3 se: p95 0.0446; channel beyond 3 se p95 0.0436
+test sky::tests::sky_table_matches_the_monte_carlo_sky ... ok
+hour 12 dir [-0.9936414126574186, 0.022080920281275968, 0.11040460140637985]: 64 vs 512 steps relative difference [-5.489225266042119e-5, 0.00024281740425924347, 0.0007383950733579336]
+hour 12 dir [0.10783277320343841, -0.21566554640687682, 0.9704949588309456]: 64 vs 512 steps relative difference [0.00018237405538013007, 0.0003770635364876984, 0.0008706234032702653]
+test atmosphere::tests::default_step_count_is_converged_within_one_percent ... ok
+
+test result: ok. 28 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 6.08s
+
+     Running tests/emitters.rs (target/release/deps/emitters-e12c7ecbd94a3cc9)
+
+running 6 tests
+C2 area false channel 0: mean ratio 0.99977 ± 0.00108, worst pixel |z| 2.37
+C2 area false channel 1: mean ratio 0.99977 ± 0.00108, worst pixel |z| 2.37
+C2 area false channel 2: mean ratio 0.99977 ± 0.00108, worst pixel |z| 2.37
+C2 area true channel 0: mean ratio 0.99952 ± 0.00156, worst pixel |z| 2.42
+C2 area true channel 1: mean ratio 0.99952 ± 0.00156, worst pixel |z| 2.42
+C2 area true channel 2: mean ratio 0.99952 ± 0.00156, worst pixel |z| 2.42
+C2 fault (area false) EmitterFaults { no_solid_angle: true, double_emission: false, no_emitter_cosine: false }: mean ratio 188.6676 ± 0.07400
+C2 fault (area true) EmitterFaults { no_solid_angle: true, double_emission: false, no_emitter_cosine: false }: mean ratio 185.0219 ± 0.07793
+dressing lamps   :   165 emitter quads (lamp 33, sign 132, neon 0, window 0, bulb 0), total power 67.3577
+C2 fault (area true) EmitterFaults { no_solid_angle: false, double_emission: false, no_emitter_cosine: true }: mean ratio 1.1401 ± 0.00137
+test emissive_rectangle_matches_lamberts_formula ... ok
+test emitters_off_ignores_the_table ... ok
+dressing windows :   325 emitter quads (lamp 33, sign 132, neon 0, window 160, bulb 0), total power 76.0874
+night street at 21 h: mean G with lights 1.556e-4, without 0.000e0
+test night_street_renders_finite ... ok
+dressing full    :  1143 emitter quads (lamp 33, sign 132, neon 294, window 160, bulb 524), total power 101.7945
+dressing dense   :  7003 emitter quads (lamp 33, sign 132, neon 294, window 160, bulb 6384), total power 216.8553
+test night_dressing_light_counts ... ok
+test table_identity_follows_geometry_and_snapshots ... ok
+C3: mean ratio 0.99844 ± 0.00149 (expect 1.999992), worst pixel |z| 3.21
+C3 standard error at 1k / 4k / 16k spp, area false: [0.00299, 0.00151, 0.00075]
+C3 standard error at 1k / 4k / 16k spp, area true: [0.00559, 0.00259, 0.00146]
+C3 fault double_emission: mean ratio 1.4958 ± 0.00584
+test emissive_furnace_sums_the_bounces ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.48s
+
+     Running unittests src/lib.rs (target/release/deps/memory-62381af4b1a5e09d)
+
+running 9 tests
+test ledger::tests::device_budget_takes_the_smaller_ceiling_minus_headroom ... ok
+test ledger::tests::grants_track_live_reserved_high_water_and_peak ... ok
+test ledger::tests::refusal_is_deterministic_and_changes_nothing_but_the_counter ... ok
+test ledger::tests::foreign_grants_and_overfull_live_are_rejected ... ok
+test ledger::tests::report_lists_used_categories ... ok
+test tests::category_names_are_unique ... ok
+test tests::container_bounds_hold_live_below_reserved ... ok
+test tests::report_sums_rows_and_splits_host_from_device ... ok
+test tests::tracker_keeps_high_water_per_category_and_total ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/release/deps/walk-a12e4f7a8c2f253b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/collision.rs (target/release/deps/collision-c745fb7b89b4fe3e)
+
+running 13 tests
+test inside_corner_holds ... ok
+test lands_and_rests_exactly_on_the_floor ... ok
+test frame_rate_does_not_change_the_path ... ok
+test resolve_start_lifts_out_of_solid ... ok
+test slides_along_walls_without_snagging ... ok
+test snaps_down_a_curb_instead_of_falling ... ok
+test overlap_check_detects_penetration ... ok
+test step_up_needs_headroom ... ok
+test ceilings_stop_a_jump ... ok
+test thin_walls_and_floors_do_not_tunnel ... ok
+test street_block_curb_and_shop_front ... ok
+step height (voxels) vs obstacle height 1..=8:
+step 0: -- -- -- -- -- -- -- --
+step 2: up up -- -- -- -- -- --
+step 3: up up up -- -- -- -- --
+step 4: up up up up -- -- -- --
+step 6: up up up up up up -- --
+test step_height_sweep ... ok
+random walks: 25705 substeps, 6 steps up, 3 snaps down, 68 jumps, 6 respawns; 1.8 layers and 111 voxels tested per substep; 3.05 us per substep
+test random_walks_never_overlap_the_street_block ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.11s
+
+     Running unittests src/lib.rs (target/release/deps/world-73e8cc8a4f4d2efd)
+
+running 35 tests
+test coords::tests::negative_voxels_use_floor_division ... ok
+test coords::tests::brick_origin_and_offset_cross_chunk_edges ... ok
+test edit::tests::apply_matches_direct_writes_including_versions ... ok
+test edit::tests::transaction_with_an_unknown_material_changes_nothing ... ok
+test edit::tests::empty_and_no_op_transactions_keep_the_version ... ok
+test material::tests::duplicate_name_is_rejected_without_side_effects ... ok
+test material::tests::ids_are_stable_and_in_registration_order ... ok
+test material::tests::unknown_id_is_not_contained ... ok
+test persist::codec::tests::crc32_matches_the_standard_check_value ... ok
+test coords::tests::split_join_round_trip_including_negatives_and_boundaries ... ok
+test coords::tests::neighbouring_voxels_across_brick_and_chunk_edges_get_distinct_slots ... ok
+test persist::codec::tests::reader_round_trips_and_reports_truncation ... ok
+test reference::tests::half_open_faces ... ok
+test reference::tests::exact_edge_graze_is_not_a_hit ... ok
+test reference::tests::hits_from_each_axis_direction_with_correct_face ... ok
+test reference::tests::misses_and_empty_world ... ok
+test reference::tests::negative_coordinates_hit ... ok
+test reference::tests::origin_inside_hits_at_zero_without_face ... ok
+test reference::tests::t_max_is_inclusive ... ok
+
+thread 'reference::tests::zero_direction_is_rejected' (7981) panicked at world/src/reference.rs:61:5:
+ray direction must be finite and non-zero: Ray { origin: [0.0, 0.0, 0.0], dir: [0.0, 0.0, 0.0] }
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+   1: core::panicking::panic_fmt
+   2: world::reference::check_ray
+   3: world::reference::trace
+   4: <world::reference::tests::zero_direction_is_rejected::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+test material::tests::registry_capacity_is_the_full_u16_range ... ok
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+test reference::tests::zero_direction_is_rejected - should panic ... ok
+test world::tests::bounds_are_chunk_granular_and_cover_all_voxels ... ok
+test world::tests::clearing_empty_space_allocates_nothing ... ok
+test world::tests::clearing_last_voxel_frees_brick_then_chunk ... ok
+test world::tests::empty_world_reads_empty_and_stores_nothing ... ok
+test world::tests::material_identity_is_exact_and_overwrite_replaces_it ... ok
+test world::tests::payload_estimate_scales_with_stored_bricks_only ... ok
+test world::tests::recreated_brick_never_reuses_an_old_version ... ok
+test world::tests::same_edits_give_identical_worlds_and_order_independent_content ... ok
+test world::tests::set_get_round_trip_across_brick_and_chunk_edges ... ok
+test world::tests::unknown_material_is_rejected_and_changes_nothing ... ok
+test world::tests::versions_advance_only_on_real_changes_and_only_for_the_touched_brick ... ok
+test scene::tests::scene_contains_every_registered_material ... ok
+test scene::tests::generator_is_deterministic ... ok
+test scene::tests::night_street_keeps_the_day_street_and_adds_lights ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.84s
+
+     Running unittests src/bin/persist_cost.rs (target/release/deps/persist_cost-7a5b6af2bbff0202)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/ref_render.rs (target/release/deps/ref_render-a47fb37eddf79b2c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/memory_account.rs (target/release/deps/memory_account-5ab4b8ee6fc4d263)
+
+running 1 test
+street_block 0: live 5830902 <= measured 5924240 <= reserved 6119920 (0.968 of reserved)
+random seed 1: live 6449488 <= measured 6574644 <= reserved 6895276 (0.953 of reserved)
+random seed 2: live 6607880 <= measured 6742852 <= reserved 7093068 (0.951 of reserved)
+random seed 3: live 6538208 <= measured 6640452 <= reserved 7014292 (0.947 of reserved)
+random seed 4: live 6674452 <= measured 6806644 <= reserved 7151068 (0.952 of reserved)
+test reported_world_memory_brackets_measured_heap ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running tests/persist.rs (target/release/deps/persist-b681e0dc9952ced4)
+
+running 14 tests
+test format_matches_the_checked_in_fixture ... ok
+test every_single_byte_flip_in_a_journal_is_detected_or_dropped_as_the_tail ... ok
+test journal_must_continue_the_snapshot ... ok
+test materials_map_by_name_and_missing_names_fail_loudly ... ok
+test remapped_store_requires_a_snapshot_before_commits ... ok
+snapshot flips checked: 1350 bytes
+test crash_between_snapshot_and_journal_restart_loads_and_continues ... ok
+test every_single_byte_flip_in_a_snapshot_is_detected ... ok
+test random_and_empty_worlds_round_trip_exactly ... ok
+test store_open_repairs_a_torn_tail_and_continues ... ok
+test snapshot_plus_journal_replay_equals_the_live_world ... ok
+test torn_tail_at_every_offset_drops_only_the_last_transaction ... ok
+test unknown_major_version_is_refused_and_unknown_sections_are_skipped ... ok
+test store_commits_snapshots_and_reopens_exactly ... ok
+street_block snapshot: 3465655 bytes, 5103 bricks, 1515582 voxels
+test street_block_round_trips_exactly ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/reference_agreement.rs (target/release/deps/reference_agreement-be7a1f946f96dc87)
+
+running 2 tests
+test comparison_detects_a_single_missing_voxel ... ok
+rays 36000, hits 5752, t-limited 9065
+test dda_matches_brute_force_exactly ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.46s
+
+   Doc-tests derived
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests light
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests memory
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests walk
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests world
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

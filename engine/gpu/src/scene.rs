@@ -13,18 +13,25 @@
 //!   and are freed by [`GpuScene::collect`] once it completes.
 //! - The acceleration update waits for its build (as 2D's build does), which also waits for every
 //!   earlier submission. The mesh-only path (no ray tracing) does not wait.
+//! - **Emitters (4A, ADR-0003 Amendment 3):** a scene built with [`GpuScene::build_lit`] publishes
+//!   the emitter table of the snapshot it shows. An update builds the next table from the regions'
+//!   emissive quads and uploads it before the acceleration update, so a refusal of either leaves the
+//!   whole previous snapshot (meshes, TLAS, table); the swap replaces them together and the old table
+//!   is retired like mesh buffers. [`GpuScene::emitters`] refuses a table of another snapshot.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
 use ash::vk;
 use derived::{Pipeline, ReadError, ReaderToken};
+use light::emitters::StaleTable;
 use world::dims::BRICK_EDGE;
-use world::{BrickKey, VoxelCoord};
+use world::{BrickKey, MaterialRegistry, VoxelCoord};
 
 use crate::accel::{Accel, AccelFaults, AccelGarbage, BuildStats};
 use crate::alloc::{Allocator, Buffer};
-use crate::context::{Gpu, Result};
+use crate::context::{Gpu, GpuError, Result};
+use crate::emitters::{EmitterSet, SceneEmitters};
 use crate::layout::{build_regions, RegionKey, RegionMesh, RegionSize};
 use crate::mesh::{GpuMeshes, GpuRegion};
 use crate::staging::Uploader;
@@ -37,6 +44,10 @@ pub struct SceneFaults {
     pub skip_region: Option<RegionKey>,
     /// Replaced resources are freed at the swap instead of after retirement (a lifetime bug).
     pub free_at_swap: bool,
+    /// 4A: the update keeps the previous emitter table (a stale table; readers must refuse it).
+    pub stale_emitters: bool,
+    /// 4A: the emitter table's upload is refused, as by the budget.
+    pub refuse_emitters: bool,
 }
 
 /// Something the GPU may still read.
@@ -59,11 +70,16 @@ pub struct UpdateStats {
     /// The acceleration update, including its wait for the build.
     pub accel_ms: f64,
     pub accel: Option<BuildStats>,
+    /// 4A: the emitter table's host build and upload (0 without a table), and its emitter count.
+    pub emitters_ms: f64,
+    pub emitters: Option<usize>,
 }
 
 pub struct GpuScene {
     pub meshes: GpuMeshes,
     pub accel: Option<Accel>,
+    /// 4A: the emitter table of the snapshot shown (scenes built with [`GpuScene::build_lit`]).
+    emitters: Option<SceneEmitters>,
     /// The 1C snapshot (raw id) the scene shows.
     pub snapshot: u64,
     /// Per region: the snapshot it was last built from (the debug view's version view).
@@ -107,9 +123,32 @@ pub fn region_meshes(pipeline: &Pipeline, token: &ReaderToken, regions: &BTreeSe
 
 impl GpuScene {
     /// Uploads every region, and builds the acceleration structure when `ray` is set (a ray-tracing
-    /// device is needed then). All-or-nothing.
+    /// device is needed then). All-or-nothing. No emitter table.
     #[allow(clippy::too_many_arguments)]
     pub fn build(gpu: &Gpu, alloc: &mut Allocator, up: &mut Uploader, timeline: &mut Timeline, size: RegionSize, regions: &BTreeMap<RegionKey, RegionMesh>, snapshot: u64, ray: bool) -> Result<GpuScene> {
+        Self::build_with(gpu, alloc, up, timeline, size, regions, snapshot, ray, None)
+    }
+
+    /// [`GpuScene::build`] plus the emitter table of `registry`'s emissive materials (4A), kept
+    /// current by every update. A registry with invalid emitted radiance is `GpuError::Layout`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn build_lit(gpu: &Gpu, alloc: &mut Allocator, up: &mut Uploader, timeline: &mut Timeline, size: RegionSize, regions: &BTreeMap<RegionKey, RegionMesh>, snapshot: u64, ray: bool, registry: &MaterialRegistry) -> Result<GpuScene> {
+        Self::build_with(gpu, alloc, up, timeline, size, regions, snapshot, ray, Some(registry))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn build_with(gpu: &Gpu, alloc: &mut Allocator, up: &mut Uploader, timeline: &mut Timeline, size: RegionSize, regions: &BTreeMap<RegionKey, RegionMesh>, snapshot: u64, ray: bool, registry: Option<&MaterialRegistry>) -> Result<GpuScene> {
+        // The emitter set first: a registry it refuses fails before anything is allocated.
+        let set = match registry {
+            Some(r) => {
+                let mut set = EmitterSet::new(r).map_err(|e| GpuError::Layout(vec![format!("emitter table: {e}")]))?;
+                for (&k, m) in regions {
+                    set.set_region(k, Some(m), snapshot);
+                }
+                Some(set)
+            }
+            None => None,
+        };
         let (meshes, uploaded) = GpuMeshes::upload(gpu, alloc, up, timeline, size, regions)?;
         let accel = if ray {
             match Accel::build(gpu, alloc, up, timeline, &meshes, AccelFaults::default()) {
@@ -123,8 +162,20 @@ impl GpuScene {
         } else {
             None
         };
+        let emitters = match set.map(|set| SceneEmitters::publish(gpu, alloc, up, timeline, set, snapshot, false)) {
+            None => None,
+            Some(Ok((e, _))) => Some(e),
+            Some(Err(e)) => {
+                timeline.wait(gpu, timeline.last_signal(), u64::MAX)?;
+                if let Some(a) = accel {
+                    a.free_now(gpu, alloc);
+                }
+                meshes.free_now(gpu, alloc);
+                return Err(e);
+            }
+        };
         let built_at = meshes.regions.keys().map(|&k| (k, snapshot)).collect();
-        Ok(GpuScene { meshes, accel, snapshot, built_at, retiring: Retirement::default(), faults: SceneFaults::default(), accel_faults: AccelFaults::default(), updates: 0, deferred: 0 })
+        Ok(GpuScene { meshes, accel, emitters, snapshot, built_at, retiring: Retirement::default(), faults: SceneFaults::default(), accel_faults: AccelFaults::default(), updates: 0, deferred: 0 })
     }
 
     pub fn size(&self) -> RegionSize {
@@ -155,6 +206,27 @@ impl GpuScene {
         stats.upload_bytes = fresh.values().map(|r| r.sections.total).sum();
         stats.upload_ms = t.elapsed().as_secs_f64() * 1e3;
 
+        // 1b. 4A: the emitter table of the new snapshot, on the device before anything is swapped.
+        let t = Instant::now();
+        let next = match self.emitters.as_ref().filter(|_| !self.faults.stale_emitters) {
+            None => None,
+            Some(e) => match e.next(gpu, alloc, up, timeline, keys.iter().map(|k| (*k, present.get(k))), snapshot, self.faults.refuse_emitters) {
+                Ok((n, v)) => Some((n, v)),
+                Err(err) => {
+                    // The fresh mesh buffers were never visible; their copies may be in flight.
+                    let wait = timeline.wait(gpu, uploaded, u64::MAX);
+                    for (_, r) in fresh {
+                        alloc.free(gpu, r.buffer);
+                    }
+                    self.deferred += 1;
+                    wait?;
+                    return Err(err);
+                }
+            },
+        };
+        stats.emitters_ms = t.elapsed().as_secs_f64() * 1e3;
+        stats.emitters = self.emitters.as_ref().map(|e| next.as_ref().map_or(e.table.len(), |(n, _)| n.table.len()));
+
         // 2. The candidate region set: replaced regions come out, fresh ones go in.
         let mut old: Vec<GpuRegion> = keys.iter().filter_map(|k| self.meshes.regions.remove(k)).collect();
         self.meshes.regions.extend(fresh);
@@ -169,8 +241,9 @@ impl GpuScene {
                     garbage = Some(g);
                 }
                 Err(e) => {
-                    // Roll back: the fresh buffers were never visible; their copies may be in flight.
-                    let wait = timeline.wait(gpu, uploaded, u64::MAX);
+                    // Roll back: the fresh buffers and table were never visible; their copies may be
+                    // in flight.
+                    let wait = timeline.wait(gpu, next.as_ref().map_or(uploaded, |(_, v)| uploaded.max(*v)), u64::MAX);
                     for k in &keys {
                         if let Some(r) = self.meshes.regions.remove(k) {
                             alloc.free(gpu, r.buffer);
@@ -178,6 +251,9 @@ impl GpuScene {
                     }
                     for r in old.drain(..) {
                         self.meshes.regions.insert(r.key, r);
+                    }
+                    if let Some((n, _)) = next {
+                        n.device.free(gpu, alloc);
                     }
                     self.deferred += 1;
                     wait?;
@@ -194,6 +270,11 @@ impl GpuScene {
         }
         if let Some(g) = garbage {
             self.retire(last, Garbage::Accel(g));
+        }
+        if let Some((n, _)) = next {
+            let old = self.emitters.replace(n).expect("a next table comes from a table");
+            self.retire(last, Garbage::Buffer(old.device.emitters));
+            self.retire(last, Garbage::Buffer(old.device.emission));
         }
         if self.faults.free_at_swap {
             self.collect(gpu, alloc, u64::MAX);
@@ -235,6 +316,23 @@ impl GpuScene {
         self.meshes.regions.keys().map(|k| (*k, self.built_at[k])).collect()
     }
 
+    /// The emitter table of the snapshot the scene shows, with its device copy; `None` for a scene
+    /// built without emitters. A table built for another snapshot is refused (ADR-0003 Amendment 3).
+    pub fn emitters(&self) -> std::result::Result<Option<&SceneEmitters>, StaleTable> {
+        match &self.emitters {
+            None => Ok(None),
+            Some(e) => {
+                debug_assert_eq!(e.device.snapshot, e.table.snapshot, "host and device tables are replaced together");
+                e.table.check(self.snapshot).map(|_| Some(e))
+            }
+        }
+    }
+
+    /// Device bytes of the emitter table (`GpuMaterial`); 0 without one.
+    pub fn emitter_bytes(&self) -> u64 {
+        self.emitters.as_ref().map_or(0, |e| e.device.device_bytes())
+    }
+
     /// Device bytes the scene holds now: mesh buffers (`GpuMesh`) and acceleration (`GpuAccel`).
     pub fn device_bytes(&self) -> (u64, u64) {
         let mesh = self.meshes.regions.values().map(|r| r.buffer.range().2).sum();
@@ -244,6 +342,9 @@ impl GpuScene {
     /// Frees everything now, retired items included. Only when the GPU is idle.
     pub fn free_now(mut self, gpu: &Gpu, alloc: &mut Allocator) {
         self.collect(gpu, alloc, u64::MAX);
+        if let Some(e) = self.emitters {
+            e.device.free(gpu, alloc);
+        }
         if let Some(a) = self.accel {
             a.free_now(gpu, alloc);
         }

@@ -105,3 +105,16 @@ The CPU side of this contract is already met in 2A: both merge modes cover the s
   - For a future re-sweep: among settings on the trace plateau (within the measured noise) that fit the edit budget, prefer the least memory, then the cheaper full build.
 - **Edit budget: accepted by the user on 2026-09-24** ("Confirming it", S-016): edit-to-visible p95 ≤ 50 ms for the 1-voxel and 8³ edits (3 frames at 60 Hz), ≤ 100 ms for the 32³ edit. Every 2E setting meets it with a wide margin.
 - **Revisit:** for a denser scene or a higher edit rate, or when secondary rays (Phase 3) make trace time weigh more.
+
+## Amendment 3 (2026-09-25, 4A): the emitter table joins the publication set
+
+- **Authority:** S-024 (4A authorized); ADR-0005 Amendment 3 defines the emitters. Record: [4A](../changes/2026-09-25-phase4a-emitters.md).
+- **Decision.** The emitter table (`light::emitters::EmitterTable`) is a derived product of the same snapshot as the meshes and the acceleration structure. It is built from the published region meshes, uploaded and **swapped with them**: a frame reads meshes, TLAS, region table and emitter table of one snapshot, never a mix.
+- **Identity.** Each emitter carries (region key, quad index in the region, the region's snapshot). An edited region gets a new snapshot, so its emitters are new emitters; later reuse (4C, 4D) must treat an emitter id from another snapshot as gone.
+- **Order.** The table is sorted by geometry (face, plane, u0, v0), so the same set of quads gives the same table whatever the region size, and the CPU reference and the GPU agree on every index.
+- **Staleness.** The table records the snapshot it was built for; a reader that finds a different snapshot refuses it (a planted stale table must be caught).
+- **Budget.** 80 B per emitter on the device, plus 16 B per material for emitted radiance, under `Category::GpuMaterial`. The table build is part of the edit-to-visible latency and must keep the S-016 edit budget.
+- **Implementation status (2026-09-25):**
+  - Part 1: the table is built from region meshes (`gpu::emitters::table`) and uploaded for the reference (`RefEmitters`).
+  - Part 2: `GpuScene::build_lit` publishes it with the meshes and TLAS. Every update rebuilds it from the regions' emissive quads (`gpu::emitters::EmitterSet`) and uploads it before the acceleration update; the swap replaces all of them together, and the old table is retired like mesh buffers. `GpuScene::emitters` refuses a table of another snapshot. Scenes built with `GpuScene::build` (every M3 path) have no table.
+  - The host check passes (4A C6: the incremental table equals a from-scratch build through a sequence of edits). The device check (G6) and the edit latency with the table (G7) are **NOT RUN** until the laptop run of `run-local.cmd`.

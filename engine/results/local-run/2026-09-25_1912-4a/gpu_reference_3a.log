@@ -1,0 +1,103 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 1.27s
+     Running tests\reference.rs (target\release\deps\reference-dfc674ca6db5805e.exe)
+
+running 5 tests
+test diagnostic_tail_rate_of_the_pixel_metric ... ignored
+test gpu_reference_matches_the_cpu_statistically ...   gpu: 4096 frames at 96x54 in 820 ms
+  gpu: 256 frames at 96x54 in 49 ms
+null street_view dawn: gpu vs gpu |z|>4 0.238%, limit 1.000%
+  gpu: 4096 frames at 96x54 in 789 ms
+stat street_view dawn RefFaults { wrong_pdf: false, no_cosine: false }: image mean gpu [1.1168e-2 6.5636e-3 4.9427e-3] cpu [1.1144e-2 6.5474e-3 4.9242e-3], rel [0.0022, 0.0025, 0.0037], z [1.23, 1.41, 1.02], |z|>4 0.251%, bad 0, cpu 8.1 s
+  gpu: 4096 frames at 96x54 in 789 ms
+stat street_view dawn RefFaults { wrong_pdf: true, no_cosine: false }: image mean gpu [1.1297e-2 6.6600e-3 5.0393e-3] cpu [1.1144e-2 6.5474e-3 4.9242e-3], rel [0.0138, 0.0172, 0.0234], z [7.78, 9.83, 6.33], |z|>4 0.926%, bad 0, cpu 8.1 s
+  gpu: 4096 frames at 96x54 in 816 ms
+  gpu: 256 frames at 96x54 in 49 ms
+null street_view midday: gpu vs gpu |z|>4 0.051%, limit 1.000%
+  gpu: 4096 frames at 96x54 in 788 ms
+stat street_view midday RefFaults { wrong_pdf: false, no_cosine: false }: image mean gpu [1.1626e-2 1.5739e-2 2.4181e-2] cpu [1.1608e-2 1.5705e-2 2.4151e-2], rel [0.0016, 0.0022, 0.0013], z [1.23, 1.43, 0.48], |z|>4 0.135%, bad 0, cpu 7.6 s
+  gpu: 4096 frames at 96x54 in 789 ms
+stat street_view midday RefFaults { wrong_pdf: true, no_cosine: false }: image mean gpu [1.2108e-2 1.6236e-2 2.4822e-2] cpu [1.1608e-2 1.5705e-2 2.4151e-2], rel [0.0431, 0.0338, 0.0278], z [33.17, 22.25, 10.48], |z|>4 0.720%, bad 0, cpu 7.6 s
+  gpu: 4096 frames at 96x54 in 829 ms
+  gpu: 256 frames at 96x54 in 49 ms
+null street_view dusk: gpu vs gpu |z|>4 0.244%, limit 1.000%
+  gpu: 4096 frames at 96x54 in 787 ms
+stat street_view dusk RefFaults { wrong_pdf: false, no_cosine: false }: image mean gpu [5.0595e-3 4.2143e-3 4.1525e-3] cpu [5.0520e-3 4.2037e-3 4.1428e-3], rel [0.0015, 0.0025, 0.0024], z [0.84, 1.2, 0.59], |z|>4 0.238%, bad 0, cpu 7.8 s
+  gpu: 4096 frames at 96x54 in 788 ms
+stat street_view dusk RefFaults { wrong_pdf: true, no_cosine: false }: image mean gpu [5.1940e-3 4.3121e-3 4.2496e-3] cpu [5.0520e-3 4.2037e-3 4.1428e-3], rel [0.0281, 0.0258, 0.0258], z [15.93, 12.27, 6.46], |z|>4 0.997%, bad 0, cpu 7.8 s
+  gpu: 4096 frames at 96x54 in 751 ms
+  gpu: 256 frames at 96x54 in 46 ms
+null street_view twilight: gpu vs gpu |z|>4 1.755%, limit 2.833%
+  gpu: 4096 frames at 96x54 in 738 ms
+stat street_view twilight RefFaults { wrong_pdf: false, no_cosine: false }: image mean gpu [3.6738e-4 1.7402e-4 2.6062e-4] cpu [3.6640e-4 1.7374e-4 2.6177e-4], rel [0.0027, 0.0016, -0.0044], z [0.54, 0.2, -0.29], |z|>4 1.948%, bad 0, cpu 7.3 s
+  gpu: 4096 frames at 96x54 in 737 ms
+stat street_view twilight RefFaults { wrong_pdf: true, no_cosine: false }: image mean gpu [3.8317e-4 1.8086e-4 2.6929e-4] cpu [3.6640e-4 1.7374e-4 2.6177e-4], rel [0.0458, 0.041, 0.0287], z [9.15, 5.08, 1.91], |z|>4 2.675%, bad 0, cpu 7.3 s
+  gpu: 4096 frames at 96x54 in 842 ms
+  gpu: 256 frames at 96x54 in 47 ms
+null low dawn: gpu vs gpu |z|>4 0.135%, limit 1.000%
+  gpu: 4096 frames at 96x54 in 759 ms
+stat low dawn RefFaults { wrong_pdf: false, no_cosine: false }: image mean gpu [9.2542e-3 7.2836e-3 7.0149e-3] cpu [9.2346e-3 7.2694e-3 6.9783e-3], rel [0.0021, 0.002, 0.0052], z [1.32, 1.15, 1.62], |z|>4 0.174%, bad 0, cpu 7.1 s
+  gpu: 4096 frames at 96x54 in 757 ms
+stat low dawn RefFaults { wrong_pdf: true, no_cosine: false }: image mean gpu [9.3446e-3 7.3664e-3 7.1027e-3] cpu [9.2346e-3 7.2694e-3 6.9783e-3], rel [0.0119, 0.0133, 0.0178], z [7.45, 7.87, 5.52], |z|>4 0.547%, bad 0, cpu 7.1 s
+  gpu: 4096 frames at 96x54 in 871 ms
+  gpu: 256 frames at 96x54 in 53 ms
+null low midday: gpu vs gpu |z|>4 0.090%, limit 1.000%
+  gpu: 4096 frames at 96x54 in 846 ms
+stat low midday RefFaults { wrong_pdf: false, no_cosine: false }: image mean gpu [2.5794e-2 3.1844e-2 4.3768e-2] cpu [2.5774e-2 3.1825e-2 4.3684e-2], rel [0.0008, 0.0006, 0.0019], z [1.19, 0.64, 1.04], |z|>4 0.129%, bad 0, cpu 6.8 s
+  gpu: 4096 frames at 96x54 in 845 ms
+stat low midday RefFaults { wrong_pdf: true, no_cosine: false }: image mean gpu [2.6134e-2 3.2268e-2 4.4336e-2] cpu [2.5774e-2 3.1825e-2 4.3684e-2], rel [0.014, 0.0139, 0.0149], z [21.44, 15.14, 8.06], |z|>4 0.431%, bad 0, cpu 6.8 s
+  gpu: 4096 frames at 96x54 in 844 ms
+  gpu: 256 frames at 96x54 in 47 ms
+null low dusk: gpu vs gpu |z|>4 0.180%, limit 1.000%
+  gpu: 4096 frames at 96x54 in 758 ms
+stat low dusk RefFaults { wrong_pdf: false, no_cosine: false }: image mean gpu [6.7299e-3 5.9537e-3 6.2451e-3] cpu [6.7190e-3 5.9442e-3 6.2166e-3], rel [0.0016, 0.0016, 0.0046], z [1.1, 0.91, 1.37], |z|>4 0.174%, bad 0, cpu 6.6 s
+  gpu: 4096 frames at 96x54 in 758 ms
+stat low dusk RefFaults { wrong_pdf: true, no_cosine: false }: image mean gpu [6.8236e-3 6.0378e-3 6.3335e-3] cpu [6.7190e-3 5.9442e-3 6.2166e-3], rel [0.0156, 0.0158, 0.0188], z [10.55, 8.91, 5.62], |z|>4 0.489%, bad 0, cpu 6.6 s
+  gpu: 4096 frames at 96x54 in 726 ms
+  gpu: 256 frames at 96x54 in 44 ms
+null low twilight: gpu vs gpu |z|>4 1.743%, limit 2.814%
+  gpu: 4096 frames at 96x54 in 702 ms
+stat low twilight RefFaults { wrong_pdf: false, no_cosine: false }: image mean gpu [4.9745e-4 2.5965e-4 4.1482e-4] cpu [4.9687e-4 2.5976e-4 4.1624e-4], rel [0.0012, -0.0004, -0.0034], z [0.28, -0.06, -0.29], |z|>4 1.601%, bad 0, cpu 6.2 s
+  gpu: 4096 frames at 96x54 in 703 ms
+stat low twilight RefFaults { wrong_pdf: true, no_cosine: false }: image mean gpu [5.0887e-4 2.6567e-4 4.2281e-4] cpu [4.9687e-4 2.5976e-4 4.1624e-4], rel [0.0242, 0.0227, 0.0158], z [5.73, 3.34, 1.36], |z|>4 2.006%, bad 0, cpu 6.2 s
+validation: 0 errors, 0 warnings
+ok
+test layout_is_checked_and_atmosphere_constants_agree ... reference pipeline with the ray-primary reflection refused: 7 errors
+transmittance probe: 41218 channel values compared, worst relative error 4.87e-6, ground/sky disagreements 0
+validation: 0 errors, 0 warnings
+ok
+test point_sun_matches_the_cpu_per_pixel ...   gpu: 1 frames at 320x180 in 1 ms
+point sun street_view 8 h RefFaults { wrong_pdf: false, no_cosine: false }: 7729 lit pixels agree to 1.12e-7 (0 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.3 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun street_view 8 h RefFaults { wrong_pdf: false, no_cosine: true }: 7729 lit pixels agree to 1.83e0 (7728 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.3 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun street_view 12 h RefFaults { wrong_pdf: false, no_cosine: false }: 2588 lit pixels agree to 8.89e-8 (0 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.3 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun street_view 12 h RefFaults { wrong_pdf: false, no_cosine: true }: 2588 lit pixels agree to 4.14e-1 (2588 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.3 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun street_view 17.75 h RefFaults { wrong_pdf: false, no_cosine: false }: 17553 lit pixels agree to 1.14e-7 (0 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.3 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun street_view 17.75 h RefFaults { wrong_pdf: false, no_cosine: true }: 17553 lit pixels agree to 2.06e1 (17553 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.3 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun low 8 h RefFaults { wrong_pdf: false, no_cosine: false }: 13301 lit pixels agree to 1.19e-7 (0 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.3 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun low 8 h RefFaults { wrong_pdf: false, no_cosine: true }: 13301 lit pixels agree to 1.83e0 (13300 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.3 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun low 12 h RefFaults { wrong_pdf: false, no_cosine: false }: 10771 lit pixels agree to 1.66e-7 (0 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.2 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun low 12 h RefFaults { wrong_pdf: false, no_cosine: true }: 10771 lit pixels agree to 4.14e-1 (10771 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.2 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun low 17.75 h RefFaults { wrong_pdf: false, no_cosine: false }: 18381 lit pixels agree to 1.04e-7 (0 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.2 s
+  gpu: 1 frames at 320x180 in 0 ms
+point sun low 17.75 h RefFaults { wrong_pdf: false, no_cosine: true }: 18381 lit pixels agree to 2.06e1 (18381 over 1e-4), shadow disagreements 0 of 57600, bad 0, cpu 0.2 s
+validation: 0 errors, 0 warnings
+ok
+test white_furnace_is_one_and_a_wrong_pdf_is_caught ...   gpu: 16 frames at 320x180 in 4 ms
+furnace RefFaults { wrong_pdf: false, no_cosine: false }: image mean 1.000000, 57600 of 57600 pixels exactly 1, bad samples 0
+  gpu: 16 frames at 320x180 in 2 ms
+furnace RefFaults { wrong_pdf: true, no_cosine: false }: image mean 1.147307, 14312 of 57600 pixels exactly 1, bad samples 0
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 81.34s
+

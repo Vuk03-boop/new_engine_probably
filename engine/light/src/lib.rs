@@ -5,11 +5,16 @@
 //! - [`sample`]: the shared RNG (PCG32) and direction samplers with their PDFs.
 //! - [`sun`]: the unit of light (E_SUN = 1), the sun disk and [`sun::SunPath`] through the day.
 //! - [`atmosphere`]: the Rayleigh + Mie + ozone atmosphere, transmittance and the Monte Carlo sky.
+//! - [`emitters`] (4A): the emitter table and its alias sampler (ADR-0005 Amendment 3), and the rule
+//!   that switches the lights ([`emitters::lights_on`]).
+//! - [`exposure`] (4A): the metric exposure of a reference image.
 //! - [`reference`]: the CPU path tracer over `world::reference::trace`.
 //! - [`sky`] (3C): the real-time sky tables (Hillaire 2020), the oracle for `gpu/shaders/sky.slang`.
 //! - [`sky_ref`] (S-020): the baked reference sky that corrects the sky-view table, and its file.
 
 pub mod atmosphere;
+pub mod emitters;
+pub mod exposure;
 pub mod reference;
 pub mod sample;
 pub mod sky;

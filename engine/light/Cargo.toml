@@ -8,3 +8,7 @@ publish.workspace = true
 # tracer. Pure CPU, no external dependencies.
 [dependencies]
 world = { path = "../world" }
+
+# 4A tests mesh worlds into emitter quads, as the GPU path does.
+[dev-dependencies]
+derived = { path = "../derived" }

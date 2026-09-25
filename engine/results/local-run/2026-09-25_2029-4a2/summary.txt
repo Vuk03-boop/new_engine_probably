@@ -1,0 +1,22 @@
+Phase 4A part 2, local run 2026-09-25_2029
+commit 7810f7d
+cargo 1.98.1 (797e8a9bc 2026-08-05)
+VULKAN_SDK C:\VulkanSDK\1.4.357.0
+
+PASS  pure_suite  exit 0  log pure_suite.log
+PASS  gpu_lib  exit 0  log gpu_lib.log
+PASS  gpu_emitters_4a  exit 0  log gpu_emitters_4a.log
+PASS  gpu_edit_2e  exit 0  log gpu_edit_2e.log
+PASS  gpu_temporal_3d  exit 0  log gpu_temporal_3d.log
+PASS  viewer_build  exit 0  log viewer_build.log
+PASS  viewer_night_full_edit1  exit 0  log viewer_night_full_edit1.log
+PASS  viewer_night_full_edit8  exit 0  log viewer_night_full_edit8.log
+PASS  viewer_night_full_edit32  exit 0  log viewer_night_full_edit32.log
+PASS  viewer_night_dense_edit1  exit 0  log viewer_night_dense_edit1.log
+PASS  viewer_street_edit1  exit 0  log viewer_street_edit1.log
+PASS  viewer_night_full_validation1  exit 0  log viewer_night_full_validation1.log
+PASS  viewer_night_full_validation8  exit 0  log viewer_night_full_validation8.log
+PASS  viewer_night_full_validation32  exit 0  log viewer_night_full_validation32.log
+PASS  ref_light_night  exit 0  log ref_light_night.log
+
+NOT RUN on purpose: gpu gate (35+ min; the M3 frame path and scene build did not change), gpu denoise (known accepted failures), gpu reference, shade, sky, bounce (code unchanged since part 1's run).

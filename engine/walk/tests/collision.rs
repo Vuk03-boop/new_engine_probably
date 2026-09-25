@@ -273,6 +273,20 @@ fn street_block_curb_and_shop_front() {
     assert_eq!((w.feet[1], w.feet[2]), (0.0, 128.0 - p.half_width));
 }
 
+/// 4A: the viewer's `--scene night` starts walking at the same reference feet; no dressing may put
+/// a voxel there.
+#[test]
+fn night_street_start_is_free() {
+    for d in scene::Dressing::ALL {
+        let (world, view) = scene::street_night(d);
+        let eye = view.eye_m.map(m);
+        let p = Params::default();
+        let mut w = Walker::new(p, [eye[0], eye[1] - p.eye_height, eye[2]]);
+        assert!(!w.overlaps(&world), "{}: the start overlaps the dressing", d.name());
+        assert!(w.resolve_start(&world, 1024));
+    }
+}
+
 /// A tiny deterministic generator (no dependencies).
 struct Lcg(u64);
 

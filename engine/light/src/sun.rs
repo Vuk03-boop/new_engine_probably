@@ -54,6 +54,9 @@ pub fn elevation_deg(dir: V3) -> f64 {
 /// The reference times of ADR-0005: (name, hour).
 pub const REFERENCE_TIMES: [(&str, f64); 5] = [("dawn", 6.25), ("morning", 8.0), ("midday", 12.0), ("dusk", 17.75), ("twilight", 18.25)];
 
+/// The M4 times (Phase 4 proposal §4A): dusk (+2.65°), blue hour (−5.3°) and night (−30°).
+pub const NIGHT_TIMES: [(&str, f64); 3] = [("dusk", 17.75), ("blue_hour", 18.5), ("night", 21.0)];
+
 #[cfg(test)]
 mod tests {
     use super::*;

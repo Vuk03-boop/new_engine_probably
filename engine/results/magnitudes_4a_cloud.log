@@ -1,0 +1,28 @@
+# 4A part 2: diagnostic_magnitudes (light/tests/emitters.rs, --ignored; CPU only), cloud session, Linux x86_64, 4 threads, 2026-09-25.
+# Command: cargo test --release -j 2 -p light --test emitters diagnostic_magnitudes -- --ignored --nocapture
+# Method frozen in docs/changes/2026-09-25-phase4a-emitters.md (M1, M2). Lines as printed (cargo's build lines removed):
+running 1 test
+magnitudes: street_night (full), 1143 emitters, 128x72, 4 threads, seed 0x4a2
+test diagnostic_magnitudes has been running for over 60 seconds
+M1 street dusk (+2.65°, lights off): bounces >= 2 share 0.48% ± 0.00 pp (image L1 4.3069e-3, L8 4.3277e-3); per lit pixel (9216 of 9216) median 0.54%, p90 3.43%; 1024 spp, 62 s
+M2a street dusk: one-sample σ/μ of the one-bounce estimator: median 1.87, p90 2.60 over 9216 pixels with μ > 0 (lit pixels: median 1.87, p90 2.60); emission at the primary hit 0.0% of the full image mean
+M1 street blue_hour (-5.30°, lights on): bounces >= 2 share 6.63% ± 0.34 pp (image L1 3.1704e-5, L8 3.3955e-5); per lit pixel (9216 of 9216) median 0.68%, p90 6.17%; 4096 spp, 292 s
+M2a street blue_hour: one-sample σ/μ of the one-bounce estimator: median 11.65, p90 27.62 over 9216 pixels with μ > 0 (lit pixels: median 11.65, p90 27.62); emission at the primary hit 78.8% of the full image mean
+M1 street night (-30.00°, lights on): bounces >= 2 share 10.11% ± 0.38 pp (image L1 1.8914e-5, L8 2.1041e-5); per lit pixel (7035 of 9216) median 1.62%, p90 10.50%; 8192 spp, 600 s
+M2a street night: one-sample σ/μ of the one-bounce estimator: median 4.74, p90 21.40 over 7035 pixels with μ > 0 (lit pixels: median 4.74, p90 21.40); emission at the primary hit 85.7% of the full image mean
+M1 low dusk (+2.65°, lights off): bounces >= 2 share 0.22% ± 0.00 pp (image L1 6.0440e-3, L8 6.0576e-3); per lit pixel (9216 of 9216) median 0.07%, p90 1.54%; 1024 spp, 51 s
+M2a low dusk: one-sample σ/μ of the one-bounce estimator: median 1.70, p90 2.32 over 9216 pixels with μ > 0 (lit pixels: median 1.70, p90 2.32); emission at the primary hit 0.0% of the full image mean
+M1 low blue_hour (-5.30°, lights on): bounces >= 2 share 3.25% ± 0.41 pp (image L1 3.1077e-5, L8 3.2121e-5); per lit pixel (9215 of 9216) median 0.04%, p90 2.00%; 1024 spp, 58 s
+M2a low blue_hour: one-sample σ/μ of the one-bounce estimator: median 13.16, p90 22.97 over 9215 pixels with μ > 0 (lit pixels: median 13.16, p90 22.97); emission at the primary hit 81.8% of the full image mean
+M1 low night (-30.00°, lights on): bounces >= 2 share 6.80% ± 0.48 pp (image L1 1.4145e-5, L8 1.5177e-5); per lit pixel (4810 of 9216) median 0.64%, p90 5.96%; 4096 spp, 232 s
+M2a low night: one-sample σ/μ of the one-bounce estimator: median 3.31, p90 12.96 over 4810 pixels with μ > 0 (lit pixels: median 3.31, p90 12.96); emission at the primary hit 90.5% of the full image mean
+M2b lamps street: 165 emitters; direct emitter light at the primary hit, one sample: σ/μ median 2.37, p90 4.08 over 6821 pixels with μ > 0; image mean 6.8927e-6; 256 spp, 6 s
+M2b lamps low: 165 emitters; direct emitter light at the primary hit, one sample: σ/μ median 2.38, p90 3.74 over 4729 pixels with μ > 0; image mean 6.9477e-6; 256 spp, 5 s
+M2b windows street: 325 emitters; direct emitter light at the primary hit, one sample: σ/μ median 2.48, p90 4.11 over 6819 pixels with μ > 0; image mean 8.3174e-6; 256 spp, 6 s
+M2b windows low: 325 emitters; direct emitter light at the primary hit, one sample: σ/μ median 2.46, p90 3.82 over 4728 pixels with μ > 0; image mean 7.8211e-6; 256 spp, 5 s
+M2b full street: 1143 emitters; direct emitter light at the primary hit, one sample: σ/μ median 2.88, p90 7.02 over 7012 pixels with μ > 0; image mean 1.3145e-5; 256 spp, 6 s
+M2b full low: 1143 emitters; direct emitter light at the primary hit, one sample: σ/μ median 2.78, p90 5.55 over 4804 pixels with μ > 0; image mean 1.2082e-5; 256 spp, 5 s
+M2b dense street: 7003 emitters; direct emitter light at the primary hit, one sample: σ/μ median 2.76, p90 8.62 over 7459 pixels with μ > 0; image mean 3.6259e-5; 256 spp, 6 s
+M2b dense low: 7003 emitters; direct emitter light at the primary hit, one sample: σ/μ median 2.82, p90 8.45 over 5906 pixels with μ > 0; image mean 2.9016e-5; 256 spp, 6 s
+test diagnostic_magnitudes ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 1342.00s

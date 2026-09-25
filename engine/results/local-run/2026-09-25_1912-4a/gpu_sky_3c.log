@@ -1,0 +1,116 @@
+   Compiling gpu v0.1.0 (C:\Users\Vuk Trifunovic\Documents\new-engine-starter\new-engine-proposal\engine\gpu)
+    Finished `release` profile [optimized] target(s) in 1.43s
+     Running tests\sky.rs (target\release\deps\sky-248fa2896badcc44.exe)
+
+running 8 tests
+test corrected_gpu_sky_table_equals_the_host_table ... host sky tables built in 0.28 s
+sky correction applied in 0.08 s: CorrectionStats { min: 0.3591971986763956, max: 1.4683598556986408, clamped: 715, dark: 0 }
+sky pipeline with the shade reflection refused: 14 errors
+sky table dawn (corrected true): 62208 values, worst relative 9.84e-5 at texel (4, 54), 0 over 0.5%
+sky table morning (corrected true): 62208 values, worst relative 2.91e-5 at texel (1, 54), 0 over 0.5%
+sky table midday (corrected true): 62208 values, worst relative 1.29e-5 at texel (169, 6), 0 over 0.5%
+sky table dusk (corrected true): 62208 values, worst relative 9.84e-5 at texel (4, 54), 0 over 0.5%
+sky table twilight (corrected true): 62208 values, worst relative 6.04e-5 at texel (189, 5), 0 over 0.5%
+validation: 0 errors, 0 warnings
+ok
+test corrected_surface_sky_term_converges_to_the_reference ... host sky tables built in 0.26 s
+sky correction applied in 0.08 s: CorrectionStats { min: 0.3591971986763956, max: 1.4683598556986408, clamped: 715, dark: 0 }
+surface sky dawn street (corrected true): real time 1.0886e-2 6.4532e-3 4.8898e-3 reference 1.0882e-2 6.4574e-3 4.8953e-3 relative [0.0003, -0.0006, -0.0011]
+surface sky dawn low (corrected true): real time 8.8111e-3 7.0833e-3 6.9334e-3 reference 8.8007e-3 7.0836e-3 6.9391e-3 relative [0.0012, -0.0, -0.0008]
+surface sky morning street (corrected true): real time 1.3454e-2 1.6813e-2 2.2570e-2 reference 1.3460e-2 1.6820e-2 2.2580e-2 relative [-0.0004, -0.0004, -0.0004]
+surface sky morning low (corrected true): real time 1.5368e-2 2.0903e-2 3.0528e-2 reference 1.5355e-2 2.0891e-2 3.0522e-2 relative [0.0008, 0.0006, 0.0002]
+surface sky midday street (corrected true): real time 1.0278e-2 1.4643e-2 2.3187e-2 reference 1.0287e-2 1.4654e-2 2.3207e-2 relative [-0.0009, -0.0008, -0.0009]
+surface sky midday low (corrected true): real time 1.6330e-2 2.3457e-2 3.6887e-2 reference 1.6321e-2 2.3449e-2 3.6894e-2 relative [0.0006, 0.0003, -0.0002]
+surface sky dusk street (corrected true): real time 4.4070e-3 4.0069e-3 4.0869e-3 reference 4.4109e-3 4.0122e-3 4.0938e-3 relative [-0.0009, -0.0013, -0.0017]
+surface sky dusk low (corrected true): real time 5.7588e-3 5.6098e-3 6.1552e-3 reference 5.7557e-3 5.6121e-3 6.1634e-3 relative [0.0005, -0.0004, -0.0013]
+surface sky twilight street (corrected true): real time 3.5249e-4 1.6830e-4 2.5565e-4 reference 3.5572e-4 1.7007e-4 2.5704e-4 relative [-0.0091, -0.0104, -0.0054]
+surface sky twilight low (corrected true): real time 4.8595e-4 2.5326e-4 4.0693e-4 reference 4.9061e-4 2.5634e-4 4.1038e-4 relative [-0.0095, -0.012, -0.0084]
+validation: 0 errors, 0 warnings
+ok
+test corrected_table_sky_matches_the_monte_carlo_sky ... host sky tables built in 0.26 s
+sky correction applied in 0.08 s: CorrectionStats { min: 0.3591971986763956, max: 1.4683598556986408, clamped: 715, dark: 0 }
+  dawn camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  dawn camera away: 5184 px compared, 0 skipped (no sky)
+  dawn camera across: 5184 px compared, 0 skipped (no sky)
+  dawn camera up: 5184 px compared, 0 skipped (no sky)
+sky dawn (4096 spp, corrected true): luminance raw mean 0.0207 p50 0.0167 p95 0.0537 max 0.1337; beyond 3 se p95 0.0000; channel beyond 3 se p95 0.0000
+  morning camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  morning camera away: 5184 px compared, 0 skipped (no sky)
+  morning camera across: 5184 px compared, 0 skipped (no sky)
+  morning camera up: 5184 px compared, 0 skipped (no sky)
+sky morning (4096 spp, corrected true): luminance raw mean 0.0120 p50 0.0069 p95 0.0416 max 0.1430; beyond 3 se p95 0.0000; channel beyond 3 se p95 0.0000
+  midday camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  midday camera away: 5184 px compared, 0 skipped (no sky)
+  midday camera across: 5184 px compared, 0 skipped (no sky)
+  midday camera up: 5184 px compared, 0 skipped (no sky)
+sky midday (4096 spp, corrected true): luminance raw mean 0.0111 p50 0.0049 p95 0.0412 max 0.1392; beyond 3 se p95 0.0000; channel beyond 3 se p95 0.0000
+  dusk camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  dusk camera away: 5184 px compared, 0 skipped (no sky)
+  dusk camera across: 5184 px compared, 0 skipped (no sky)
+  dusk camera up: 5184 px compared, 0 skipped (no sky)
+sky dusk (4096 spp, corrected true): luminance raw mean 0.0207 p50 0.0167 p95 0.0540 max 0.1336; beyond 3 se p95 0.0000; channel beyond 3 se p95 0.0000
+  twilight camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  twilight camera away: 5184 px compared, 0 skipped (no sky)
+  twilight camera across: 5184 px compared, 0 skipped (no sky)
+  twilight camera up: 5184 px compared, 0 skipped (no sky)
+sky twilight (65536 spp, corrected true): luminance raw mean 0.0406 p50 0.0350 p95 0.0922 max 0.1339; beyond 3 se p95 0.0194; channel beyond 3 se p95 0.0307
+validation: 0 errors, 0 warnings
+ok
+test gpu_sky_table_equals_the_host_table ... host sky tables built in 0.26 s
+sky pipeline with the shade reflection refused: 14 errors
+sky table dawn (corrected false): 62208 values, worst relative 9.84e-5 at texel (4, 54), 0 over 0.5%
+sky table morning (corrected false): 62208 values, worst relative 2.91e-5 at texel (4, 54), 0 over 0.5%
+sky table midday (corrected false): 62208 values, worst relative 1.29e-5 at texel (169, 6), 0 over 0.5%
+sky table dusk (corrected false): 62208 values, worst relative 9.84e-5 at texel (4, 54), 0 over 0.5%
+sky table twilight (corrected false): 62208 values, worst relative 6.03e-5 at texel (189, 5), 0 over 0.5%
+validation: 0 errors, 0 warnings
+ok
+test sky_view_pass_cost ... host sky tables built in 0.26 s
+sky tables (corrected false): 1152000 bytes on the device
+host sky tables built in 0.26 s
+sky correction applied in 0.08 s: CorrectionStats { min: 0.3591971986763956, max: 1.4683598556986408, clamped: 715, dark: 0 }
+sky tables (corrected true): 1152000 bytes on the device
+sky-view pass dawn (validation true): uncorrected p50 0.0563 p90 0.0572 ms, corrected p50 0.0563 p90 0.0573 ms
+sky-view pass morning (validation true): uncorrected p50 0.0563 p90 0.0573 ms, corrected p50 0.0563 p90 0.0573 ms
+sky-view pass midday (validation true): uncorrected p50 0.0563 p90 0.0573 ms, corrected p50 0.0563 p90 0.0572 ms
+sky-view pass dusk (validation true): uncorrected p50 0.0563 p90 0.0573 ms, corrected p50 0.0563 p90 0.0573 ms
+sky-view pass twilight (validation true): uncorrected p50 0.0461 p90 0.0470 ms, corrected p50 0.0461 p90 0.0470 ms
+ok
+test surface_sky_term_converges_to_the_reference ... ignored, control: the uncorrected table fails criterion 4 as recorded (3C record); the corrected test passes it (S-020)
+test table_sky_matches_the_monte_carlo_sky ... host sky tables built in 0.26 s
+  dawn camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  dawn camera away: 5184 px compared, 0 skipped (no sky)
+  dawn camera across: 5184 px compared, 0 skipped (no sky)
+  dawn camera up: 5184 px compared, 0 skipped (no sky)
+sky dawn (4096 spp, corrected false): luminance raw mean 0.0424 p50 0.0418 p95 0.0826 max 0.1490; beyond 3 se p95 0.0181; channel beyond 3 se p95 0.0236
+  morning camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  morning camera away: 5184 px compared, 0 skipped (no sky)
+  morning camera across: 5184 px compared, 0 skipped (no sky)
+  morning camera up: 5184 px compared, 0 skipped (no sky)
+sky morning (4096 spp, corrected false): luminance raw mean 0.0213 p50 0.0136 p95 0.0587 max 0.1310; beyond 3 se p95 0.0091; channel beyond 3 se p95 0.0140
+  midday camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  midday camera away: 5184 px compared, 0 skipped (no sky)
+  midday camera across: 5184 px compared, 0 skipped (no sky)
+  midday camera up: 5184 px compared, 0 skipped (no sky)
+sky midday (4096 spp, corrected false): luminance raw mean 0.0134 p50 0.0062 p95 0.0445 max 0.1386; beyond 3 se p95 0.0000; channel beyond 3 se p95 0.0000
+  dusk camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  dusk camera away: 5184 px compared, 0 skipped (no sky)
+  dusk camera across: 5184 px compared, 0 skipped (no sky)
+  dusk camera up: 5184 px compared, 0 skipped (no sky)
+sky dusk (4096 spp, corrected false): luminance raw mean 0.0424 p50 0.0419 p95 0.0830 max 0.1448; beyond 3 se p95 0.0181; channel beyond 3 se p95 0.0237
+  twilight camera toward_sun: 5184 px compared, 0 skipped (no sky)
+  twilight camera away: 5184 px compared, 0 skipped (no sky)
+  twilight camera across: 5184 px compared, 0 skipped (no sky)
+  twilight camera up: 5184 px compared, 0 skipped (no sky)
+sky twilight (65536 spp, corrected false): luminance raw mean 0.0783 p50 0.0687 p95 0.1442 max 0.6634; beyond 3 se p95 0.0806; channel beyond 3 se p95 0.1855
+validation: 0 errors, 0 warnings
+ok
+test uniform_sky_term_equals_the_reference_per_pixel ... host sky tables built in 0.26 s
+uniform sky street: 3 of 129600 mismatched (0.002%), 95093 lit, bad 0
+uniform sky low: 1 of 129600 mismatched (0.001%), 112361 lit, bad 0
+uniform sky overhead: 3 of 129600 mismatched (0.002%), 117383 lit, bad 0
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 7 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 109.48s
+

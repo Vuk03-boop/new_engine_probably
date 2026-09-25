@@ -16,12 +16,18 @@
 //   bad surface id (must stay 0). With RESET the dispatch overwrites instead of adding.
 // - PROBE_T writes, instead, the transmittance from the observer along the primary direction (the
 //   host/shader constant-agreement check).
+// - 4A (ADR-0005 Amendment 3): EMISSION adds the emitted radiance where the primary ray hits;
+//   EMITTERS_DIRECT / EMITTERS_INDIRECT add emitter next-event estimation at the primary vertex / at
+//   later vertices (one emitter by the alias table, a point uniform in its solid angle, or by area
+//   below SOLID_ANGLE_MIN or with EMITTER_AREA, one visibility segment). The emitter count is
+//   `asuint(right.w)`. Continuations never add emission. With the emitter flags off no emitter random
+//   numbers are drawn, so every M3 image is unchanged.
 
 struct Params
 {
     float4 eye;        // xyz eye (voxels); w: cos of the sun's angular radius
     float4 forward;    // xyz; w: near
-    float4 right;      // right * tan_half_x
+    float4 right;      // right * tan_half_x; w: asfloat(emitter count)
     float4 up;         // up * tan_half_y
     float4 sun_dir;    // xyz unit vector toward the sun
     float4 sun_ground; // rgb E_SUN * T_obs; w: 1 / sun solid angle
@@ -62,16 +68,28 @@ static const uint F_UNIFORM_SKY = 8u;
 static const uint F_ALBEDO_ONE = 16u;
 static const uint F_RESET = 32u;
 static const uint F_PROBE_T = 64u;
+static const uint F_EMISSION = 128u;
 static const uint F_FAULT_PDF = 256u;
 static const uint F_FAULT_NO_COS = 512u;
+static const uint F_EMITTERS_DIRECT = 1024u;
+static const uint F_EMITTERS_INDIRECT = 2048u;
+static const uint F_EMITTER_AREA = 4096u;
+static const uint F_FAULT_NO_SOLID_ANGLE = 8192u;
+static const uint F_FAULT_DOUBLE_EMISSION = 16384u;
+static const uint F_FAULT_NO_EMITTER_COS = 32768u;
 
 #include "light_common.slang"
+#include "emitters_common.slang"
+
+[[vk::binding(4, 0)]] StructuredBuffer<Emitter> emitters;
+[[vk::binding(5, 0)]] StructuredBuffer<float4> emission;
 
 // ---- scene ----
 
 // 0 = miss, 1 = hit, 2 = bad surface id.
-uint trace_surface(float3 origin, float3 dir, float tmin, out float3 point, out float3 normal, out float3 alb)
+uint trace_surface(float3 origin, float3 dir, float tmin, out float3 point, out float3 normal, out float3 alb, out uint mat)
 {
+    mat = 0u;
     point = float3(0.0, 0.0, 0.0);
     normal = float3(0.0, 1.0, 0.0);
     alb = float3(0.0, 0.0, 0.0);
@@ -109,6 +127,7 @@ uint trace_surface(float3 origin, float3 dir, float tmin, out float3 point, out 
     point = origin + dir * rq.CommittedRayT();
     point[axis] = round(point[axis]) + sgn * RAY_OFFSET;
     alb = (params.flags & F_ALBEDO_ONE) != 0u ? float3(1.0, 1.0, 1.0) : albedo[material].xyz;
+    mat = material;
     return 1u;
 }
 
@@ -123,6 +142,62 @@ bool occluded(float3 origin, float3 dir)
     rq.TraceRayInline(tlas, RAY_FLAG_NONE, 0xFF, ray);
     rq.Proceed();
     return rq.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
+}
+
+// The segment origin -> origin + seg (TMax 1 along the unnormalized direction).
+bool occluded_segment(float3 origin, float3 seg)
+{
+    RayDesc ray;
+    ray.Origin = origin;
+    ray.Direction = seg;
+    ray.TMin = 0.0;
+    ray.TMax = 1.0;
+    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rq;
+    rq.TraceRayInline(tlas, RAY_FLAG_NONE, 0xFF, ray);
+    rq.Proceed();
+    return rq.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
+}
+
+// Emitter next-event estimation at (p, n), without beta and albedo (light::reference::emitter_sample).
+float3 emitter_sample(float3 p, float3 n, inout uint rng)
+{
+    uint count = asuint(params.right.w);
+    uint i = uniform_index(count, rng);
+    Emitter e = emitters[i];
+    if ((next_u32(rng) >> 8u) >= e.meta.x)
+        e = emitters[e.meta.y];
+    float u = rnd(rng);
+    float v = rnd(rng);
+    float3 ne = face_normal(e.meta.z);
+    if (dot(ne, p - e.p0_area.xyz) <= 0.0)
+        return float3(0.0, 0.0, 0.0);
+    bool solid = false;
+    SphRect r;
+    if ((params.flags & F_EMITTER_AREA) == 0u)
+    {
+        r = sph_rect(e.p0_area.xyz, e.eu_pdf.xyz, e.ev.xyz, p);
+        solid = r.solid_angle >= SOLID_ANGLE_MIN;
+    }
+    float3 y = solid ? sph_rect_sample(r, u, v) : e.p0_area.xyz + u * e.eu_pdf.xyz + v * e.ev.xyz;
+    float3 d = y - p;
+    float d2 = dot(d, d);
+    float3 w = d * rsqrt(d2);
+    float cx = dot(n, w);
+    float cy = -dot(ne, w);
+    if (cx <= 0.0 || cy <= 0.0)
+        return float3(0.0, 0.0, 0.0);
+    if (occluded_segment(p, y + ne * RAY_OFFSET - p))
+        return float3(0.0, 0.0, 0.0);
+    float k;
+    if ((params.flags & F_FAULT_NO_SOLID_ANGLE) != 0u)
+        k = e.p0_area.w;
+    else if (solid)
+        k = r.solid_angle;
+    else if ((params.flags & F_FAULT_NO_EMITTER_COS) != 0u)
+        k = e.p0_area.w / d2;
+    else
+        k = e.p0_area.w * cy / d2;
+    return e.radiance.xyz * (cx * k / (e.eu_pdf.w * PI));
 }
 
 float3 sky(float3 dir, inout uint rng)
@@ -161,7 +236,9 @@ void main(uint3 tid: SV_DispatchThreadID)
     float bad = 0.0;
 
     float3 p, n, rho;
-    uint h = trace_surface(params.eye.xyz, d, params.forward.w, p, n, rho);
+    uint m;
+    uint h = trace_surface(params.eye.xyz, d, params.forward.w, p, n, rho, m);
+    uint emitter_count = asuint(params.right.w);
     if (h == 0u)
     {
         float3 dn = normalize(d);
@@ -175,6 +252,8 @@ void main(uint3 tid: SV_DispatchThreadID)
     }
     else
     {
+        if ((params.flags & F_EMISSION) != 0u)
+            l = emission[m].xyz;
         float3 beta = float3(1.0, 1.0, 1.0);
         for (uint bounce = 0u; bounce <= params.max_bounces; bounce++)
         {
@@ -190,13 +269,17 @@ void main(uint3 tid: SV_DispatchThreadID)
                     l += beta * rho * params.sun_ground.xyz * (k / PI);
                 }
             }
+            uint nee = bounce == 0u ? F_EMITTERS_DIRECT : F_EMITTERS_INDIRECT;
+            if ((params.flags & nee) != 0u && emitter_count > 0u)
+                l += beta * rho * emitter_sample(p, n, rng);
             float v1 = rnd(rng);
             float3 wi = cosine_hemisphere(n, v1, rnd(rng));
             beta *= rho;
             if ((params.flags & F_FAULT_PDF) != 0u)
                 beta *= 1.1;
             float3 p2, n2, rho2;
-            uint h2 = trace_surface(p, wi, 0.0, p2, n2, rho2);
+            uint m2;
+            uint h2 = trace_surface(p, wi, 0.0, p2, n2, rho2, m2);
             if (h2 == 0u)
             {
                 l += beta * sky(wi, rng);
@@ -207,6 +290,8 @@ void main(uint3 tid: SV_DispatchThreadID)
                 bad = 1.0;
                 break;
             }
+            if ((params.flags & F_FAULT_DOUBLE_EMISSION) != 0u)
+                l += beta * emission[m2].xyz;
             if (bounce == params.max_bounces)
                 break;
             p = p2;

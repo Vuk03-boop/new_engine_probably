@@ -1,0 +1,16 @@
+    Finished `release` profile [optimized] target(s) in 0.08s
+     Running `target\release\ref_light.exe results\phase4a_ref --scene night --spp 16384`
+street_night (full): 1143 emitters
+rendering street_dusk: 16384 spp, lights off
+{"image":"street_dusk","scene":"night","dressing":"full","lights":false,"emitters":1143,"hour":17.75,"sun_elevation_deg":2.65,"sun_at_street":[0.38891,0.12011,0.01314],"mean":[5.06199e-3,4.11532e-3,4.00289e-3],"mean_relative_std_error":0.0160,"exposure":1.053627e2,"size":[960,540],"spp":16384,"bounces":8,"seed":74,"bad_samples":0,"seconds":143.8}
+rendering street_blue_hour: 16384 spp, lights on
+{"image":"street_blue_hour","scene":"night","dressing":"full","lights":true,"emitters":1143,"hour":18.5,"sun_elevation_deg":-5.30,"sun_at_street":[0.00000,0.00000,0.00000],"mean":[2.42882e-4,1.38691e-4,1.08273e-4],"mean_relative_std_error":0.1385,"exposure":7.423803e3,"size":[960,540],"spp":16384,"bounces":8,"seed":74,"bad_samples":0,"seconds":117.7}
+rendering street_night: 16384 spp, lights on
+{"image":"street_night","scene":"night","dressing":"full","lights":true,"emitters":1143,"hour":21,"sun_elevation_deg":-30.00,"sun_at_street":[0.00000,0.00000,0.00000],"mean":[2.21505e-4,1.28613e-4,8.86782e-5],"mean_relative_std_error":0.0567,"exposure":1.154912e4,"size":[960,540],"spp":16384,"bounces":8,"seed":74,"bad_samples":0,"seconds":116.3}
+rendering low_dusk: 16384 spp, lights off
+{"image":"low_dusk","scene":"night","dressing":"full","lights":false,"emitters":1143,"hour":17.75,"sun_elevation_deg":2.65,"sun_at_street":[0.38891,0.12011,0.01314],"mean":[6.73718e-3,5.88119e-3,6.13896e-3],"mean_relative_std_error":0.0145,"exposure":5.694007e1,"size":[960,540],"spp":16384,"bounces":8,"seed":74,"bad_samples":0,"seconds":113.2}
+rendering low_blue_hour: 16384 spp, lights on
+{"image":"low_blue_hour","scene":"night","dressing":"full","lights":true,"emitters":1143,"hour":18.5,"sun_elevation_deg":-5.30,"sun_at_street":[0.00000,0.00000,0.00000],"mean":[2.15762e-4,1.75324e-4,1.45894e-4],"mean_relative_std_error":0.1614,"exposure":7.734859e3,"size":[960,540],"spp":16384,"bounces":8,"seed":74,"bad_samples":0,"seconds":90.2}
+rendering low_night: 16384 spp, lights on
+{"image":"low_night","scene":"night","dressing":"full","lights":true,"emitters":1143,"hour":21,"sun_elevation_deg":-30.00,"sun_at_street":[0.00000,0.00000,0.00000],"mean":[1.90578e-4,1.61382e-4,1.15770e-4],"mean_relative_std_error":0.0305,"exposure":1.210254e4,"size":[960,540],"spp":16384,"bounces":8,"seed":74,"bad_samples":0,"seconds":88.6}
+validation: 0 errors, 0 warnings
