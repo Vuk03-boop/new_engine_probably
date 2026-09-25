@@ -1,7 +1,8 @@
-// Phase 4B: the sums behind the viewer's automatic exposure (Phase 4 decision 3). One workgroup of
-// 256 threads reads every `stride`-th pixel in x and y (from stride / 2) of the shown radiance and
+// Phase 4B: the sums behind the viewer's automatic exposure (Phase 4 decision 3). `groups` workgroups
+// of 256 threads read every `stride`-th pixel in x and y (from stride / 2) of the shown radiance and
 // adds, on surface pixels with EMISSION, the material's emitted radiance (what the light view shows,
-// before exposure). Per frame, into `sums[slot]`: x the sum of the displayed luminance Y, y the number
+// before exposure). Per frame and workgroup g, into `sums[slot * groups + g]` (the host adds the
+// groups' partial sums): x the sum of the displayed luminance Y, y the number
 // of pixels read, z the sum of ln Y over the pixels with Y >= floor and Y > 0 (the 4A metric
 // exposure's rule, with the host's floor from the previous frame's mean), w their number. The host
 // reads it once the frame has completed (`gpu::exposure`).
@@ -15,7 +16,7 @@ struct Params
     float floor;
     uint flags;
     uint material_count;
-    uint pad0;
+    uint groups;
 };
 
 struct MaterialRow
@@ -43,15 +44,16 @@ float luminance(float3 c)
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void main(uint3 tid: SV_GroupThreadID)
+void main(uint3 tid: SV_GroupThreadID, uint3 gid: SV_GroupID)
 {
     uint t = tid.x;
+    uint groups = max(params.groups, 1u);
     uint s = max(params.stride, 1u);
     uint nx = (params.width + s / 2u) / s;
     uint ny = (params.height + s / 2u) / s;
     uint n = nx * ny;
     float4 acc = float4(0.0, 0.0, 0.0, 0.0);
-    for (uint j = t; j < n; j += THREADS)
+    for (uint j = gid.x * THREADS + t; j < n; j += groups * THREADS)
     {
         uint x = (j % nx) * s + s / 2u;
         uint y = (j / nx) * s + s / 2u;
@@ -80,5 +82,5 @@ void main(uint3 tid: SV_GroupThreadID)
         GroupMemoryBarrierWithGroupSync();
     }
     if (t == 0u)
-        sums[params.slot] = part[0];
+        sums[params.slot * groups + gid.x] = part[0];
 }

@@ -27,7 +27,7 @@ Authorization: S-024 (4A and 4B authorized); the user's "go ahead then you are o
    - L flips the automatic state by hand; `--lights auto|on|off` (default `auto`).
    - A switch is a light jump: the history resets (`History::set_lights`, `ResetCause::lights`).
 4. **Night exposure** (decision 3): automatic exposure in the viewer.
-   - `gpu::exposure`: one small compute pass after the filter, over every 4th pixel in x and y: per frame the sum of displayed luminance (reflected + emission), and the sum of its log and the count over the pixels at least 2⁻¹⁰ of the previous frame's mean (the 4A metric exposure's rule, one frame late). Read back two frames later (frames in flight), host-visible, 32 B.
+   - `gpu::exposure`: one small compute pass after the filter, over every 4th pixel in x and y: per frame the sum of displayed luminance (reflected + emission), and the sum of its log and the count over the pixels at least 2⁻¹⁰ of the previous frame's mean (the 4A metric exposure's rule, one frame late). Read back two frames later (frames in flight), host-visible: 64 workgroups' partial sums per frame, added on the host (2 × 64 × 16 B; first built as one workgroup, see the Observations).
    - `light::exposure::Adaptation`: the target is 0.18 over the log-average; the log exposure follows it with a 1 s time constant; bounded to [2⁻², 2¹⁶]; − and = still offset it in stops; the first measurement is taken at once.
    - `--exposure auto|sky`: `auto` is the default for `--scene night`, `sky` (M3's sun-and-sky exposure, unchanged) for `--scene street`.
 5. **Relight rules for emitters** (ADR-0006 Amendment 2), for edits while the lights are on. A pixel whose history would otherwise be accepted restarts as *relit* when, besides 3E's sun and sky rules:
@@ -110,6 +110,7 @@ The user ran the viewer at night (`--scene night`, 21 h, Full) before the laptop
   - coloured specks on the road: present with the bounce on and the filter on, absent with the bounce off. They are rare bright samples of the bounce hit's one emitter sample (a bounce landing on a façade near neon), which the filter's luminance edge-stopping keeps and spreads into dots;
   - blotchy neon light on the shop fronts: present with the bounce off too, so it is the primary vertex's one sample chosen by power, which ignores distance (a façade next to a neon tube rarely picks it). `--emitter-samples 4` visibly reduces it, at about 8.6 ms frame p50 with the filter (within 16.67 ms).
   - Both are the per-frame night noise 4A measured (p90 σ/μ 13–21) and what reservoir reuse (4C, not authorized) targets.
+- **F3 numbers** (1920×991 window, validation on, 21 h, Full, bounce off, filter on, k = 1, 13,134 frames): GPU p50 gbuffer 0.57 ms, shade pass 1.60, temporal 1.16, filter 2.49, **exposure 1.24**, view 0.22; frame p50 6.4 ms, 1% low 67 fps; 2 edits shown in 24.2 / 27.5 ms; 0 validation errors, 0 warnings, no leaks. The exposure pass was one workgroup, so one multiprocessor did all 129,600 loads in series; it now runs 64 workgroups whose partial sums the host adds (the same sums, so C1 and G6 are unchanged; its new cost is measured by the laptop run).
 - The lit upper windows are blown out to white at the automatic exposure: a look decision (window luminance or exposure key) for the user.
 
 ## Next

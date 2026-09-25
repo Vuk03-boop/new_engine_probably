@@ -1,5 +1,5 @@
 //! Phase 4B: the sums behind the viewer's automatic exposure (`shaders/exposure.slang`; Phase 4
-//! decision 3). One workgroup reads every [`STRIDE`]-th pixel in x and y of the shown radiance (after
+//! decision 3). [`GROUPS`] workgroups read every [`STRIDE`]-th pixel in x and y of the shown radiance (after
 //! the filter), adds the material's emitted radiance on surface pixels when the lights are on (what the
 //! light view shows), and writes `light::exposure::LogSums` into one slot of a small host-visible
 //! buffer. The host reads a slot once the frame that wrote it has completed, and turns it into an
@@ -22,6 +22,9 @@ pub const REFLECTION: &str = include_str!(concat!(env!("OUT_DIR"), "/exposure.js
 
 /// Pixels read: every `STRIDE`-th in x and y (1080p: 480 x 270).
 pub const STRIDE: u32 = 4;
+/// Workgroups per frame, each writing a partial sum the host adds. One workgroup took 1.24 ms at
+/// 1080p on the RTX 3050 (one multiprocessor doing every load in series).
+pub const GROUPS: u32 = 64;
 
 const F_EMISSION: u32 = 1;
 
@@ -36,7 +39,7 @@ pub struct Params {
     pub floor: f32,
     pub flags: u32,
     pub material_count: u32,
-    pub pad0: u32,
+    pub groups: u32,
 }
 
 const _: () = assert!(size_of::<Params>() == 32);
@@ -56,7 +59,7 @@ pub fn host_layout() -> Vec<Param> {
         Param::Descriptor { name: "sums", binding: 4, element: vec![] },
         Param::PushConstants {
             name: "params",
-            fields: vec![field!(Params, width), field!(Params, height), field!(Params, stride), field!(Params, slot), field!(Params, floor), field!(Params, flags), field!(Params, material_count), field!(Params, pad0)],
+            fields: vec![field!(Params, width), field!(Params, height), field!(Params, stride), field!(Params, slot), field!(Params, floor), field!(Params, flags), field!(Params, material_count), field!(Params, groups)],
         },
     ]
 }
@@ -68,7 +71,8 @@ pub fn sample_pixels(width: u32, height: u32) -> Vec<usize> {
     (0..nx * ny).map(|j| ((j / nx) * s + s / 2) as usize * width as usize + ((j % nx) * s + s / 2) as usize).collect()
 }
 
-/// The host-visible sums, one slot per frame in flight (16 B each, `GpuTemporal`).
+/// The host-visible sums, one slot per frame in flight ([`GROUPS`] partial sums of 16 B each,
+/// `GpuTemporal`).
 pub struct ExposureTargets {
     pub sums: Buffer,
     pub slots: u32,
@@ -76,16 +80,25 @@ pub struct ExposureTargets {
 
 impl ExposureTargets {
     pub fn new(gpu: &Gpu, alloc: &mut Allocator, slots: u32) -> Result<ExposureTargets> {
-        let mut sums = alloc.create_buffer(gpu, 16 * slots.max(1) as u64, vk::BufferUsageFlags::STORAGE_BUFFER, Category::GpuTemporal, Kind::Host)?;
+        let mut sums = alloc.create_buffer(gpu, 16 * (GROUPS * slots.max(1)) as u64, vk::BufferUsageFlags::STORAGE_BUFFER, Category::GpuTemporal, Kind::Host)?;
         sums.mapped().expect("host buffer").fill(0);
         Ok(ExposureTargets { sums, slots: slots.max(1) })
     }
 
-    /// The sums of `slot`. Only after the frame that wrote it has completed.
+    /// The sums of `slot` (its groups' partial sums added in f64). Only after the frame that wrote it
+    /// has completed.
     pub fn read(&self, slot: u32) -> LogSums {
         let m = self.sums.mapped_ref().expect("host buffer");
-        let f = |k: usize| f32::from_le_bytes(m[16 * slot as usize + 4 * k..16 * slot as usize + 4 * k + 4].try_into().unwrap()) as f64;
-        LogSums { sum: f(0), count: f(1), sum_log: f(2), lit: f(3) }
+        let mut s = LogSums::default();
+        for g in 0..GROUPS as usize {
+            let at = 16 * (slot as usize * GROUPS as usize + g);
+            let f = |k: usize| f32::from_le_bytes(m[at + 4 * k..at + 4 * k + 4].try_into().unwrap()) as f64;
+            s.sum += f(0);
+            s.count += f(1);
+            s.sum_log += f(2);
+            s.lit += f(3);
+        }
+        s
     }
 
     pub fn free(self, gpu: &Gpu, alloc: &mut Allocator) {
@@ -177,7 +190,7 @@ impl Exposure {
     #[allow(clippy::too_many_arguments)]
     pub fn record(&self, gpu: &Gpu, cmd: vk::CommandBuffer, bindings: &ExposureBindings, out: &ExposureTargets, tables: &Tables, width: u32, height: u32, slot: u32, floor: f64, emission: bool) {
         assert!(slot < out.slots, "exposure slot {slot} of {}", out.slots);
-        let p = Params { width, height, stride: STRIDE, slot, floor: floor as f32, flags: if emission { F_EMISSION } else { 0 }, material_count: tables.material_count, pad0: 0 };
+        let p = Params { width, height, stride: STRIDE, slot, floor: floor as f32, flags: if emission { F_EMISSION } else { 0 }, material_count: tables.material_count, groups: GROUPS };
         let dev = &gpu.device;
         let bytes = unsafe { std::slice::from_raw_parts(&p as *const Params as *const u8, size_of::<Params>()) };
         let before = [vk::MemoryBarrier2::default()
@@ -195,7 +208,7 @@ impl Exposure {
             dev.cmd_bind_pipeline(cmd, vk::PipelineBindPoint::COMPUTE, self.pipeline);
             dev.cmd_bind_descriptor_sets(cmd, vk::PipelineBindPoint::COMPUTE, self.layout, 0, &[bindings.set], &[]);
             dev.cmd_push_constants(cmd, self.layout, vk::ShaderStageFlags::COMPUTE, 0, bytes);
-            dev.cmd_dispatch(cmd, 1, 1, 1);
+            dev.cmd_dispatch(cmd, GROUPS, 1, 1);
             dev.cmd_pipeline_barrier2(cmd, &vk::DependencyInfo::default().memory_barriers(&after));
         }
     }
