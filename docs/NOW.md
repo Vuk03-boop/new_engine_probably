@@ -62,7 +62,7 @@
 - **Repository** (since 2026-09-25):
   - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
   - 4A (parts 1 and 2) is on branch `claude/tender-keller-9u9d6t`, open as PR https://github.com/Vuk03-boop/new_engine_probably/pull/1 against `main` (not merged; merging is the user's call). The laptop's part 1 results were pushed to the same branch (commit `ceb18d7`).
-  - The 4A part 2 laptop results were pushed to that branch (commit `226390e`). Their analysis and the 4A closure are on branch `claude/nice-dijkstra-xpg7tr` (fast-forwarded from `226390e`); PR 1 does not carry them until that branch is merged into it or a PR is opened from it.
+  - The 4A part 2 laptop results were pushed to that branch (commit `226390e`). Their analysis and the 4A closure (commit `e96d705`, written on branch `claude/nice-dijkstra-xpg7tr`) were pushed to the PR 1 branch at the user's request, so PR 1 carries them.
   - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, still holding the 4A part 2 checks (it ran once, all 15 steps exit 0). 4B will replace its steps. Logs go to `engine/results/local-run/<date>-<tag>/`; the user pushes `engine/results` back.
   - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
   - Binary data is protected from line-ending conversion by `.gitattributes`.
