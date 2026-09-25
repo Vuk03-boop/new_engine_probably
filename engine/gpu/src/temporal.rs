@@ -15,7 +15,8 @@
 //! 3E (ADR-0006 Amendment 1), lighting that changes under an accepted history: an edit lists its
 //! voxel boxes ([`Relight`]) for the frame after it is published, and pixels whose sun ray crosses a
 //! box or that lie within its sky radius restart as "relit"; while the sun moves, the age cap shrinks
-//! so that the history spans at most `sun_tolerance_deg` of sun motion.
+//! so that the history spans at most `sun_tolerance_deg` of sun motion. 4B (Amendment 3): not below
+//! `sun_cap_min_elevation_deg` (−12°), where the sky gives no light that matters.
 //!
 //! 4B (ADR-0006 Amendment 2), emitters: while the lights are on, a box also carries a bound on the
 //! emitter power the edit changed ([`changed_power`], rule E1) and the emitters it may shadow most
@@ -87,21 +88,25 @@ mod flags {
 pub struct TemporalSettings {
     pub max_age: u32,
     pub sun_tolerance_deg: f64,
+    /// 4B (ADR-0006 Amendment 3): below this sun elevation (degrees; default −12°) the sun-motion
+    /// cap is off, since the sky's light there is at most 1.1 × 10⁻⁸ units on an albedo-0.3 surface
+    /// (`light::sky` `diagnostic_skylight_below_horizon`). The light-jump reset still applies.
+    pub sun_cap_min_elevation_deg: f64,
     /// 3E: resample the history bilinearly (the 3D behaviour) instead of with Catmull-Rom.
     pub bilinear: bool,
 }
 
 impl Default for TemporalSettings {
     fn default() -> TemporalSettings {
-        TemporalSettings { max_age: 64, sun_tolerance_deg: 0.5, bilinear: false }
+        TemporalSettings { max_age: 64, sun_tolerance_deg: 0.5, sun_cap_min_elevation_deg: -12.0, bilinear: false }
     }
 }
 
 impl TemporalSettings {
-    /// The age cap for a frame in which the sun moved `sun_deg`.
-    pub fn age_cap(&self, sun_deg: f64) -> u32 {
+    /// The age cap for a frame in which the sun moved `sun_deg` and ended at `elevation_deg`.
+    pub fn age_cap(&self, sun_deg: f64, elevation_deg: f64) -> u32 {
         let max = self.max_age.max(1);
-        if sun_deg > 0.0 {
+        if sun_deg > 0.0 && elevation_deg >= self.sun_cap_min_elevation_deg {
             ((self.sun_tolerance_deg / sun_deg).floor().clamp(1.0, max as f64)) as u32
         } else {
             max
@@ -511,7 +516,7 @@ impl Temporal {
                 ResetCause { first: false, cut: moved > CUT_VOXELS, light: sun_deg > LIGHT_JUMP_DEG, forced: force_reset, lights: p.lights != history.lights }
             }
         };
-        history.age_cap = s.age_cap(sun_deg);
+        history.age_cap = s.age_cap(sun_deg, light::sun::elevation_deg(sun));
         let prev = history.prev.map_or(*cam, |p| p.cam);
         let mut f = 0;
         for (on, bit) in [(cause.any(), flags::RESET), (s.bilinear, flags::BILINEAR), (faults.reset_always, flags::FAULT_RESET_ALWAYS), (faults.never_reject, flags::FAULT_NEVER_REJECT), (faults.no_fresh, flags::FAULT_NO_FRESH)] {
@@ -582,6 +587,30 @@ mod tests {
 
     fn light(p: f64) -> BoxLight {
         BoxLight { centre: [p, 2.0 * p, 3.0], radius: 0.5, luminance: p, potential: p }
+    }
+
+    /// 4B (ADR-0006 Amendment 3): the sun-motion cap holds down to −12° and is off below; the light
+    /// jump still resets. Viewer speeds: 0.0625° per frame (60 fps) and 0.03° (about 120 fps).
+    #[test]
+    fn sun_cap_is_off_when_the_sun_is_well_below_the_horizon() {
+        let s = TemporalSettings::default();
+        let path = light::sun::SunPath::default();
+        let (blue_hour, night) = (light::sun::elevation_deg(path.direction(18.5)), light::sun::elevation_deg(path.direction(21.0)));
+        assert!(blue_hour > -12.0 && night < -12.0, "{blue_hour} {night}");
+        // Day, blue hour and the cutoff itself keep the 3E cap.
+        for e in [45.0, blue_hour, -12.0] {
+            assert_eq!(s.age_cap(0.0625, e), 8, "elevation {e}");
+            assert_eq!(s.age_cap(0.03, e), 16, "elevation {e}");
+        }
+        // Below it the history reaches max_age.
+        for e in [-12.001, night] {
+            for d in [0.0, 0.03, 0.0625, 0.9] {
+                assert_eq!(s.age_cap(d, e), 64, "elevation {e}, {d}°/frame");
+            }
+        }
+        // Planted fault: with the cutoff at −90° the night keeps the day's cap.
+        let never = TemporalSettings { sun_cap_min_elevation_deg: -90.0, ..s };
+        assert_eq!(never.age_cap(0.0625, night), 8);
     }
 
     /// 4B C2: the header, the box rows and the light rows are where the shader reads them; more than

@@ -105,13 +105,26 @@ Cloud session, Linux x86_64, 4 cores, no GPU. The `gpu` crate is built with the 
 The user ran the viewer at night (`--scene night`, 21 h, Full) before the laptop test run; screenshots in the session, with F3 (added for this, commit `aba9730`) showing every setting.
 
 - It runs: the lights, the lights rule, the automatic exposure (about 1.2–1.7 × 10⁴ at 21 h) and the history work; with the day stopped the history is full (age view white, reason view all accepted). About 120–200 fps at 1080p.
-- **The first look was noisier than it should be because the day was running** (`--run-day`): the sun-motion cap held the history at about 15 frames although the sun gives no light at night. Not changed yet; a candidate fix is to skip the cap when the sun is well below the horizon (an ADR-0006 change, for the user to approve).
+- **The first look was noisier than it should be because the day was running** (`--run-day`): the sun-motion cap held the history at about 15 frames although the sun gives no light at night. **Fixed** (the user approved the fix, then −12° after the measurement; S-025, [ADR-0006 Amendment 3](../adr/ADR-0006-guides-and-history.md)): no cap below −12° sun elevation. See the section below.
 - **With a full history, two artefacts remain**, located by toggling B and N:
   - coloured specks on the road: present with the bounce on and the filter on, absent with the bounce off. They are rare bright samples of the bounce hit's one emitter sample (a bounce landing on a façade near neon), which the filter's luminance edge-stopping keeps and spreads into dots;
   - blotchy neon light on the shop fronts: present with the bounce off too, so it is the primary vertex's one sample chosen by power, which ignores distance (a façade next to a neon tube rarely picks it). `--emitter-samples 4` visibly reduces it, at about 8.6 ms frame p50 with the filter (within 16.67 ms).
   - Both are the per-frame night noise 4A measured (p90 σ/μ 13–21) and what reservoir reuse (4C, not authorized) targets.
 - **F3 numbers** (1920×991 window, validation on, 21 h, Full, bounce off, filter on, k = 1, 13,134 frames): GPU p50 gbuffer 0.57 ms, shade pass 1.60, temporal 1.16, filter 2.49, **exposure 1.24**, view 0.22; frame p50 6.4 ms, 1% low 67 fps; 2 edits shown in 24.2 / 27.5 ms; 0 validation errors, 0 warnings, no leaks. The exposure pass was one workgroup, so one multiprocessor did all 129,600 loads in series; it now runs 64 workgroups whose partial sums the host adds (the same sums, so C1 and G6 are unchanged; its new cost is measured by the laptop run).
 - The lit upper windows are blown out to white at the automatic exposure: a look decision (window luminance or exposure key) for the user.
+
+## The night history cap (S-025, 2026-09-25, cloud)
+
+- **Measurement first** (`light::sky` `diagnostic_skylight_below_horizon`, on demand, 0.4 s; the real-time sky model computed directly, without the S-020 correction, which does not change the scale). Skylight radiance on an albedo-0.3 surface, in units:
+
+  | Sun elevation | 0° | −3° | −6° | −9° | −12° | −15° | −18° |
+  |---|---|---|---|---|---|---|---|
+  | Radiance | 8.0 × 10⁻⁴ | 1.3 × 10⁻⁴ | 5.4 × 10⁻⁶ | 2.4 × 10⁻⁷ | 1.1 × 10⁻⁸ | 3.3 × 10⁻¹⁰ | 3.2 × 10⁻¹¹ |
+
+  It falls by 1.6–7× per degree (about 2× typically). Against the night street's mean reflected emitter light (about 2 × 10⁻⁵, estimated from the 4A record), the sky is about 25% at −6°, 1% at −9° and 0.05% at −12°.
+- **Change:** `TemporalSettings::sun_cap_min_elevation_deg` (default −12°); `TemporalSettings::age_cap` takes the sun's elevation and returns `max_age` below it. The light-jump reset is unchanged, and blue hour (−5.3°) keeps the cap. Daytime and every M3 test time are above −12°, so M3 behaviour is unchanged.
+- **Checks (cloud, no GPU):** `sun_cap_is_off_when_the_sun_is_well_below_the_horizon` passes (day, blue hour and −12° keep caps 8 / 16 at 0.0625 / 0.03° per frame; −12.001° and 21 h give 64; a planted −90° cutoff keeps 8 at 21 h). Pure suite: exit 0, 154 pass, 5 ignored (the new diagnostic) (`engine/results/test_pure_4b_cap_cloud.log`). `gpu --lib`: exit 0, 22 pass (`engine/results/test_gpu_lib_4b_cap_cloud.log`). Clippy `--workspace --all-targets`: exit 0, only the 6 old `world` lints (`engine/results/clippy_4b_cap_cloud.log`; substitute SDK, supplemental, not ADR-0001 proof). The first clippy attempt failed only because clippy was not installed for the toolchain.
+- **NOT RUN:** the viewer at night with the day running (the age view should stay white at 21 h). `run-local.cmd` already runs `gpu --lib`, so it carries the new test; its other steps are unchanged.
 
 ## Next
 

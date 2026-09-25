@@ -82,10 +82,20 @@ Status: **proposed with 4B (delegated lighting technique, S-024); accepted when 
 - **Buffer:** the relight buffer grows to a header of 2 rows (sun and box count; the tolerance) plus 18 rows per box (lo and sky radius; hi and ΔΦ / π²; 8 × (centre and grown radius, luminance)): 4,640 B for 16 boxes, still written in the command stream (`vkCmdUpdateBuffer`).
 - With the lights off (and on the M3 street, which has no emitters) boxes carry no emitter terms, so the 3E behaviour is unchanged.
 
-## Validation
+## Amendment 3 (4B, 2026-09-25): no sun-motion cap at night
+
+Status: **accepted 2026-09-25 (S-025).** Record: [4B](../changes/2026-09-25-phase4b-many-lights.md).
+
+- **Rule.** Amendment 1's sun-motion age cap applies only while the sun's elevation is at least `TemporalSettings::sun_cap_min_elevation_deg` (default **−12°**). Below it the cap is `max_age`. The light-jump reset (> 1° in one frame) is unchanged.
+- **Why.** Below the horizon the sun casts no shadows, and the sky is its only light. The cap held a night history at 8–16 frames while the day ran, which made the first night look noisier than necessary (4B record, first look). Measured (`light::sky` `diagnostic_skylight_below_horizon`, computed directly from the real-time sky model, uncorrected): the skylight radiance on an albedo-0.3 surface falls about 2× per degree, from 8.0 × 10⁻⁴ units at 0° to 5.4 × 10⁻⁶ at −6°, 2.4 × 10⁻⁷ at −9°, **1.1 × 10⁻⁸ at −12°** and 3.2 × 10⁻¹¹ at −18°. The night street's mean reflected emitter light is about 2 × 10⁻⁵ (4A record: image mean 1.6 × 10⁻⁴, 86–90% directly seen emission), so at −12° the sky is about 0.05% of it.
+- **Declared approximation.** Below −12° a history may lag the sky's dimming by up to `max_age` frames (about 2° of sun at the viewer's day speed, at most a few times the sky's own value in that range). That is small next to the lamps' light but not bounded per pixel: a surface no lamp reaches shows that lag in full, and it is black in any case. Blue hour (−5.3°) keeps the cap.
+- **Test.** `temporal::tests::sun_cap_is_off_when_the_sun_is_well_below_the_horizon` (pure, `gpu --lib`), with a planted cutoff of −90° that keeps the day's cap.
+
 
 3D tests: a static camera's history equals the host's running mean; accumulation converges to the reference; planted "reset every frame", "never reject" and "no fresh sample" are caught; an edit resets only its regions; motion equals the host's reprojection; global resets reset everything.
 
 ## Implementation status
 
 See the [3D record](../changes/2026-09-24-phase3d-temporal.md). Amendment 2 (4B): implemented in `gpu::temporal` (`changed_power`, `Relight::with_lights`, `History::set_lights`) and `shaders/temporal.slang`; the row layout passes C2 (cloud); G5 and G6 are NOT RUN until the laptop runs `run-local.cmd` ([4B record](../changes/2026-09-25-phase4b-many-lights.md)).
+
+Amendment 3 (4B): `TemporalSettings::sun_cap_min_elevation_deg`, applied in `Temporal::record` through `TemporalSettings::age_cap(sun_deg, elevation_deg)`; the pure test passes in the cloud; the viewer's night look with the day running is NOT RUN until the user looks again.

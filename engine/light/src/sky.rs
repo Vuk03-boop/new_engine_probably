@@ -598,6 +598,24 @@ mod tests {
         assert!(failed.is_empty(), "{failed:?}");
     }
 
+    /// Diagnostic (on demand, 4B's night history cap): the skylight falling on the ground,
+    /// E_sky(sun elevation), from 0° to −20°, computed directly (not the 64-texel table), with its
+    /// fall per degree and the radiance it gives a Lambertian surface of albedo 0.3.
+    #[test]
+    #[ignore]
+    fn diagnostic_skylight_below_horizon() {
+        let luts = SkyLuts::new(Atmosphere::default());
+        let mut prev: Option<f64> = None;
+        for k in 0..=20 {
+            let el = -(k as f64);
+            let e = luts.ground_texel(el.to_radians().sin());
+            let y = 0.2126 * e[0] + 0.7152 * e[1] + 0.0722 * e[2];
+            let fall = prev.map_or(String::from("-"), |p| format!("{:.2}", p / y));
+            eprintln!("elevation {el:>5.1}: E_sky Y {y:.3e}  radiance at albedo 0.3 {:.3e}  fall per degree {fall}", 0.3 / PI * y);
+            prev = Some(y);
+        }
+    }
+
     /// Diagnostic (on demand): the table against the Monte Carlo sky per elevation (azimuth 90° from
     /// the sun), with the default ground (albedo 0.3) and with a black ground, which separates the
     /// ground's contribution from the multiple-scattering approximation in the air.
