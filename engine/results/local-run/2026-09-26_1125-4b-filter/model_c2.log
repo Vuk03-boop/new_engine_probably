@@ -1,0 +1,18 @@
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running tests\denoise_model.rs (target\release\deps\denoise_model-4e3403b88d477931.exe)
+
+running 2 tests
+test model_filter_energy ... ignored
+Svgf sigma_l 1: energy change left -3.01e-1, right -3.27e-1
+Svgf sigma_l 4: energy change left -3.81e-1, right -4.27e-1
+Svgf sigma_l 16: energy change left -3.49e-1, right -4.10e-1
+Symmetric sigma_l 1: energy change left +5.62e-1, right +4.46e-1
+Symmetric sigma_l 4: energy change left +6.21e-1, right +4.87e-1
+Symmetric sigma_l 16: energy change left +6.42e-1, right +5.05e-1
+Conservative sigma_l 1: energy change left -1.17e-8, right -9.33e-9
+Conservative sigma_l 4: energy change left -1.57e-8, right -3.61e-9
+Conservative sigma_l 16: energy change left -1.70e-8, right -1.16e-8
+test conservative_weights_keep_energy ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

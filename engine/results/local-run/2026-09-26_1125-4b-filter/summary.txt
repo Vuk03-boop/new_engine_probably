@@ -1,0 +1,32 @@
+4B filter fix, local run 2026-09-26_1125
+commit bdd4bd2
+cargo 1.98.1 (797e8a9bc 2026-08-05)
+VULKAN_SDK C:\VulkanSDK\1.4.357.0
+candidate conservative:4 (plateau data: conservative:2, conservative:8)
+reference caches C:\Users\VUKTRI~1\AppData\Local\Temp\ne_gate_4b and C:\Users\VUKTRI~1\AppData\Local\Temp\ne_gate
+
+PASS  pure_suite  exit 0  log pure_suite.log
+PASS  gpu_lib  exit 0  log gpu_lib.log
+PASS  gpu_build_tests  exit 0  log gpu_build_tests.log
+PASS  model_c2  exit 0  log model_c2.log
+PASS  viewer_build  exit 0  log viewer_build.log
+PASS  f2_energy  exit 0  log f2_energy.log
+FAIL  f1_g4_candidate  exit 101  log f1_g4_candidate.log
+FAIL  f1_g4_half_data  exit 101  log f1_g4_half_data.log
+FAIL  f1_g4_double_data  exit 101  log f1_g4_double_data.log
+PASS  f3_gate_stills  exit 0  log f3_gate_stills.log
+PASS  f3_gate_motion  exit 0  log f3_gate_motion.log
+FAIL  f4_3e_criteria  exit 101  log f4_3e_criteria.log
+FAIL  f4_3e_d4_c1_data  exit 101  log f4_3e_d4_c1_data.log
+FAIL  f5_cost  exit 101  log f5_cost.log
+PASS  f6_walk_default_data  exit 0  log f6_walk_default_data.log
+PASS  f6_walk_candidate_data  exit 0  log f6_walk_candidate_data.log
+PASS  f6_viewer_night  exit 0  log f6_viewer_night.log
+PASS  f6_viewer_street  exit 0  log f6_viewer_street.log
+PASS  f1_flip_candidate  exit 0  log f1_flip_candidate.log
+PASS  f1_flip_half_data  exit 0  log f1_flip_half_data.log
+PASS  f1_flip_double_data  exit 0  log f1_flip_double_data.log
+PASS  f3_flip  exit 0  log f3_flip.log
+
+Data steps (a FAIL there is not a criterion): f1_g4_half_data, f1_g4_double_data, f4_3e_d4_c1_data (D4 and C1 fail with the default too), f6_walk_*_data, f1_flip_*_data.
+NOT RUN on purpose: the other lights/gpu tests (the filter is the only changed engine code; F2 checks the default is unchanged).

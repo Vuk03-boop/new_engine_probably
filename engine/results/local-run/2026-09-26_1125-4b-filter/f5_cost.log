@@ -1,0 +1,21 @@
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running tests\denoise.rs (target\release\deps\denoise-c7317801a1103d3d.exe)
+
+running 1 test
+test filter_cost_against_the_default ... filter under test: conservative:4 (NE_FILTER)
+F5 (validation false): default svgf:4 per-repetition medians [3.064, 3.065, 3.067, 3.064, 3.066, 3.065] -> 3.065 ms | conservative:4 [3.747, 3.747, 3.747, 3.747, 3.748, 3.749] -> 3.747 ms | difference +0.682 ms
+validation: 0 errors, 0 warnings
+
+thread 'filter_cost_against_the_default' (23120) panicked at gpu\tests\denoise.rs:1108:5:
+F5: conservative:4 median 3.747 ms over the default's 3.065 + 0.05 ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    filter_cost_against_the_default
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 215.64s
+
+error: test failed, to rerun pass `-p gpu --test denoise`

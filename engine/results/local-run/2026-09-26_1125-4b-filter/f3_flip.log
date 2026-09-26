@@ -1,0 +1,17 @@
+{"arm": "conservative-4_still_street_dawn", "age1": {"raw": 0.10182, "filtered": 0.06266, "q4": "pass"}, "age16": {"raw": 0.03983, "filtered": 0.02765, "q4": "pass"}, "age64": {"raw": 0.02646, "filtered": 0.02015, "q4": "pass"}}
+{"arm": "conservative-4_still_low_dawn", "age1": {"raw": 0.07465, "filtered": 0.05142, "q4": "pass"}, "age16": {"raw": 0.03477, "filtered": 0.02695, "q4": "pass"}, "age64": {"raw": 0.02579, "filtered": 0.0219, "q4": "pass"}}
+{"arm": "conservative-4_still_street_morning", "age1": {"raw": 0.08418, "filtered": 0.04922, "q4": "pass"}, "age16": {"raw": 0.03127, "filtered": 0.02144, "q4": "pass"}, "age64": {"raw": 0.02136, "filtered": 0.01598, "q4": "pass"}}
+{"arm": "conservative-4_still_low_morning", "age1": {"raw": 0.05965, "filtered": 0.04097, "q4": "pass"}, "age16": {"raw": 0.02803, "filtered": 0.02199, "q4": "pass"}, "age64": {"raw": 0.02167, "filtered": 0.01871, "q4": "pass"}}
+{"arm": "conservative-4_still_street_midday", "age1": {"raw": 0.09538, "filtered": 0.0556, "q4": "pass"}, "age16": {"raw": 0.03464, "filtered": 0.02419, "q4": "pass"}, "age64": {"raw": 0.02322, "filtered": 0.01764, "q4": "pass"}}
+{"arm": "conservative-4_still_low_midday", "age1": {"raw": 0.06221, "filtered": 0.04307, "q4": "pass"}, "age16": {"raw": 0.02945, "filtered": 0.02341, "q4": "pass"}, "age64": {"raw": 0.02272, "filtered": 0.01969, "q4": "pass"}}
+{"arm": "conservative-4_still_street_dusk", "age1": {"raw": 0.10233, "filtered": 0.06361, "q4": "pass"}, "age16": {"raw": 0.04077, "filtered": 0.02847, "q4": "pass"}, "age64": {"raw": 0.0271, "filtered": 0.02077, "q4": "pass"}}
+{"arm": "conservative-4_still_low_dusk", "age1": {"raw": 0.07547, "filtered": 0.05245, "q4": "pass"}, "age16": {"raw": 0.03564, "filtered": 0.02744, "q4": "pass"}, "age64": {"raw": 0.02634, "filtered": 0.02213, "q4": "pass"}}
+{"arm": "conservative-4_still_street_twilight", "age1": {"raw": 0.26908, "filtered": 0.1546, "q4": "pass"}, "age16": {"raw": 0.10244, "filtered": 0.06681, "q4": "pass"}, "age64": {"raw": 0.065, "filtered": 0.04915, "q4": "pass"}}
+{"arm": "conservative-4_still_low_twilight", "age1": {"raw": 0.18643, "filtered": 0.11715, "q4": "pass"}, "age16": {"raw": 0.08224, "filtered": 0.06095, "q4": "pass"}, "age64": {"raw": 0.05941, "filtered": 0.05001, "q4": "pass"}}
+{"arm": "conservative-4_motion_morning_8", "raw": 0.03798, "filtered": 0.0262, "q4": "pass"}
+{"arm": "conservative-4_motion_morning_16", "raw": 0.03073, "filtered": 0.02185, "q4": "pass"}
+{"arm": "conservative-4_motion_morning_32", "raw": 0.02519, "filtered": 0.01881, "q4": "pass"}
+{"arm": "conservative-4_motion_dusk_8", "raw": 0.04977, "filtered": 0.0349, "q4": "pass"}
+{"arm": "conservative-4_motion_dusk_16", "raw": 0.04018, "filtered": 0.02917, "q4": "pass"}
+{"arm": "conservative-4_motion_dusk_32", "raw": 0.03316, "filtered": 0.02501, "q4": "pass"}
+{"q4_failed": [], "q4": "pass", "flip": "flip_evaluator 1.7", "ppd": 67}

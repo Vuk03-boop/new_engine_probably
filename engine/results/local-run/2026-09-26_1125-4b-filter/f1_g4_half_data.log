@@ -1,0 +1,49 @@
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running tests\lights.rs (target\release\deps\lights-6e727c54a2cf0e98.exe)
+
+running 1 test
+test night_against_the_reference ... rig: full (1143 emitters), 1920x1080
+reference street_night: cached
+filter under test: conservative:2 (NE_FILTER)
+G4 street_night: 1579999 surface px, reference noise rel_mse 1.25e-2, one frame's mean luminance 1-sigma 7.82%
+  age  1: filtered rel_mse 26.2750 bias -0.0106 | raw 221.9223 bias -0.0106 (z -0.14) | raw at age  8 55.8158 | filter energy -0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age  4: filtered rel_mse 19.1217 bias -0.0081 | raw 82.9673 bias -0.0081 (z -0.21) | raw at age 16 22.6419 | filter energy -0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age 16: filtered rel_mse 1.9590 bias -0.0202 | raw 22.6419 bias -0.0202 (z -1.03) | raw at age 64 9.5780 | filter energy -0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age 64: filtered rel_mse 0.5654 bias -0.0008 | raw 9.5780 bias -0.0008 (z -0.09) | raw at age 64 9.5780 | filter energy -0.0000 | Q1 pass (a pass b pass) Q2 pass
+  display exposure (metric, from the reference with emission): 1.2069e4
+reference low_night: cached
+G4 low_night: 1081611 surface px, reference noise rel_mse 8.27e-3, one frame's mean luminance 1-sigma 8.88%
+  age  1: filtered rel_mse 122.2617 bias +0.1452 | raw 669.3522 bias +0.1452 (z +1.64) | raw at age  8 49.0778 | filter energy -0.0000 | Q1 pass (a pass b pass) Q2 FAIL
+  age  4: filtered rel_mse 11.0445 bias +0.0300 | raw 76.9073 bias +0.0300 (z +0.68) | raw at age 16 30.0968 | filter energy +0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age 16: filtered rel_mse 1.6953 bias +0.0130 | raw 30.0968 bias +0.0130 (z +0.59) | raw at age 64 5.6961 | filter energy +0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age 64: filtered rel_mse 0.4444 bias +0.0027 | raw 5.6961 bias +0.0027 (z +0.24) | raw at age 64 5.6961 | filter energy +0.0000 | Q1 pass (a pass b pass) Q2 pass
+  display exposure (metric, from the reference with emission): 1.2464e4
+reference street_blue_hour: cached
+G4 street_blue_hour: 1579999 surface px, reference noise rel_mse 2.12e-2, one frame's mean luminance 1-sigma 5.67% (blue hour: data)
+  age  1: filtered rel_mse 16.6415 bias -0.0052 | raw 136.3711 bias -0.0052 (z -0.09) | raw at age  8 33.7208 | filter energy -0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age  4: filtered rel_mse 10.3293 bias -0.0035 | raw 44.2826 bias -0.0035 (z -0.12) | raw at age 16 13.5386 | filter energy -0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age 16: filtered rel_mse 1.2138 bias -0.0124 | raw 13.5386 bias -0.0124 (z -0.87) | raw at age 64 4.6246 | filter energy -0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age 64: filtered rel_mse 0.3095 bias +0.0016 | raw 4.6246 bias +0.0016 (z +0.23) | raw at age 64 4.6246 | filter energy -0.0000 | Q1 pass (a pass b pass) Q2 pass
+  display exposure (metric, from the reference with emission): 7.6128e3
+reference low_blue_hour: cached
+G4 low_blue_hour: 1081611 surface px, reference noise rel_mse 1.71e-2, one frame's mean luminance 1-sigma 6.27% (blue hour: data)
+  age  1: filtered rel_mse 52.1869 bias +0.1037 | raw 267.9818 bias +0.1037 (z +1.65) | raw at age  8 20.7373 | filter energy +0.0000 | Q1 pass (a pass b pass) Q2 FAIL
+  age  4: filtered rel_mse 4.9580 bias +0.0234 | raw 33.1082 bias +0.0234 (z +0.75) | raw at age 16 12.2682 | filter energy +0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age 16: filtered rel_mse 0.8179 bias +0.0113 | raw 12.2682 bias +0.0113 (z +0.72) | raw at age 64 2.5667 | filter energy +0.0000 | Q1 pass (a pass b pass) Q2 pass
+  age 64: filtered rel_mse 0.2172 bias +0.0040 | raw 2.5667 bias +0.0040 (z +0.51) | raw at age 64 2.5667 | filter energy +0.0000 | Q1 pass (a pass b pass) Q2 pass
+  display exposure (metric, from the reference with emission): 7.8242e3
+validation: 0 errors, 0 warnings
+
+thread 'night_against_the_reference' (6872) panicked at gpu\tests\lights.rs:1029:5:
+failed: ["Q2 low_night age 1"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    night_against_the_reference
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 20.62s
+
+error: test failed, to rerun pass `-p gpu --test lights`

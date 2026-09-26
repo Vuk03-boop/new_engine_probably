@@ -1,0 +1,48 @@
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running tests\denoise.rs (target\release\deps\denoise-c7317801a1103d3d.exe)
+
+running 2 tests
+test denoise_cost_at_1080p ... filter under test: conservative:4 (NE_FILTER)
+cost 1080p (validation true): temporal median 1.447 p90 1.479 ms | denoise (2 levels) median 4.408 p90 4.560 ms (60 reps)
+validation: 0 errors, 0 warnings
+
+thread 'denoise_cost_at_1080p' (12948) panicked at gpu\tests\denoise.rs:1081:5:
+C1: denoise median 4.408 ms over 3.0 ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test motion_path_meets_the_budget ... motion frame 8: filtered rel_mse 0.0238 bias +0.0019 | raw 0.0940 bias +0.0019 MISSED
+  age 1-3 interior: 324 px, filtered 0.0004 raw 0.0048 (shares of the frame's mean)
+  age 1-3 edge    : 155 px, filtered 0.0022 raw 0.0064 (shares of the frame's mean)
+  age 4-15 interior: 30141 px, filtered 0.0033 raw 0.0403 (shares of the frame's mean)
+  age 4-15 edge    : 13152 px, filtered 0.0180 raw 0.0426 (shares of the frame's mean)
+  age 16+ interior: 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+  age 16+ edge    : 0 px, filtered -0.0000 raw -0.0000 (shares of the frame's mean)
+motion frame 16: filtered rel_mse 0.0204 bias +0.0029 | raw 0.0523 bias +0.0029 MISSED
+  age 1-3 interior: 326 px, filtered 0.0005 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 148 px, filtered 0.0017 raw 0.0071 (shares of the frame's mean)
+  age 4-15 interior: 856 px, filtered 0.0002 raw 0.0019 (shares of the frame's mean)
+  age 4-15 edge    : 353 px, filtered 0.0006 raw 0.0012 (shares of the frame's mean)
+  age 16+ interior: 29597 px, filtered 0.0024 raw 0.0162 (shares of the frame's mean)
+  age 16+ edge    : 12971 px, filtered 0.0150 raw 0.0207 (shares of the frame's mean)
+motion frame 32: filtered rel_mse 0.0199 bias +0.0011 | raw 0.0341 bias +0.0011 MISSED
+  age 1-3 interior: 326 px, filtered 0.0004 raw 0.0052 (shares of the frame's mean)
+  age 1-3 edge    : 118 px, filtered 0.0011 raw 0.0032 (shares of the frame's mean)
+  age 4-15 interior: 970 px, filtered 0.0001 raw 0.0017 (shares of the frame's mean)
+  age 4-15 edge    : 229 px, filtered 0.0003 raw 0.0009 (shares of the frame's mean)
+  age 16+ interior: 30125 px, filtered 0.0014 raw 0.0067 (shares of the frame's mean)
+  age 16+ edge    : 13505 px, filtered 0.0167 raw 0.0164 (shares of the frame's mean)
+validation: 0 errors, 0 warnings
+
+thread 'motion_path_meets_the_budget' (21176) panicked at gpu\tests\denoise.rs:659:5:
+D4 missed at frames [8, 16, 32]
+FAILED
+
+failures:
+
+failures:
+    denoise_cost_at_1080p
+    motion_path_meets_the_budget
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 10 filtered out; finished in 44.81s
+
+error: test failed, to rerun pass `-p gpu --test denoise`

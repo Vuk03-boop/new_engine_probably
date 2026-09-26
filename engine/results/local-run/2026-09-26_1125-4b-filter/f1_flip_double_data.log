@@ -1,0 +1,5 @@
+{"arm": "conservative-8_still4b_street_night", "judged": true, "age1": {"raw": 0.40616, "filtered": 0.30332, "q4": "pass"}, "age16": {"raw": 0.25659, "filtered": 0.16347, "q4": "pass"}, "age64": {"raw": 0.19274, "filtered": 0.11496, "q4": "pass"}}
+{"arm": "conservative-8_still4b_low_night", "judged": true, "age1": {"raw": 0.29356, "filtered": 0.19985, "q4": "pass"}, "age16": {"raw": 0.16357, "filtered": 0.0963, "q4": "pass"}, "age64": {"raw": 0.11139, "filtered": 0.06639, "q4": "pass"}}
+{"arm": "conservative-8_still4b_street_blue_hour", "judged": false, "age1": {"raw": 0.39539, "filtered": 0.28744, "q4": "data"}, "age16": {"raw": 0.24753, "filtered": 0.17823, "q4": "data"}, "age64": {"raw": 0.19757, "filtered": 0.14227, "q4": "data"}}
+{"arm": "conservative-8_still4b_low_blue_hour", "judged": false, "age1": {"raw": 0.33229, "filtered": 0.24631, "q4": "data"}, "age16": {"raw": 0.21369, "filtered": 0.16649, "q4": "data"}, "age64": {"raw": 0.17572, "filtered": 0.14533, "q4": "data"}}
+{"q4_failed": [], "q4": "pass", "flip": "flip_evaluator 1.7", "ppd": 67}

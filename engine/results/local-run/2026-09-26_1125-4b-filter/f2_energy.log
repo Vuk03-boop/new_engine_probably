@@ -1,0 +1,77 @@
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running tests\lights.rs (target\release\deps\lights-6e727c54a2cf0e98.exe)
+
+running 1 test
+test diagnostic_g4_filter_energy ... rig: full (1143 emitters), 1920x1080
+filter under test: svgf:4 (default)
+G4 diagnostic street night: 1579999 surface px
+  sigma_l 1                energy change at ages 1 / 16 / 64: +0.0015 / -0.2001 / -0.1453
+  sigma_l 2                energy change at ages 1 / 16 / 64: -0.0984 / -0.2503 / -0.1723
+  sigma_l 4 (default)      energy change at ages 1 / 16 / 64: -0.1003 / -0.2492 / -0.1634
+reference street_night: cached
+    age  1, bins by raw rank   (p0-50 | 50-90 | 90-99 | 99-99.9 | 99.9-100; energy share, change):   0.0% +0.3898 |   6.4% +0.2676 |  18.8% -0.0825 |  13.2% -0.1088 |  61.6% -0.5664
+    age  1, bins by ref variance                                                    :  11.3% -0.0023 |  31.2% -0.0166 |  36.7% -0.0378 |  15.0% -0.0016 |   5.8% -0.0420
+    age  1, brightest 1% change -0.6752, their 6-px neighbourhood (713598 px) +0.5766 (recovers 85.4% of it), elsewhere -0.0017
+    age 16, bins by raw rank   (p0-50 | 50-90 | 90-99 | 99-99.9 | 99.9-100; energy share, change):   5.2% +0.1943 |  17.2% +0.1349 |  17.8% -0.0424 |  14.9% -0.1224 |  44.9% -0.4136
+    age 16, bins by ref variance                                                    :  11.6% -0.0037 |  31.6% -0.0324 |  38.7% -0.1460 |  14.4% -0.0581 |   3.6% -0.0090
+    age 16, brightest 1% change -0.5360, their 6-px neighbourhood (560083 px) +0.2905 (recovers 54.2% of it), elsewhere -0.0037
+    age 64, bins by raw rank   (p0-50 | 50-90 | 90-99 | 99-99.9 | 99.9-100; energy share, change):   7.0% +0.1404 |  20.4% +0.1727 |  19.0% -0.0207 |  22.4% -0.1788 |  31.2% -0.2770
+    age 64, bins by ref variance                                                    :  11.3% -0.0021 |  31.4% -0.0171 |  38.1% -0.0894 |  14.8% -0.0448 |   4.5% -0.0099
+    age 64, brightest 1% change -0.4558, their 6-px neighbourhood (405421 px) +0.2966 (recovers 65.1% of it), elsewhere -0.0042
+  sigma_l 8                energy change at ages 1 / 16 / 64: -0.0704 / -0.2287 / -0.1413
+  sigma_l 16               energy change at ages 1 / 16 / 64: -0.0463 / -0.2039 / -0.1173
+  sigma_l 64               energy change at ages 1 / 16 / 64: -0.0240 / -0.1534 / -0.0741
+  sigma_l 1000000          energy change at ages 1 / 16 / 64: -0.0153 / -0.0026 / -0.0035
+  prefilter off            energy change at ages 1 / 16 / 64: -0.3869 / -0.4132 / -0.3126
+  prefilter_age 8 (P)      energy change at ages 1 / 16 / 64: -0.1003 / -0.4132 / -0.3126
+  variance blur off        energy change at ages 1 / 16 / 64: -0.1064 / -0.4314 / -0.3757
+  levels 1                 energy change at ages 1 / 16 / 64: +0.0351 / -0.0679 / -0.0481
+  levels 0 (control)       energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+  symmetric sigma_l 4      energy change at ages 1 / 16 / 64: -0.0475 / +0.6035 / +0.5172
+  conservative sigma_l 2   energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+  conservative sigma_l 4   energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+  conservative sigma_l 8   energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+G4 diagnostic street dusk (control, M3 transport): 1579999 surface px
+  sigma_l 4 (default)      energy change at ages 1 / 16 / 64: -0.0036 / -0.0015 / -0.0003
+  levels 0 (control)       energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+  conservative sigma_l 2   energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+  conservative sigma_l 4   energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+  conservative sigma_l 8   energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+G4 diagnostic low night: 1081611 surface px
+  sigma_l 1                energy change at ages 1 / 16 / 64: +0.0443 / -0.1438 / -0.1065
+  sigma_l 2                energy change at ages 1 / 16 / 64: -0.0680 / -0.1915 / -0.1334
+  sigma_l 4 (default)      energy change at ages 1 / 16 / 64: -0.0750 / -0.1935 / -0.1283
+reference low_night: cached
+    age  1, bins by raw rank   (p0-50 | 50-90 | 90-99 | 99-99.9 | 99.9-100; energy share, change):   0.0% +0.4593 |   7.8% +0.2077 |  21.7% -0.1058 |  14.1% -0.1223 |  56.5% -0.5139
+    age  1, bins by ref variance                                                    :  10.2% -0.0030 |  32.5% -0.0125 |  30.6% +0.0224 |   9.8% +0.0226 |  17.0% -0.1044
+    age  1, brightest 1% change -0.6362, their 6-px neighbourhood (465143 px) +0.5634 (recovers 88.5% of it), elsewhere -0.0021
+    age 16, bins by raw rank   (p0-50 | 50-90 | 90-99 | 99-99.9 | 99.9-100; energy share, change):   6.0% +0.1682 |  23.5% +0.1468 |  20.5% -0.0745 |  11.0% -0.0802 |  39.1% -0.3537
+    age 16, bins by ref variance                                                    :  11.2% -0.0026 |  37.6% -0.0238 |  29.7% -0.0840 |  16.4% -0.0560 |   5.1% -0.0272
+    age 16, brightest 1% change -0.4339, their 6-px neighbourhood (367440 px) +0.2436 (recovers 56.1% of it), elsewhere -0.0031
+    age 64, bins by raw rank   (p0-50 | 50-90 | 90-99 | 99-99.9 | 99.9-100; energy share, change):   7.8% +0.0853 |  28.8% +0.1720 |  18.9% -0.0334 |  16.4% -0.1074 |  28.0% -0.2448
+    age 64, bins by ref variance                                                    :  11.4% -0.0016 |  37.4% -0.0111 |  31.2% -0.0569 |  16.8% -0.0455 |   3.2% -0.0132
+    age 64, brightest 1% change -0.3522, their 6-px neighbourhood (230909 px) +0.2266 (recovers 64.3% of it), elsewhere -0.0027
+  sigma_l 8                energy change at ages 1 / 16 / 64: -0.0468 / -0.1780 / -0.1113
+  sigma_l 16               energy change at ages 1 / 16 / 64: -0.0239 / -0.1592 / -0.0928
+  sigma_l 64               energy change at ages 1 / 16 / 64: -0.0029 / -0.1223 / -0.0601
+  sigma_l 1000000          energy change at ages 1 / 16 / 64: +0.0050 / +0.0007 / -0.0024
+  prefilter off            energy change at ages 1 / 16 / 64: -0.3675 / -0.3412 / -0.2489
+  prefilter_age 8 (P)      energy change at ages 1 / 16 / 64: -0.0750 / -0.3412 / -0.2489
+  variance blur off        energy change at ages 1 / 16 / 64: -0.0791 / -0.3648 / -0.3017
+  levels 1                 energy change at ages 1 / 16 / 64: +0.0491 / -0.0484 / -0.0361
+  levels 0 (control)       energy change at ages 1 / 16 / 64: -0.0000 / +0.0000 / +0.0000
+  symmetric sigma_l 4      energy change at ages 1 / 16 / 64: -0.0290 / +0.5082 / +0.4033
+  conservative sigma_l 2   energy change at ages 1 / 16 / 64: -0.0000 / +0.0000 / +0.0000
+  conservative sigma_l 4   energy change at ages 1 / 16 / 64: +0.0000 / +0.0000 / +0.0000
+  conservative sigma_l 8   energy change at ages 1 / 16 / 64: -0.0000 / +0.0000 / +0.0000
+G4 diagnostic low dusk (control, M3 transport): 1081611 surface px
+  sigma_l 4 (default)      energy change at ages 1 / 16 / 64: -0.0028 / -0.0013 / -0.0003
+  levels 0 (control)       energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+  conservative sigma_l 2   energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+  conservative sigma_l 4   energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+  conservative sigma_l 8   energy change at ages 1 / 16 / 64: -0.0000 / -0.0000 / -0.0000
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 57.81s
+
