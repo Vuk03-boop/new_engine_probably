@@ -112,7 +112,7 @@ The model is a model, and the GPU criteria below judge.
 
 ## Cloud results
 
-- σ*: **pending** (the 960×540 model is running). `run-local.cmd` is not ready until σ* is written here.
+- **σ* = 4, fixed 2026-09-26 before any GPU run**, at the user's request to start the laptop run while the model was still running ("Is it possible for me to run it while you are cooking on your end"). This replaces the model-based rule above: σ_l 4 is SVGF's own default, and the 192×108 screen showed no clear reason to prefer 2 or 8. The 960×540 model becomes **data** for the default decision: F1's σ 2 and 8 arms give the night plateau on the GPU. If the model clearly favours 2 or 8, F3–F6 at that value need a second laptop run.
 - C1 so far: pure suite exit 0, 154 pass, 6 ignored (`results/test_pure_4b_filter_cloud.log`); `gpu --lib` exit 0, 23 pass (`results/test_gpu_lib_4b_filter_cloud.log`); clippy exit 0, the 6 old `world` lints plus one in the model, fixed afterwards and to be rerun (`results/clippy_4b_filter_cloud.log`).
 - C2: `conservative_weights_keep_energy` passes (Conservative ≤ 2.4 × 10⁻⁸; Svgf −30 to −43%, Symmetric +45 to +64%).
 

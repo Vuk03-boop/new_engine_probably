@@ -2,8 +2,6 @@
 rem One-click local run for checks the cloud session cannot do (docs/CLOUD.md).
 rem Current task: the 4B filter fix (the filter keeps night energy, G4),
 rem docs/changes/2026-09-26-4b-filter-energy.md, criteria F1-F6.
-rem NOT READY YET (2026-09-26): the candidate's sigma_l is still being chosen from the CPU model; the
-rem record names it when this line is removed.
 rem Double-click it after pulling. It only builds, tests and renders: no installs, no source edits, no git.
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0engine" || (echo Cannot find the engine folder next to this script. & pause & exit /b 1)
