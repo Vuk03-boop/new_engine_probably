@@ -1,0 +1,11 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\lights.rs (target\release\deps\lights-6e727c54a2cf0e98.exe)
+
+running 1 test
+test the_light_view_adds_emission ... rig: full (1143 emitters), 480x270
+G3: 9061 emissive px; lights on: 0 channel values off by more than 1/255 + 1e-3; lights off: 0 nonzero
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 1.21s
+

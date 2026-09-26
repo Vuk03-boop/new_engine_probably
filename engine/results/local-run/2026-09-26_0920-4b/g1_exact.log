@@ -1,0 +1,24 @@
+    Finished `release` profile [optimized] target(s) in 0.07s
+     Running tests\lights.rs (target\release\deps\lights-6e727c54a2cf0e98.exe)
+
+running 1 test
+test emitters_equal_the_reference_sample_per_pixel ... rig: full (1143 emitters), 480x270
+G1 street emitters, bounce: 102 mismatched (0.079%; data: 11517 over 1e-5), bad 0, 38267 px changed by the emitters | control emitters off: 38266 mismatched (29.53%) pass
+G1 street uniform sky + emitters, bounce: 60 mismatched (0.046%; data: 2246 over 1e-5), bad 0, 66676 px changed by the emitters | control emitters off: 50541 mismatched (39.00%) pass
+G1 street point sun 8 h + emitters, bounce: 83 mismatched (0.064%; data: 6600 over 1e-5), bad 0, 43861 px changed by the emitters | control emitters off: 40317 mismatched (31.11%) pass
+G1 street emitters, no bounce: 65 mismatched (0.050%; data: 9600 over 1e-5), bad 0, 30234 px changed by the emitters | control emitters off: 30232 mismatched (23.33%) pass
+G1 low emitters, bounce: 85 mismatched (0.066%; data: 10831 over 1e-5), bad 0, 29944 px changed by the emitters | control emitters off: 29943 mismatched (23.10%) pass
+G1 low uniform sky + emitters, bounce: 30 mismatched (0.023%; data: 1592 over 1e-5), bad 0, 44148 px changed by the emitters | control emitters off: 27933 mismatched (21.55%) pass
+G1 low point sun 8 h + emitters, bounce: 50 mismatched (0.039%; data: 4618 over 1e-5), bad 0, 34090 px changed by the emitters | control emitters off: 25703 mismatched (19.83%) pass
+G1 low emitters, no bounce: 65 mismatched (0.050%; data: 9260 over 1e-5), bad 0, 25827 px changed by the emitters | control emitters off: 25827 mismatched (19.93%) pass
+G1 tally: correct arms 540 mismatched px; emitters off fails 8 of 8 arms, 268762 px
+G1 controls: frame 30 against reference frame 29: 61337 mismatched; 2 emitter samples: 61435 mismatched
+G1 M3 unchanged at 8 h, bounce true: 0 px differ between bind_lit and bind
+G1 M3 unchanged at 8 h, bounce false: 0 px differ between bind_lit and bind
+G1 M3 unchanged at 21 h, bounce true: 0 px differ between bind_lit and bind
+G1 M3 unchanged at 21 h, bounce false: 0 px differ between bind_lit and bind
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 5.46s
+

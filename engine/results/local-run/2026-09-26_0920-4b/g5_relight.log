@@ -1,0 +1,36 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\lights.rs (target\release\deps\lights-6e727c54a2cf0e98.exe)
+
+running 1 test
+test edits_relight_emitter_light ... rig: full (1143 emitters), 960x540
+G5: lamp head [[63, 69, 0], [67, 72, 4])
+G5 remove lamp voxels: box [[63, 69, 0], [65, 71, 2]), 8 voxels set
+  E1 power bound 1.4432e1; E2 lights [0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055]
+  R1 full: 394454 px relit, 0 decisions differ from the host rule (passes)
+  R1 e3: 0 px relit, 394454 decisions differ from the host rule (fails)
+  R2: 0 changed px (0 of them not relit: the approximation's misses; 314313 relit px changed by <= 10%); 4 frames after the edit: full 0.0000, 3E only 0.0000, reset 0.0000; rebuilt regions 4
+G5 add neon in open air: box [[120, 32, 160], [122, 34, 162]), 8 voxels set
+  E1 power bound 3.5343e-1; E2 lights [0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.003, 0.003]
+  R1 full: 372711 px relit, 0 decisions differ from the host rule (passes)
+  R1 e3: 247 px relit, 372464 decisions differ from the host rule (fails)
+  R2: 0 changed px (0 of them not relit: the approximation's misses; 311813 relit px changed by <= 10%); 4 frames after the edit: full 0.0000, 3E only 0.0000, reset 0.0000; rebuilt regions 3
+G5 stone beside a lamp head: box [[63, 68, 5], [67, 72, 9]), 64 voxels set
+  E1 power bound 0.0000e0; E2 lights [0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055]
+  R1 full: 394588 px relit, 0 decisions differ from the host rule (passes)
+  R1 e3: 0 px relit, 394588 decisions differ from the host rule (fails)
+  R2: 10020 changed px (0 of them not relit: the approximation's misses; 214650 relit px changed by <= 10%); 4 frames after the edit: full 0.1068, 3E only 0.1786, reset 0.1068; rebuilt regions 2
+validation: 0 errors, 0 warnings
+
+thread 'edits_relight_emitter_light' (17520) panicked at gpu\tests\lights.rs:1235:5:
+failed: ["R2 control (3E rules only) not caught in any edit"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    edits_relight_emitter_light
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 473.67s
+
+error: test failed, to rerun pass `-p gpu --test lights`

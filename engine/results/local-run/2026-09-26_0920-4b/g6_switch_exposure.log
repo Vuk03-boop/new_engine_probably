@@ -1,0 +1,17 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\lights.rs (target\release\deps\lights-6e727c54a2cf0e98.exe)
+
+running 1 test
+test lights_switch_and_exposure_sums ... rig: full (1143 emitters), 960x540
+G6 frame 9 lights true: 395018 reset, 0 accepted of 395018 surface px 
+G6 frame 10 lights true: 0 reset, 395018 accepted of 395018 surface px 
+G6 frame 12 lights false: 395018 reset, 0 accepted of 395018 surface px 
+G6 frame 13 lights false: 0 reset, 395018 accepted of 395018 surface px 
+validation: 0 errors, 0 warnings
+rig: full (1143 emitters), 1920x1080
+G6 exposure sums: gpu sum 1.853385e1 n 129600 log -1.114952e6 lit 98789 | host sum 1.853385e1 n 129600 log -1.114952e6 lit 98789 | exposure gpu Some(14348.446515781776) host Some(14348.453933727431) (frame 5 host Some(14556.727306846036))
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 2.80s
+

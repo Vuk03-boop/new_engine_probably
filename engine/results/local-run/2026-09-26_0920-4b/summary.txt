@@ -1,0 +1,37 @@
+Phase 4B, local run 2026-09-26_0920
+commit cd28474
+cargo 1.98.1 (797e8a9bc 2026-08-05)
+VULKAN_SDK C:\VulkanSDK\1.4.357.0
+reference cache C:\Users\VUKTRI~1\AppData\Local\Temp\ne_gate_4b
+
+PASS  pure_suite  exit 0  log pure_suite.log
+PASS  gpu_lib  exit 0  log gpu_lib.log
+PASS  gpu_build_tests  exit 0  log gpu_build_tests.log
+PASS  viewer_build  exit 0  log viewer_build.log
+PASS  g1_exact  exit 0  log g1_exact.log
+PASS  g2_convergence  exit 0  log g2_convergence.log
+PASS  g3_light_view  exit 0  log g3_light_view.log
+FAIL  g4_night_quality  exit 101  log g4_night_quality.log
+FAIL  g5_relight  exit 101  log g5_relight.log
+PASS  g6_switch_exposure  exit 0  log g6_switch_exposure.log
+PASS  g4_flip  exit 0  log g4_flip.log
+PASS  m1_equal_time_curve  exit 0  log m1_equal_time_curve.log
+PASS  viewer_night_edit1  exit 0  log viewer_night_edit1.log
+PASS  viewer_night_edit8  exit 0  log viewer_night_edit8.log
+PASS  viewer_night_edit32  exit 0  log viewer_night_edit32.log
+PASS  viewer_street_edit1  exit 0  log viewer_street_edit1.log
+PASS  viewer_night_walk_full  exit 0  log viewer_night_walk_full.log
+PASS  viewer_night_walk_dense  exit 0  log viewer_night_walk_dense.log
+PASS  viewer_night_validation1  exit 0  log viewer_night_validation1.log
+PASS  viewer_night_validation8  exit 0  log viewer_night_validation8.log
+PASS  viewer_night_validation32  exit 0  log viewer_night_validation32.log
+PASS  viewer_night_validation_sunset  exit 0  log viewer_night_validation_sunset.log
+PASS  gpu_emitters_4a  exit 0  log gpu_emitters_4a.log
+PASS  gpu_shade_3b  exit 0  log gpu_shade_3b.log
+PASS  gpu_sky_3c  exit 0  log gpu_sky_3c.log
+PASS  gpu_bounce_3f  exit 0  log gpu_bounce_3f.log
+PASS  gpu_temporal_3d  exit 0  log gpu_temporal_3d.log
+PASS  gpu_edit_2e  exit 0  log gpu_edit_2e.log
+PASS  gpu_denoise_relight_3e  exit 0  log gpu_denoise_relight_3e.log
+
+NOT RUN on purpose: gpu gate (35+ min; M3's frame path draws no new random numbers with the lights off, G1 checks it bit for bit), the rest of gpu denoise (known accepted failures C1/D4), gpu reference and raster/ray/device (unchanged).

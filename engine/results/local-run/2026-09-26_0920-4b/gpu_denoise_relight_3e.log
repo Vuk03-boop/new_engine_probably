@@ -1,0 +1,21 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\denoise.rs (target\release\deps\denoise-c7317801a1103d3d.exe)
+
+running 2 tests
+test edits_relight_what_they_change ... lighting: ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false, emitters: false, emitter_samples: 1 }
+edit: 538 shadowed samples with a distant occluder; removing [[318, 94, 172], [326, 102, 180]) around VoxelCoord { x: 322, y: 98, z: 176 } at distance 277 frees 5 of them
+R1 relight: 920 px relit, 0 of 57600 decisions differ from the host rule (passes)
+R1 none: 0 px relit, 920 of 57600 decisions differ from the host rule (fails)
+R2: 172 changed px; 4 frames after the edit: relight 0.0319, none 0.3120, reset 0.0319
+validation: 0 errors, 0 warnings
+ok
+test edits_relight_what_they_change_with_the_bounce ... lighting: ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: true, emitters: false, emitter_samples: 1 }
+edit: 538 shadowed samples with a distant occluder; removing [[318, 94, 172], [326, 102, 180]) around VoxelCoord { x: 322, y: 98, z: 176 } at distance 277 frees 5 of them
+R1 relight: 920 px relit, 0 of 57600 decisions differ from the host rule (passes)
+R1 none: 0 px relit, 920 of 57600 decisions differ from the host rule (fails)
+R2: 171 changed px; 4 frames after the edit: relight 0.0300, none 0.2996, reset 0.0300
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 21.68s
+

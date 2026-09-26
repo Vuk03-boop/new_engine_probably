@@ -1,0 +1,36 @@
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running tests\lights.rs (target\release\deps\lights-6e727c54a2cf0e98.exe)
+
+running 1 test
+test equal_time_curve ... rig: lamps (165 emitters), 960x540
+validation: 0 errors, 0 warnings
+rig: lamps (165 emitters), 1920x1080
+M1 lamps (165 emitters) k 1: shade 2.185 ms (p90 2.491), one-frame emitter-direct rel_mse 28.1707, rel_mse x ms 61.5590
+M1 lamps (165 emitters) k 2: shade 2.560 ms (p90 2.571), one-frame emitter-direct rel_mse 12.7773, rel_mse x ms 32.7098
+M1 lamps (165 emitters) k 4: shade 3.268 ms (p90 3.287), one-frame emitter-direct rel_mse 6.8110, rel_mse x ms 22.2556
+validation: 0 errors, 0 warnings
+rig: windows (325 emitters), 960x540
+validation: 0 errors, 0 warnings
+rig: windows (325 emitters), 1920x1080
+M1 windows (325 emitters) k 1: shade 2.477 ms (p90 2.501), one-frame emitter-direct rel_mse 51.9400, rel_mse x ms 128.6582
+M1 windows (325 emitters) k 2: shade 2.573 ms (p90 2.596), one-frame emitter-direct rel_mse 34.9390, rel_mse x ms 89.9088
+M1 windows (325 emitters) k 4: shade 3.354 ms (p90 3.404), one-frame emitter-direct rel_mse 19.2934, rel_mse x ms 64.7024
+validation: 0 errors, 0 warnings
+rig: full (1143 emitters), 960x540
+validation: 0 errors, 0 warnings
+rig: full (1143 emitters), 1920x1080
+M1 full (1143 emitters) k 1: shade 2.467 ms (p90 2.476), one-frame emitter-direct rel_mse 6786.2277, rel_mse x ms 16740.3751 | whole frame: temporal 1.310, filter 3.133, exposure 1.233 ms
+M1 full (1143 emitters) k 2: shade 2.951 ms (p90 3.030), one-frame emitter-direct rel_mse 15318.1564, rel_mse x ms 45206.4529
+M1 full (1143 emitters) k 4: shade 3.958 ms (p90 3.980), one-frame emitter-direct rel_mse 9279.8646, rel_mse x ms 36727.4769
+validation: 0 errors, 0 warnings
+rig: dense (7003 emitters), 960x540
+validation: 0 errors, 0 warnings
+rig: dense (7003 emitters), 1920x1080
+M1 dense (7003 emitters) k 1: shade 3.489 ms (p90 3.790), one-frame emitter-direct rel_mse 23609.5959, rel_mse x ms 82368.4025
+M1 dense (7003 emitters) k 2: shade 4.107 ms (p90 4.227), one-frame emitter-direct rel_mse 23248.2260, rel_mse x ms 95486.6018
+M1 dense (7003 emitters) k 4: shade 5.647 ms (p90 5.726), one-frame emitter-direct rel_mse 9583.4574, rel_mse x ms 54121.2340
+validation: 0 errors, 0 warnings
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 30.80s
+
