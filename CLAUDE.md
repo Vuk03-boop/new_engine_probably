@@ -61,6 +61,16 @@ Never remove a feature because one camera shows no difference or one search find
 - Judge motion/disocclusion/edit behavior as well as stills. A lower image-error score obtained by blur is not automatically better appearance.
 - On the existing resource-limited laptop, use `-j 2` for authorized builds. Revisit the limit for other hardware; do not launch background watchers or benchmarks without a purpose and cleanup plan.
 
+## Good enough beats perfect
+
+The target is the milestone (appearance per unit of cost), not an all-green board. Chasing small misses burns the user's time and laptop runs (O-005; lesson R10 in [LESSONS-AND-ROI](docs/LESSONS-AND-ROI.md)).
+
+- Before the first run, split **goal** criteria (what the task is for) from **guards** (don't break what works). Judge guards against today's default with a stated tolerance. Give the change a cost budget taken from the milestone's headroom; "no slower than today" is not a budget for a correctness fix.
+- When the goal passes, stop and propose keeping the change. Record every guard miss as measured (value, limit, today's value) for the user to accept, as in S-018, S-019 and S-021. Accepting a recorded miss is not rebaselining; editing its number or limit would be.
+- Run again only if the result could flip keep / drop, never to polish a change that meets its goal: not for a guard miss inside its tolerance, a check today's code also fails, or a miss only more tuning would clear. A tested value that meets the goal beats a hunt for the optimum; sweep arms ride along in the judged run.
+- A laptop run costs the user about 2 hours. Bundle every pending GPU check into one run, and offer a look in the viewer when the user's eye can decide.
+- One judged run plus at most one fix round per task; after that the user gets keep / drop / rescope with the numbers.
+
 ## Keep costs and documentation small
 
 - One hypothesis and one isolated change at a time. Simple baselines before paging, neural caches or multiqueue complexity; require measured need and an exit path.

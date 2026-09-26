@@ -130,6 +130,20 @@ There is no complete timesheet, token bill or development-cost ledger. We can id
 
 **Source:** [lessons](reference/old-lessons.txt), vendor spec/native crash/convenience-getter entries.
 
+### R10 — Polishing a fix that had met its goal (new engine, 4B filter fix, 2026-09-26)
+
+**Attempt:** stop the filter deleting night light (4B's G4). The first laptop run met that goal: energy change 0.0000 where the old filter lost 5–25%, and M3's day gate 40 of 40, one arm better than at 3G.
+
+**What followed:** two guards missed. One day check (D1, noon, first frame after a reset) came in 0.2% over its absolute limit, and the cost check read +0.68 ms against a limit of "today + 0.05 ms". The proposal was another round: change σ, cut the cost and rerun three checks, about 2 hours of the user's laptop plus a cloud session, while no plausible result would have changed whether the fix was worth keeping.
+
+**What the criteria hid:** D1 was judged against an absolute limit, not against today's filter. Against today's filter the first frame after a reset is 20–36% noisier at every day hour, and the converged history is 11–22% cleaner (`f4_3e_criteria.log` against `test_gpu_3g_denoise.log`). That is a real trade for the user to judge by eye in the viewer in a minute; a 0.2% threshold miss is not.
+
+**Why it went wrong:** no split between the goal and the guards; guards with no tolerance, judged against fixed limits instead of today's default; a correctness fix given a zero cost budget; a decision rule that said what to do on a pass but not on a small miss; no count of the user's laptop hours.
+
+**Next-time rule:** CLAUDE.md "Good enough beats perfect" (O-005). Goal and guards frozen apart, guards against today's default with a tolerance, a cost budget from the milestone's headroom. When the goal passes, propose keeping the change with the misses recorded. Rerun only if the result could flip keep / drop; bundle laptop checks; one fix round at most.
+
+**Sources:** [filter record](changes/2026-09-26-4b-filter-energy.md); `engine/results/local-run/2026-09-26_1125-4b-filter/`.
+
 ## 3. Cases that are not honest “wins” or “waste” yet
 
 ### AO: useful appearance option, unresolved precise runtime value
@@ -155,6 +169,7 @@ Most were reviewed proposals, **not implemented experiments with known developme
 3. **Then:** optimize the measured bottleneck against the current efficient baseline; include total cost and quality.
 4. **Last:** new temporal layers, neural integration, cross-LoD transport, paging/queue complexity or compiler/body consolidation. Require prerequisites and a bounded falsification test before committing to integration.
 5. **Do not pay twice:** one active experiment, one result record, one current handoff, one full log per run. No swarms or parallel model reviews.
+6. **Stop at good enough:** once a task's goal passes, propose keeping it with the guard misses recorded; another round needs a result that could flip keep / drop (R10).
 
 For future ROI, record development sessions/iterations and expensive run durations when available, then report runtime/memory/quality gains separately. Never pretend saved GPU milliseconds measure developer effort, or that missing effort records justify made-up totals.
 

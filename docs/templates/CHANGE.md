@@ -9,7 +9,15 @@ Authorization: <user request or accepted delegated scope>
 - Problem/hypothesis:
 - Expected counter, quality or cost change:
 - What cheap observation could falsify it before implementation?
-- Time/compute budget and stopping condition:
+- Time/compute budget (expensive runs are counted in the stop rule below):
+
+## Criteria and stop rule (frozen before the first run; CLAUDE.md "Good enough beats perfect")
+
+- Goal criteria (what the task is for; a miss means fix, rescope or drop):
+- Guards (don't break what works), each judged against today's default with a tolerance:
+- Cost budget (ms / MB, taken from the milestone's headroom):
+- Stop rule: goal met → propose keeping it, guard misses recorded for the user to accept. Goal missed → diagnose, then at most one fix round, or rescope / drop.
+- Run budget: one judged run plus at most one fix round; pending GPU checks bundled into it; which result would flip keep / drop:
 
 ## Scope and contracts
 
@@ -43,6 +51,7 @@ Record full logs once; link rather than duplicate them. Distinguish CPU model, s
 - Development iterations/expensive-run duration if known; otherwise unknown:
 - Confidence/uncertainty and workload limits:
 - Decision: keep / reject / revise / blocked; why:
+- Guard misses for the user to accept (value, limit, today's value):
 - Known failures and checks not run:
 
 ## Closeout

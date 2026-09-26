@@ -80,7 +80,7 @@ No approval to alter current behavior is implied by finding stale documentation.
 - Keep one candidate active. Repeated inconclusive speculative edits trigger better instrumentation, not a larger refactor.
 - Predeclare a budget appropriate to the task. If an overnight sweep, large download or major new dependency becomes necessary, ask first rather than hiding it inside a small fix.
 - Focused tests while iterating; broader gates when the change is ready. Do not run the entire suite twice just to get two summaries. Preserve the actual exit code even when filtering logs.
-- Measure once correctly, keep raw evidence, rerun when inputs change or the decision needs better evidence. Historical headings such as “do not re-measure” are not timeless prohibitions.
+- Measure once correctly, keep raw evidence, rerun when inputs change or the result could flip the keep / drop decision, not to polish a change that already meets its goal (CLAUDE.md "Good enough beats perfect"). Historical headings such as “do not re-measure” are not timeless prohibitions.
 
 ## 7. Keeping documentation current without bloating it
 

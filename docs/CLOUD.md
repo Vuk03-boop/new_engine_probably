@@ -31,6 +31,7 @@ The script must not:
 
 ## Session rules
 
-- Overwrite `run-local.cmd` for the current task. Record in the change record and `docs/NOW.md` which steps it runs and that they are **NOT RUN** until the user returns results.
+- Overwrite `run-local.cmd` for the current task, and fold in every other pending GPU check so one run covers them: a run costs the user about 2 hours plus the push. Record in the change record and `docs/NOW.md` which steps it runs and that they are **NOT RUN** until the user returns results.
+- Ask for a run only when its result could flip a keep / drop decision. When the user's eye can decide (a look in the viewer, as for S-018 and S-021), offer that instead.
 - The script cannot be executed in the cloud: say it is untested, and re-read it against the rules above before pushing.
-- When results come back, analyze the logs like any local run; do not rerun or rebaseline to get green.
+- When results come back, analyze the logs like any local run; do not rerun or rebaseline to get green. If the goal passed, propose keeping the change with the guard misses recorded, not another run (CLAUDE.md "Good enough beats perfect").

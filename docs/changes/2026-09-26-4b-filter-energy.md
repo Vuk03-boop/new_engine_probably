@@ -1,6 +1,6 @@
 # Change: 4B filter fix — the filter keeps night energy (G4)
 
-Status: **in progress**: the laptop run is analysed. Energy is fixed; F4 fails by 0.2% at one point and F5 (cost) fails by +0.68 ms; the default stays `Svgf`.
+Status: **in progress, waiting on the user's keep / drop**: the laptop run is analysed. Energy is fixed; F4 fails by 0.2% at one point (and the first frame after a reset is 20–36% noisier than today's filter by day) and F5 (cost) fails by +0.68 ms; the default stays `Svgf`. Revised proposal under O-005: keep it ("Revised proposal" below).
 Date and baseline: 2026-09-26, branch `claude/sharp-faraday-o4fy96` from `df39b9a` (4B's G5 settled, G4 diagnosed).
 Authorization: S-026 (the user, 2026-09-26: "accept g5 and dont fix the filter yet will boot you up in the cloud to fix the filter"); in this cloud session: "fix the filter then". The current filter default stays until the user judges the results (NOW: "the user decides the default change").
 
@@ -144,10 +144,32 @@ Logs: `engine/results/local-run/2026-09-26_1125-4b-filter/` (`summary.txt`); FLI
     - or compute only the level's own W in the level pass (it already reads every tap's key) and write it for the next pass.
 - **D1 at noon age 1 (gain 7.98 against 8):** at σ_l 4 the filter smooths bright samples less than the old one; the model and F1 both show the error falling with σ_l. A larger σ_l (8, the F1 plateau arm) is the obvious candidate, but judging it means a new run.
 
-**Decision (proposed; the user decides):** do not change the default yet. The energy defect is fixed exactly, and the day image is as good or better (F3), but the filter is 0.68 ms slower and misses D1 by 0.2% at σ_l 4. Next, in one short record amendment:
+**Decision (proposed; the user decides; superseded the same day by the revised proposal below, O-005):** do not change the default yet. The energy defect is fixed exactly, and the day image is as good or better (F3), but the filter is 0.68 ms slower and misses D1 by 0.2% at σ_l 4. Next, in one short record amendment:
 
 1. find and cut the cost (breakdown first);
 2. rerun F1, F4 and F5 (and F3 if the filter's arithmetic changes) at σ_l 8.
+
+**Revised proposal (2026-09-26, under O-005; the user decides):** keep the fix as tested. Its goal is met (energy exact at every night point: F2, F1 Q1a), and no further run could change that. Make `conservative:4` the filter default, as an ADR-0006 amendment, with these misses recorded as measured for the user to accept:
+
+- **By day the first frame after a reset is noisier, and the converged history is cleaner.** 3E's D1 points, filtered rel_mse of the candidate ÷ today's filter (`f4_3e_criteria.log` against `results/test_gpu_3g_denoise.log`):
+
+  | Age | hour 8 | hour 12 | hour 17.75 | hour 18.25 |
+  |---|---|---|---|---|
+  | 1 | 1.20 | 1.21 | 1.25 | 1.36 |
+  | 4 | 1.04 | 1.20 | 0.98 | 1.08 |
+  | 16 | 1.02 | 1.11 | 0.87 | 0.99 |
+  | 64 | 0.85 | 0.89 | 0.78 | 0.86 |
+
+  Only noon age 1 crosses D1's limit: 0.1644 against 0.1641 (today's filter 0.1355). **Correction:** "the day image is as good or better (F3)" above holds for M3's gate, not for the first frame after a reset.
+- **Cost:** +0.68 ms (3.75 against 3.07 ms), about 15–20% of the night frame's p99 headroom under 16.7 ms.
+- **F1 Q2 at low night age 1:** 81.2 against 49.1; the old filter fails it too (73.1).
+
+What happens next:
+
+- **The user's look instead of a run:** in the viewer, `K` toggles the candidate; edits and fast turns show the first frames after a reset.
+- **No σ_l 8 run** unless that look finds the first frames after a reset worse than today's. Then σ_l 8 is the one fix round (F1 and F3–F5 at σ_l 8, bundled with the cost cut).
+- **The cost cut** (breakdown first, then a cheaper border sum) moves to the M4 performance work and rides in the next laptop run that happens anyway. That run also repeats the night walk interleaved (default and candidate, three times each): the single walk's p99 of 21.1 ms is unexplained (the candidate ran second, straight after the default). If the interleaved p99 with the candidate is over 16.7 ms, the cost cut comes before anything else.
+- **4B closes** (3 units) with G4's remaining Q2 point accepted.
 
 ### The 960×540 model (data, finished after σ* was fixed; `results/model_4b_filter_960_cloud.log`)
 
@@ -171,5 +193,5 @@ Logs: `engine/results/local-run/2026-09-26_1125-4b-filter/` (`summary.txt`); FLI
   - at dusk its error falls from σ_l 4 to 16 and reaches the default's at 8–16 (street 0.23 / 0.20 against 0.21);
   - at night it falls monotonically (street age 1: 67.6k → 44.6k → 34.6k).
   - The pre-run rule would have picked **σ_l 16** (the tie at 14 passes is broken by the lowest dusk age-1 error).
-  - The laptop run tests σ_l 4 (judged) and 2 / 8 (night data). A later run at 8 or 16 is the likely next step before a default is chosen.
+  - The laptop run tests σ_l 4 (judged) and 2 / 8 (night data). A later run at 8 or 16 is the likely next step before a default is chosen. *(Superseded by the revised proposal: no such run unless the user's look asks for it.)*
 - The border normaliser matters: plain conservative at σ_l 4 has 1.4–1.7× the error of the border-normalised filter.

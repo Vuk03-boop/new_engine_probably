@@ -1,6 +1,6 @@
-# NOW — Phase 4 (M4): 4A done; 4B's G4 filter fix run: energy fixed, cost and one D1 point open
+# NOW — Phase 4 (M4): 4A done; 4B's G4 filter fix tested, waiting on the user's keep / drop
 
-**Updated 2026-09-26 (cloud session: the G4 filter fix's laptop run analysed).** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
+**Updated 2026-09-26 (cloud session: the "good enough" rule, O-005, and the filter fix's revised proposal).** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
 
 ## State
 
@@ -43,7 +43,8 @@
   - **G5 corrected after the run and rerun:** the whole lamp head and a 0.5 m neon cube 0.5 m from a façade replace the 2³ boxes; limits unchanged. R1 and R2 now **pass in all 3 edits** (full rule = reset arm, 0 misses; 93k / 11k / 10k changed px). **R2's control is still not caught** (3E-only 1.43× / 0.96× / 1.67× reset against 3×): 4 frames after a reset the night noise is already 0.1–0.33 rel_mse, so 3× is out of reach at night. Test exit 101.
   - **G4 diagnosed** (`diagnostic_g4_filter_energy`, new ignored test, exit 0): the loss is made by the filter's **luminance edge-stopping**: without it (σ_l 10⁶) energy is kept within 1.5%; the default loses −10 / −25 / −16% (street, ages 1 / 16 / 64), reproducing the run. The brightest 1% of pixels lose 45–68% of the total energy and neighbours within reach take back only 54–89%. Controls hold: levels 0 is exact, dusk loses ≤ 0.4%. Refinement (untested): from age 8 a never-lit pixel's own moment variance ≈ 0 makes it reject every brighter tap whatever σ_l is.
 - **S-026 (2026-09-26, the user: "accept g5 and dont fix the filter yet will boot you up in the cloud to fix the filter"):** G5's R2 control is accepted as underpowered at night, so **G5 is settled** and [ADR-0006 Amendment 2](adr/ADR-0006-guides-and-history.md) is **accepted**. **The filter fix for G4 is authorized as the next task, in a cloud session** (its own change record; the current filter default stays until its results are judged).
-- **G4 filter fix built (2026-09-26, cloud; [record](changes/2026-09-26-4b-filter-energy.md)), branch `claude/sharp-faraday-o4fy96`:** `DenoiseSettings::weights` = `Svgf` (default, unchanged) / `Symmetric` (ablation) / `Conservative` (equal-and-opposite exchanges, border-normalised; keeps each surface's energy exactly, no new memory). A CPU mirror (`gpu/tests/denoise_model.rs`) reproduces the GPU's loss and shows `Conservative` exact. Candidate frozen at `conservative:4` before any GPU run; the 960×540 model run is data for the default decision. Cloud: pure 154 pass (6 ignored), `gpu --lib` 23, C2 pass. **GPU checks F1–F6 run 2026-09-26:** energy fixed, day better than 3G, but +0.68 ms and a 0.2% D1 miss (details in the record). Default stays `Svgf` until the user decides.
+- **G4 filter fix built (2026-09-26, cloud; [record](changes/2026-09-26-4b-filter-energy.md)), branch `claude/sharp-faraday-o4fy96`:** `DenoiseSettings::weights` = `Svgf` (default, unchanged) / `Symmetric` (ablation) / `Conservative` (equal-and-opposite exchanges, border-normalised; keeps each surface's energy exactly, no new memory). A CPU mirror (`gpu/tests/denoise_model.rs`) reproduces the GPU's loss and shows `Conservative` exact. Candidate frozen at `conservative:4` before any GPU run; the 960×540 model run is data for the default decision. Cloud: pure 154 pass (6 ignored), `gpu --lib` 23, C2 pass. **GPU checks F1–F6 run 2026-09-26:** energy fixed; M3's day gate 40 of 40; but +0.68 ms, and by day the first frame after a reset is 20–36% noisier than today's filter (D1 at noon misses its limit by 0.2%), while the converged history is 11–22% cleaner (details in the record). Default stays `Svgf` until the user decides.
+- **O-005 (2026-09-26, the user: "update the docs so this kind of stuff does not happen again chasing perfection is bad"): good enough beats perfect.** CLAUDE.md's new section, the change template, CLOUD.md, WORKFLOW.md and lesson R10: goal criteria and guards frozen apart, guards judged against today's default with a tolerance, a cost budget from the milestone's headroom; when the goal passes, stop and propose keeping the change with the misses recorded; rerun only if the result could flip keep / drop; laptop checks bundled; one fix round at most. Docs only. The filter fix's proposal is revised under it (the σ_l 8 rerun is dropped).
 - **Not authorized:**
   - 4C–4G: reservoir reuse, P05, P08, the M4 gate;
   - glass and water;
@@ -81,8 +82,8 @@
 - **Repository** (since 2026-09-25):
   - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
   - **4A is merged into `main`** (PR https://github.com/Vuk03-boop/new_engine_probably/pull/1, merge commit `16edb67`, 2026-09-25, at the user's request; a merge commit, so the hashes cited in the 4A record stay valid). New work starts from `main`; the 4A branches `claude/tender-keller-9u9d6t` and `claude/nice-dijkstra-xpg7tr` are finished.
-  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, now holding the **4B** checks (G1–G8, M1, M2; untested, about 1.5–2.5 hours). Logs go to `engine/results/local-run/<date>-4b/`, FLIP to `engine/results/phase4b/`; G4's 1080p references stay in `%TEMP%\ne_gate_4b` on the laptop; the user pushes `engine/results` back.
-  - 4B's work is on branch `claude/hopeful-bell-972dbs` (pushed; no PR yet); `claude/focused-faraday-ygdjx7` = that branch plus the S-025 cap fix (pushed; no PR). **Pull `claude/focused-faraday-ygdjx7` for the laptop run.**
+  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, now holding the filter fix's checks (F1–F6, run 2026-09-26 11:25). Logs go to `engine/results/local-run/<date>-<task>/`; G4's 1080p references stay in `%TEMP%\ne_gate_4b` and 3G's in `%TEMP%\ne_gate` on the laptop; the user pushes `engine/results` back. Under O-005 the next run bundles every pending GPU check.
+  - 4B's work is on branch `claude/hopeful-bell-972dbs` (pushed; no PR yet); `claude/focused-faraday-ygdjx7` = that branch plus the S-025 cap fix; **`claude/sharp-faraday-o4fy96`** = that plus the filter fix and O-005 (pushed; no PR). **Pull `claude/sharp-faraday-o4fy96` for any laptop run.**
   - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
   - Binary data is protected from line-ending conversion by `.gitattributes`.
   - Commits and pushes happen only on the user's request.
@@ -94,6 +95,8 @@
   - `engine/results/local-run/`: the laptop runs of `run-local.cmd`.
 
 ## Last checks
+
+- **O-005 docs (2026-09-26, cloud):** docs only, no engine change and no test run. Checked: `CLAUDE.md` is 89 lines (limit 200); every relative link in the changed docs resolves.
 
 - **Local session 2026-09-26 (RTX 3050, validation on):** `lights edits_relight_emitter_light` exit 101 (R2 control not caught; everything else passes), 472 s, 0 validation errors (`g5_relight.log`); `lights --ignored diagnostic_g4_filter_energy` exit 0, 39 s, 0 validation errors (`g4_diagnostic.log`); clippy `gpu --test lights`: only the old `world` lints. **NOT RUN:** the other `lights` tests and the rest of `run-local.cmd` (unchanged code; the only shared change is the test `Step`'s new filter-settings field, default = the old value).
 
@@ -147,16 +150,11 @@
 
 ## Exact next action
 
-1. **Laptop run done (2026-09-26 11:25; [filter record](changes/2026-09-26-4b-filter-energy.md), "Laptop results"):**
-   - passed: F2 (energy exact; default unchanged), F1 Q1 at all night points, F3 (M3 at day, now 40 of 40 on Q2), F6;
-   - F1 Q2 fails only at low night age 1, which the old filter also failed;
-   - **F4 fails by 0.2%** (D1 noon age 1, gain 7.98 against 8);
-   - **F5 fails**: +0.68 ms (3.75 against 3.07 ms).
-   - The default stays `Svgf`. **Next (needs the user's go):** a cost breakdown and a cheaper border sum, then F1 / F4 / F5 at σ_l 8.
-0. (Done 2026-09-26, kept for reference) **The G4 filter fix (S-026).** Read `CLAUDE.md`, this file, [CLOUD.md](CLOUD.md), then the [4B record](changes/2026-09-25-phase4b-many-lights.md)'s "Local session 2026-09-26" (the diagnosis and its numbers), `engine/gpu/shaders/denoise.slang`, `engine/gpu/src/denoise.rs` and `diagnostic_g4_filter_energy` in `engine/gpu/tests/lights.rs`. Branch `claude/focused-faraday-ygdjx7`.
-   - Write a new change record first, with criteria frozen before code: G4's Q1a (±2%), Q2 and Q4 at night on both cameras, the diagnostic's energy change, and **M3 not worse at day** (3E / 3G Q1–Q4, `denoise` R1 / R2, the filter's cost ≤ its current ~3.1 ms at 1080p or a stated budget).
-   - Candidates (one change at a time, each a new `DenoiseSettings` field, off = today's filter bit for bit): **symmetric edge-stopping** (σ from the larger of the pixel's and the tap's variance, so a pair weighs the same both ways) and/or **a variance floor** where the moments are young or zero. Sweep it; choose a default from the plateau (the user decides the default change).
-   - Cloud has no GPU: build and pure checks there; the GPU checks go into `run-local.cmd` for the laptop (or the user runs a local session). Unrun GPU checks are NOT RUN.
+1. **The user decides keep / drop on the filter fix** ([record](changes/2026-09-26-4b-filter-energy.md), "Revised proposal", under O-005):
+   - Recommended: keep `conservative:4` as the default (night energy exact, M3's day gate 40 of 40, converged day history 11–22% cleaner), accepting as measured: the first frame after a reset is 20–36% noisier by day (D1 noon age 1 0.2% over its limit), +0.68 ms filter cost, and low night age 1's Q2 (the old filter fails it too).
+   - A look instead of a run: the viewer's `K` toggles the candidate; edits and fast turns show the first frames after a reset.
+   - On a keep: change the default (`DenoiseSettings::default`, with the tests that name the default), write the ADR-0006 amendment, close 4B (3 units, M4 9 of 33). The cost cut and an interleaved night walk (the single walk's p99 of 21 ms is unexplained) ride in the next laptop run that happens anyway; if that p99 is over 16.7 ms, the cost cut comes first.
+   - No σ_l 8 run unless the look finds the first frames after a reset worse than today's (then it is the one fix round).
 2. After the fix is judged, 4B closes (3 units) with G4 resolved, or G4's remaining failure is recorded as accepted.
 3. **The user judges the night look**: `viewer.exe --scene night --hour 17.5 --run-day` (lights, colours, exposure; L flips the lights). With S-025, once the sun is below −12° (hour 19.14, about 19:08, on the default path) the age view should go white while the day runs; it was capped at 8–16 frames before.
 4. **Before 4C** (not authorized):
