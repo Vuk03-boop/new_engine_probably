@@ -1,6 +1,6 @@
-# NOW — Phase 4 (M4): 4A done; 4B built, waiting for the laptop run
+# NOW — Phase 4 (M4): 4A done; 4B run on the laptop, G4 and G5 fail, waiting on the user's decision
 
-**Updated 2026-09-25 (4B built; night history cap fixed, S-025; G4's Q1 corrected before the run).** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
+**Updated 2026-09-26 (4B laptop run analysed: 27 of 29 steps pass; G4 and G5 fail).** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
 
 ## State
 
@@ -34,6 +34,10 @@
   - `run-local.cmd` rewritten for 4B (untested; about 1.5–2.5 hours, re-estimated from 4A's laptop reference times; first written as 90 minutes).
 - **Night history cap fixed (S-025, 2026-09-25, cloud)**, on the user's approval and their choice of −12° after the measurement: the sun-motion age cap is off while the sun is below −12° ([ADR-0006 Amendment 3](adr/ADR-0006-guides-and-history.md), `TemporalSettings::sun_cap_min_elevation_deg`). Measured first (`light::sky` `diagnostic_skylight_below_horizon`): the skylight radiance on an albedo-0.3 surface is 1.1 × 10⁻⁸ units at −12°, about 0.05% of the night street's mean reflected lamp light. Details in the [4B record](changes/2026-09-25-phase4b-many-lights.md). The work is on branch `claude/focused-faraday-ygdjx7`, which carries 4B's commits plus this fix.
 - **G4's Q1 corrected before any GPU run** (same session; the user delegated the review: "check for any weird stuff and decide yourself"): one night frame's mean luminance has a 1-sigma of 7.5–8.3% at 1080p (CPU-measured, `light` `diagnostic_g4_noise_floor`), so Q1's frozen ±2% could not pass even with correct code. Q1 is now Q1a (the filter's energy change against the raw history of the same frames, ±2%) and Q1b (the raw history's bias within max(2%, 4σ/√age)); Q2 and Q4 are unchanged ("G4 correction" in the [4B record](changes/2026-09-25-phase4b-many-lights.md)). The review found nothing else to change: every test filter in `run-local.cmd` matches a test, every viewer flag exists, the viewer exits 1 on validation messages, the 1080p reference renders stay far below Windows' 2 s GPU timeout (8 samples per submission), 4A's viewer runs really were 1920×1080, and the exposure pass's 64-workgroup change is consistent with its host sums.
+- **4B laptop run (RTX 3050, 2026-09-26 09:20, commit `cd28474`, `engine/results/local-run/2026-09-26_0920-4b/`; analysed in a cloud session; details in the record's "Laptop run"):** G1, G2, G3, G6, G7, G8 and G4's FLIP (Q4) pass; M1 and M2 recorded (night walk p50 7.9 / 8.8 ms, p99 12.0 / 11.7 ms for Full / Dense); 0 validation errors everywhere.
+  - **G4 FAIL.** Q1a: **the filter removes 5–24% of the night image's energy** (filtered minus raw from the same frames). Q1b passes, so the history is unbiased. Q2 fails at low_night age 1 only. Hypothesis: the SVGF-style weights are asymmetric, so rare bright samples are averaged down and never spread. A filter change is outside 4B.
+  - **G5 FAIL, on the negative control only.** R1 passes, and so does R2 wherever it is judged. The 3E-only arm's error is 1.7× the reset arm's (limit 3×), and only 1 of 3 edits changed enough pixels to be judged, so the test lacks power. The engine did nothing wrong.
+  - S-025 was not exercised by the run (the sunset run ended at 18.24 h); the user's viewer check is still open.
 - **Not authorized:**
   - 4C–4G: reservoir reuse, P05, P08, the M4 gate;
   - glass and water;
@@ -135,8 +139,10 @@
 
 ## Exact next action
 
-1. **The user runs `run-local.cmd` overnight** on the laptop (pull branch `claude/focused-faraday-ygdjx7` first: 4B, the night cap fix and the G4 correction; about 1.5–2.5 hours): plugged in, lid open, sleep and screen-off set to Never while plugged in, Windows Update paused for the night (an update restart would kill the run), no other apps; in the morning push `engine/results`.
-2. **A cloud session analyses those logs** against G1–G8 and records M1 (the equal-time curve) and M2 (night frame cost) in the 4B record. Failures are diagnosed, never rebaselined. The 4A recommendations stand: energy on reflected light (the tests measure reflected light only; emission is added only for display), the night noise after the filter (G4's data) decides whether 4C pays, blue hour is data.
+1. **The user decides on 4B's two failures** (4B stays open until then):
+   - G4: authorize a diagnostic of the filter's energy loss (a per-pixel filtered-minus-raw map, cloud CPU or one short laptop test), then a filter fix, which is outside 4B's scope; or accept the loss as 4B's known limitation and let 4C's lower noise shrink it (its Q2 failure is 4C's input either way).
+   - G5: authorize a recorded test correction (stronger edits so R2's 3E-only control has power: the whole lamp head, a neon box in view) and a rerun of G5 only (about 8 minutes); or accept R1's caught control as enough.
+2. After that decision, 4B closes (3 units) or its accepted failures are recorded; ADR-0006 Amendment 2 moves from proposed once G5 is settled.
 3. **The user judges the night look**: `viewer.exe --scene night --hour 17.5 --run-day` (lights, colours, exposure; L flips the lights). With S-025, once the sun is below −12° (hour 19.14, about 19:08, on the default path) the age view should go white while the day runs; it was capped at 8–16 frames before.
 4. **Before 4C** (not authorized):
    - the user points to the P05 / P08 reviews and PDFs;

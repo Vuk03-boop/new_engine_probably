@@ -1,6 +1,6 @@
 # Change: Phase 4B — many lights without reuse (the control)
 
-Status: **in progress: built; cloud checks C1–C4 pass; GPU checks G1–G8, M1, M2 NOT RUN** (they wait for `run-local.cmd` on the laptop). Criteria frozen 2026-09-25, before any code or run (commit `1da5bc8`); four corrections made before any run are recorded next to C2, G1, G4 and G5. Written in a cloud session (no GPU; [CLOUD.md](../CLOUD.md)).
+Status: **run on the RTX 3050 (2026-09-26 09:20, commit `cd28474`): 27 of 29 steps pass; G4 and G5 FAIL (diagnosed below; not closed).** Criteria frozen 2026-09-25, before any code or run (commit `1da5bc8`); four corrections made before any run are recorded next to C2, G1, G4 and G5. Written in a cloud session (no GPU; [CLOUD.md](../CLOUD.md)); the laptop logs were analysed in a cloud session.
 Date and baseline: 2026-09-25, branch `claude/hopeful-bell-972dbs` from `main` at `eb17538` (4A merged).
 Authorization: S-024 (4A and 4B authorized); the user's "go ahead then you are on high greenlight to do 4b" (2026-09-25).
 
@@ -128,9 +128,32 @@ The user ran the viewer at night (`--scene night`, 21 h, Full) before the laptop
 - **NOT RUN:** the viewer at night with the day running (the age view should go white once the sun is below −12°, hour 19.14). G7's validation run with the day running (400 frames from 17.5 h at 3.75° of sun per second) reaches −12° only below about 61 fps, so it may not exercise the change. `run-local.cmd` already runs `gpu --lib`, so it carries the new test.
 - **G4's noise floor** (same session, before any GPU run): measured and corrected; see the "G4 correction" row in the criteria (`engine/results/diag_g4_noise_floor_cloud.log`).
 
+## Laptop run (RTX 3050, 2026-09-26 09:20, commit `cd28474`; analysed in a cloud session, no GPU)
+
+Logs: `engine/results/local-run/2026-09-26_0920-4b/` (`summary.txt`: 27 of 29 steps exit 0); FLIP: `engine/results/phase4b/`. Validation: 0 errors, 0 warnings in every GPU test and viewer run.
+
+| # | Result |
+|---|---|
+| G1 | **pass.** 8 arms: 30–102 mismatched px (≤ 0.08%), 0 bad; emitters-off control fails all 8 arms (268,762 px); frame and sample-count controls caught; M3 path bit-identical (0 px) at 8 h and 21 h, bounce on and off. |
+| G2 | **pass.** Every judged arm: image-mean \|z\| ≤ 2.35, pixel \|z\|>4 rate within its limit; `no_solid_angle` caught (\|z\| > 2,300). Blue hour (data) also within limits. |
+| G3 | **pass.** 9,061 emissive px, 0 off by more than 1/255 + 10⁻³; lights off 0 nonzero. |
+| G4 | **FAIL: Q1a at all 8 night points, Q2 at low_night age 1.** Q1b passes everywhere (raw history bias \|z\| ≤ 1.64): the accumulation is unbiased. **The filter removes energy:** filtered minus raw mean luminance −9.9 / −7.2 / −24.4 / −16.3% (street, ages 1 / 4 / 16 / 64) and −8.6 / −4.6 / −19.6 / −12.9% (low); blue hour (data) −3 to −17%. The old ±2% Q1 would also have failed (filtered bias −8 to −26%), so the correction did not cause this. Q2: low_night age 1 filtered rel_mse 73.1 against raw at age 8 49.1 (street passes, 9.0 against 55.8); blue hour low age 1 also above (data). Q4 FLIP **pass** (filtered < raw at ages 1, 16, 64, both night cameras; e.g. street 0.406 → 0.309 at age 1, 0.193 → 0.123 at 64). |
+| G5 | **FAIL: "R2 control (3E rules only) not caught in any edit".** R1 passes in all 3 edits (0 decisions differ; 372k–395k px relit) and the 3E-only arm fails R1 in all 3 (control caught). R2 passes wherever judged, but only the stone edit had ≥ 100 changed px (10,020): full 0.107 = reset 0.107, 3E-only 0.179, which is 1.7× reset, under the 3× limit. The lamp-voxel and neon edits changed 0 px by > 25% and > 4 SE, so they judge nothing. |
+| G6 | **pass.** Switch on / off resets all 395,018 surface px in that frame only, the next frame accepts all; exposure sums equal the host's exactly, exposure 14348.447 against 14348.454 (5 × 10⁻⁷). |
+| G7 | **pass.** Validation off, 2,000 frames: p95 edit-to-visible 32.6 / 33.6 / 34.5 ms (N = 1, 8, 32; limits 50 / 50 / 100), every edit shown, 0 deferred. Validation on (N = 1, 8, 32 and the sunset run): exit 0, 0 errors, 0 warnings. The sunset run ended at hour 18.24 (135.6 fps average), so it did not reach −12° and did not exercise S-025, as predicted. |
+| G8 | **pass.** `gpu --lib` (22), `emitters`, `shade`, `sky`, `bounce`, `temporal`, `edit`, `denoise` R1 / R2 all exit 0; M3 street viewer run p95 29.0 ms, every edit shown, no lights in its JSON. |
+| M1 | Shade pass at 1080p, k = 1 / 2 / 4: Lamps 2.19 / 2.56 / 3.27 ms, Windows 2.48 / 2.57 / 3.35, Full 2.47 / 2.95 / 3.96, Dense 3.49 / 4.11 / 5.65. One-frame emitter-direct rel_mse: Lamps 28.2 / 12.8 / 6.8, Windows 51.9 / 34.9 / 19.3, Full 6,786 / 15,318 / 9,280, Dense 23,610 / 23,248 / 9,583. Full and Dense do not fall with k: a few pixels dominate (heavy tail, as `diagnostic_g4_noise_floor` found), so 16 frames do not estimate their rel_mse stably. Whole frame at Full, k = 1: temporal 1.31, filter 3.13, exposure 1.23 ms. |
+| M2 | Night walk, 3,000 frames, 1080p MAILBOX: Full frame p50 7.89 / p99 11.99 ms (shade 7.23, filter 2.84, temporal 1.35, exposure 1.05 ms p50); Dense 8.83 / 11.70 ms (shade 8.16). The control fits 16.67 ms. |
+
+**Diagnosis (hypotheses, not yet tested):**
+
+- **G4 Q1a, the filter's energy loss.** The filter (`shaders/denoise.slang`, SVGF-style) weights each neighbour by exp(−\|Δl\| / (σ_l √variance)) and normalises per output pixel, so the weights are not symmetric. A rare bright sample has a large variance and averages itself down with its neighbours, while each dark neighbour, whose variance is small, rejects it, so its energy is not spread and is lost. With the night's heavy tail (1% of pixels hold 89–97% of the variance), this is a large loss; with M3's dusk noise it stayed within ±2%. The first check is a per-pixel map of the filtered-minus-raw energy against the raw value's rank. Changing the filter is **outside 4B** ("any change of the filter or temporal defaults" is excluded).
+- **G4 Q2 at low_night age 1:** the same heavy tail. It is the information 4C needs (the criteria say so).
+- **G5's R2 control has no power, and the engine did nothing wrong.** The full arm equals the reset arm. The 3E-only arm's stale history is 1.7× the reset arm's 4-frame error, since at night the reset arm's noise is large, and only one edit changed enough pixels to be judged. Fixing it means stronger edits (e.g. the whole lamp head, a neon box in view). That is a test change after the run, so it needs the user's decision.
+
 ## Next
 
 1. Done: implemented, cloud checks C1–C4 pass, `run-local.cmd` rewritten, committed and pushed.
 2. The user runs `run-local.cmd` on the laptop (about 1.5–2.5 hours; overnight) and pushes `engine/results`; G1–G8, M1, M2 are analysed from those logs in a cloud session. Failures are diagnosed, never rebaselined.
 3. The user judges the night look in the viewer: `viewer.exe --scene night --hour 17.5 --run-day` walks from dusk into night (lights, colours, exposure; L flips the lights).
-4. Then 4B closes (3 units) or its failures are reported; M1's curve and G4's night error decide what 4C must beat. 4C is not authorized.
+4. Run done (2026-09-26): G4 and G5 fail, see "Laptop run". The user decides how to handle them (4B stays open). Then 4B closes (3 units) or its failures are accepted; M1's curve and G4's night error decide what 4C must beat. 4C is not authorized.
