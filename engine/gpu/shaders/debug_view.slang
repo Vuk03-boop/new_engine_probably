@@ -15,7 +15,7 @@
 //   8 light (3B): the real-time lighting of gpu::shade (linear HDR radiance per pixel, row-major in
 //     `radiance`), times params.light.w (exposure), then the same ACES fit. Covers every pixel,
 //     surfaces and sky alike.
-//   9 history age, 10 history reason (3D; 3E adds relit): the temporal state gpu::temporal writes into radiance.w
+//   9 history age, 10 history reason (3D; 3E adds relit, 4B relit by a light): the temporal state gpu::temporal writes into radiance.w
 //     (the number age | reason << 16 | bad << 24, stored as a float value).
 //   11 motion (3D): the motion buffer, pixels to the previous frame.
 // Background (nothing drawn) is a fixed sky colour in the debug views, a gradient in the lit view.
@@ -172,11 +172,12 @@ float4 fs_main(float4 frag : SV_Position) : SV_Target0
             float a = saturate(float(age) / 64.0);
             return float4(a * a, a, 0.3 + 0.7 * a, 1.0);
         }
-        // accepted, sky, off-screen, no previous, material, normal, disoccluded, edited, reset, relit
-        float3 REASON[10] = { float3(0.2, 0.6, 0.2), float3(0.1, 0.1, 0.1), float3(0.9, 0.9, 0.2), float3(0.5, 0.2, 0.7),
+        // accepted, sky, off-screen, no previous, material, normal, disoccluded, edited, reset, relit,
+        // relit by a light (4B)
+        float3 REASON[11] = { float3(0.2, 0.6, 0.2), float3(0.1, 0.1, 0.1), float3(0.9, 0.9, 0.2), float3(0.5, 0.2, 0.7),
             float3(1.0, 0.5, 0.0), float3(0.0, 0.7, 1.0), float3(1.0, 0.1, 0.1), float3(1.0, 0.2, 0.9), float3(1.0, 1.0, 1.0),
-            float3(0.2, 0.3, 1.0) };
-        return float4(reason < 10u ? REASON[reason] : float3(1.0, 0.0, 1.0), 1.0);
+            float3(0.2, 0.3, 1.0), float3(1.0, 0.85, 0.45) };
+        return float4(reason < 11u ? REASON[reason] : float3(1.0, 0.0, 1.0), 1.0);
     }
     if (view == 11)
     {

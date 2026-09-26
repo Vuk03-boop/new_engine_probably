@@ -27,6 +27,8 @@ const SHADERS: &[(&str, &str, &str, &str, &[&str])] = &[
     ("sky_bake.slang", "main", "compute", "sky_bake", &[]),
     // 3D: the temporal foundation.
     ("temporal.slang", "main", "compute", "temporal", &[]),
+    // 4B: with relight for lights (ADR-0006 Amendment 2). Without EMITTERS it is the M3 one.
+    ("temporal.slang", "main", "compute", "temporal_lit", &["-D", "EMITTERS"]),
     // 3E: the native reconstruction.
     ("denoise.slang", "main", "compute", "denoise", &[]),
     // 4B: emission after reconstruction and the exposure meter.

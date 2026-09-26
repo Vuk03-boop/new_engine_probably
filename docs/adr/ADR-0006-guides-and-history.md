@@ -80,9 +80,18 @@ See the [3D record](../changes/2026-09-24-phase3d-temporal.md).
 
 ## Amendment 2 (4B, 2026-09-26): the lights
 
-Status: **part 1 accepted as design** (delegated within S-024: lighting technique; the [4B record](../changes/2026-09-26-phase4b-many-lights.md) froze it before any code). Part 2 (relight for lights) is added here when it is built.
+Status: **accepted as design, both parts** (delegated within S-024: lighting technique; the [4B record](../changes/2026-09-26-phase4b-many-lights.md) froze it before any code). Part 2 (relight for lights) is built; its GPU validation (R3–R5, E4) is not run yet.
 
 - **The lights switching is a light jump** (Phase 4 decision 3). The caller tells the history whether the street's lights are on for the next frame (`History::set_lights`). A change from the previous frame resets every pixel (reason 8, `ResetCause::lights`), like the sun's 1° jump. The M3 callers never set it, so their behaviour is unchanged.
 - **Emission never enters the history** (ADR-0005 Amendment 3): `gpu::compose` adds it to the shown radiance after the temporal pass and the filter.
 - **Validation:** 4B G13 (a lights change resets every surface pixel; unchanged lights accept them; the history is bit-identical with and without compose, and a compose before the temporal pass is caught).
+- **Part 2, relight for lights** (a third relight rule, after 3E's; reason 10, **relit by a light**):
+  - **Light rows.** On the frame that shows an edit, the caller hands the history up to 64 rows (`temporal::light_rows`, `History::set_light_rows`; about 3 KB after the 3E boxes in the relight buffer, written in the command stream):
+    - the emitters the update changed (`GpuScene::take_changed_emitters`: in only one of the old and new tables, within the rebuilt regions; a quad split differently counts as changed), at most 16, the rest merged into the 16th as one conservative row (a bounding sphere, both sides, the largest Y, the summed Y·A);
+    - per edit box, the 4 unchanged emitters with the largest unoccluded irradiance bound at the box's centre;
+    - rows beyond 64 are left out.
+  - **The test per pixel**, outside rebuilt regions, on a pixel whose history is otherwise accepted after the 3E rules: relit when for some row the pixel is in front of the emitter, Y(L_e)·min(2π, A/d²)/π ≥ 2% of the history's luminance (d to the bounding sphere; albedo counted as 1), and either the emitter changed or the segment from the pixel to the emitter's centre crosses the edit box grown by 1 voxel plus the emitter's radius. `temporal::relit_by_light` is the same rule on the host, in the shader's f32 order.
+  - **Only while the lights are on:** the lit module (`temporal_lit`, `-D EMITTERS`) runs then; without the lights the M3 module (byte-identical to main's) runs, so relighting with the lights off is exactly 3E's.
+  - **Declared approximation:** the 2% threshold, 4 shadow rows per box and the 64-row cap. R4 measures it.
+  - **Validation:** 4B R3 (decisions against the host rule), R4 (lag against a full reset), R5 (3E R1/R2 unchanged), E4 (edit budget).
 - **Numbering:** the Phase 4 proposal named this amendment for 4C's reservoir history; that becomes Amendment 3.

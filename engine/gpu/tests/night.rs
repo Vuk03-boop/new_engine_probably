@@ -1,7 +1,8 @@
 //! Phase 4B GPU tests: the street's lights in the real-time path (the lit shade module, emission and
 //! the meter after reconstruction, the lights as a light jump) against the reference, and the
 //! measurements that set up 4C and 4D. Criteria are frozen in
-//! `docs/changes/2026-09-26-phase4b-many-lights.md` (G10, G11, G13, G14, Q1–Q4, M1–M3). Like the
+//! `docs/changes/2026-09-26-phase4b-many-lights.md` (G10, G11, G13, G14, Q1–Q4, M1–M3; part 2: R3,
+//! R4). Like the
 //! other GPU tests they need the Vulkan SDK and an RT GPU and fail (never skip) without them.
 //!
 //! With `NE_4B_DIR` set, the 1080p references and converged images are cached there (keyed by every
@@ -21,12 +22,12 @@ use gpu::denoise::{Denoise, DenoiseBindings, DenoiseFaults, DenoiseSettings, Den
 use gpu::layout::{build_regions, RegionKey, RegionMesh, RegionSize};
 use gpu::raster::{Bindings as RasterBindings, Camera, Faults, Raster, Targets};
 use gpu::reference::{RefAccum, RefFaults, RefMaterials, Reference};
-use gpu::scene::GpuScene;
+use gpu::scene::{affected_regions, region_meshes, GpuScene};
 use gpu::shade::{self, Shade, ShadeBindings, ShadeFaults, ShadeSettings, ShadeTargets};
 use gpu::sky::{SkyTables, SkyView};
 use gpu::staging::{Uploader, DEFAULT_RING_BYTES};
 use gpu::submit::Submitter;
-use gpu::temporal::{reason, History, Temporal, TemporalBindings, TemporalFaults, TemporalSettings};
+use gpu::temporal::{light_rows, reason, relight_rows, relit_by_light, History, LightRow, Relight, Temporal, TemporalBindings, TemporalFaults, TemporalSettings};
 use gpu::timing::{percentile, GpuTimer};
 use gpu::{Gpu, Timeline};
 use light::exposure::{metric_exposure, Meter};
@@ -35,8 +36,9 @@ use light::sky::SkyLuts;
 use light::sky_ref::SkyReference;
 use light::{Atmosphere, SunPath};
 use world::dims::VOXEL_SIZE_M;
+use world::reference::trace;
 use world::scene::{self, street_night, Dressing};
-use world::{BrickKey, World};
+use world::{BrickKey, MaterialId, Transaction, VoxelCoord, World};
 
 const NEAR: f64 = 0.1;
 /// Shade and reference seed of the exactness, convergence and emission checks.
@@ -147,6 +149,9 @@ fn full_barrier(g: &Gpu, cmd: vk::CommandBuffer) {
 /// One dressing of `street_night` on the device, with its emitter table, region table and albedos.
 struct Night {
     dressing: Dressing,
+    /// Part 2: the world and its 1C pipeline, for edits.
+    world: World,
+    pipeline: Pipeline,
     scene: GpuScene,
     tables: Tables,
     mats: RefMaterials,
@@ -177,13 +182,15 @@ struct Step {
     compose: ComposeAt,
     compose_faults: ComposeFaults,
     floor: f64,
+    /// Part 2: a forced reset of the temporal pass.
+    reset: bool,
     frame: u32,
     seed: u32,
 }
 
 impl Step {
     fn raw(set: ShadeSettings, frame: u32, seed: u32) -> Step {
-        Step { set, faults: ShadeFaults::default(), temporal: None, filter: false, lights: set.emitters, compose: ComposeAt::Off, compose_faults: ComposeFaults::default(), floor: 0.0, frame, seed }
+        Step { set, faults: ShadeFaults::default(), temporal: None, filter: false, lights: set.emitters, compose: ComposeAt::Off, compose_faults: ComposeFaults::default(), floor: 0.0, reset: false, frame, seed }
     }
 
     /// The viewer's frame with the lights on: lit shade, temporal pass, filter (no compose).
@@ -231,6 +238,9 @@ struct Rig {
     compose: Compose,
     reference: Reference,
     sub: Option<Submitter>,
+    /// Part 2: the relight boxes and light rows of the next frame recorded (then cleared).
+    next_boxes: Vec<Relight>,
+    next_rows: Vec<LightRow>,
 }
 
 impl Rig {
@@ -259,7 +269,7 @@ impl Rig {
             let em = scene.emitters().unwrap().expect("street_night has an emitter table");
             let (emission, emitters) = (em.table.emission.clone(), em.table.len());
             eprintln!("scene {}: {emitters} emitters", d.name());
-            nights.push(Night { dressing: d, scene, tables, mats, emission, emitters });
+            nights.push(Night { dressing: d, world, pipeline, scene, tables, mats, emission, emitters });
         }
         // The viewer's sky: corrected from the baked reference (S-020).
         let mut luts = SkyLuts::new(Atmosphere::default());
@@ -275,7 +285,7 @@ impl Rig {
         let compose = Compose::new(&g).unwrap();
         let reference = Reference::new(&g).unwrap();
         let sub = Submitter::new(&g).unwrap();
-        Rig { g, alloc, tl, up, sky: Some(sky), sky_pass: Some(sky_pass), sky_sun: None, nights, raster, shade, temporal, denoise, compose, reference, sub: Some(sub) }
+        Rig { g, alloc, tl, up, sky: Some(sky), sky_pass: Some(sky_pass), sky_sun: None, nights, raster, shade, temporal, denoise, compose, reference, sub: Some(sub), next_boxes: Vec::new(), next_rows: Vec::new() }
     }
 
     /// The buffers and bindings of scene `scene` at w × h.
@@ -297,6 +307,67 @@ impl Rig {
         let db = self.denoise.bind(g, &out.radiance, &history, &n.mats, &dn).unwrap();
         let cb = self.compose.bind(g, &targets, &out, &em.device, &co).unwrap();
         Frame { scene, w, h, targets, out, history, dn, co, rb, sb, sbl, tb, db, cb }
+    }
+
+    /// Rebuilds the frame's bindings after an edit (new meshes, TLAS, emitter table, region table).
+    fn rebind(&mut self, f: &mut Frame) {
+        let g = &self.g;
+        g.wait_idle().unwrap();
+        let n = &self.nights[f.scene];
+        let em = n.scene.emitters().unwrap().unwrap();
+        let accel = n.scene.accel.as_ref().unwrap();
+        let sky = &self.sky.as_ref().unwrap().view;
+        std::mem::replace(&mut f.rb, self.raster.bind(g, &n.scene.meshes).unwrap()).destroy(g);
+        std::mem::replace(&mut f.sb, self.shade.bind(g, &f.targets, accel, &n.mats, &f.out, sky).unwrap()).destroy(g);
+        std::mem::replace(&mut f.sbl, self.shade.bind_lit(g, &f.targets, accel, &n.mats, &f.out, sky, &em.device).unwrap()).destroy(g);
+        std::mem::replace(&mut f.tb, self.temporal.bind(g, &f.targets, &n.tables.regions, &f.out.radiance, &f.history).unwrap()).destroy(g);
+        std::mem::replace(&mut f.cb, self.compose.bind(g, &f.targets, &f.out, &em.device, &f.co).unwrap()).destroy(g);
+    }
+
+    /// The voxels of a box (`hi` exclusive) of scene `scene` and their materials.
+    fn voxels(&self, scene: usize, lo: [i32; 3], hi: [i32; 3]) -> Voxels {
+        let w = &self.nights[scene].world;
+        let mut v = Vec::new();
+        for x in lo[0]..hi[0] {
+            for y in lo[1]..hi[1] {
+                for z in lo[2]..hi[2] {
+                    let c = VoxelCoord::new(x, y, z);
+                    v.push((c, w.get(c)));
+                }
+            }
+        }
+        v
+    }
+
+    /// Part 2: sets voxels of the frame's scene (None removes), publishes, updates the device scene
+    /// (meshes, TLAS, emitter table) and the region table, and rebinds. Returns the emitters the
+    /// update changed (`GpuScene::take_changed_emitters`).
+    fn edit(&mut self, f: &mut Frame, voxels: &[(VoxelCoord, Option<MaterialId>)]) -> Vec<light::emitters::Emitter> {
+        let g = &self.g;
+        let n = &mut self.nights[f.scene];
+        let mut tx = Transaction::new();
+        for &(c, m) in voxels {
+            tx.set(c, m);
+        }
+        let applied = n.world.apply(&tx).unwrap();
+        assert!(!applied.changed.is_empty(), "the edit must change something");
+        n.pipeline.notify_edits(&applied.changed);
+        let keys = drain(&mut n.pipeline, &n.world);
+        let size = RegionSize::Chunk;
+        let t = n.pipeline.acquire();
+        let changed = region_meshes(&n.pipeline, &t, &affected_regions(keys.iter().copied(), size), size).unwrap();
+        n.pipeline.release(t).unwrap();
+        g.wait_idle().unwrap();
+        n.scene.update(g, &mut self.alloc, &mut self.up, &mut self.tl, changed, n.pipeline.current().id.raw()).unwrap();
+        g.wait_idle().unwrap();
+        let (old, _) = n.tables.replace_regions(g, &mut self.alloc, &mut self.up, &mut self.tl, &n.scene.region_rows()).unwrap();
+        g.wait_idle().unwrap();
+        self.alloc.free(g, old);
+        let done = self.tl.completed(g).unwrap();
+        n.scene.collect(g, &mut self.alloc, done);
+        let em = n.scene.take_changed_emitters();
+        self.rebind(f);
+        em
     }
 
     fn free_frame(&mut self, f: Frame) {
@@ -345,7 +416,9 @@ impl Rig {
         }
         if let Some(ts) = st.temporal {
             f.history.set_lights(st.lights);
-            self.temporal.record(g, cmd, &f.tb, &mut f.history, cam, light.sun_dir, ts, TemporalFaults::default(), false, &[]);
+            f.history.set_light_rows(&std::mem::take(&mut self.next_rows));
+            let boxes = std::mem::take(&mut self.next_boxes);
+            self.temporal.record(g, cmd, &f.tb, &mut f.history, cam, light.sun_dir, ts, TemporalFaults::default(), st.reset, &boxes);
             if st.filter {
                 self.denoise.record(g, cmd, &f.db, &f.history, &f.dn, DenoiseSettings::default(), DenoiseFaults::default());
             }
@@ -1199,4 +1272,228 @@ fn equal_time_curve_cost() {
         rig.free_frame(f);
     }
     rig.finish();
+}
+
+/// Part 2 (R3, R4): the 3E rig's size.
+const R_W: u32 = 320;
+const R_H: u32 = 180;
+/// Frames of R4's converged images (still camera, temporal pass, no filter).
+const R_CONV: u32 = 4096;
+/// Frames before the edit in each R arm (the edit's frame is the next one).
+const R_BEFORE: u32 = 32;
+
+/// The lit shade of the 3E rig with the bounce (the viewer's lighting, s = 1).
+fn r_step(frame: u32) -> Step {
+    Step::viewer(1, frame, SEED)
+}
+
+/// The still camera converged: a fresh history, `R_CONV` frames, no filter.
+fn converged_small(rig: &mut Rig, f: &mut Frame, cam: &Camera, light: &Lighting) -> Vec<[f64; 3]> {
+    rig.new_history(f);
+    let st = Step { temporal: Some(TemporalSettings { max_age: R_CONV, ..TemporalSettings::default() }), filter: false, ..Step::raw(lit(1), 0, 0x4BCC) };
+    let c = *cam;
+    rig.run(f, &move |_| c, light, st, 1..=R_CONV, 64);
+    rig.history_colour(f).iter().map(f64of).collect()
+}
+
+/// The lamp heads of the scene: the bounding boxes (`hi` exclusive) of the `lamp` voxels, one per
+/// run of consecutive x (the heads are 8 m apart).
+fn lamp_heads(w: &World) -> Vec<VoxelBox> {
+    let lamp = w.materials().id_of("lamp").unwrap();
+    let mut voxels: Vec<[i32; 3]> = w.occupied().filter(|&(_, m)| m == lamp).map(|(v, _)| [v.x, v.y, v.z]).collect();
+    voxels.sort();
+    let mut heads: Vec<VoxelBox> = Vec::new();
+    for c in voxels {
+        match heads.last_mut() {
+            Some(h) if c[0] <= h.1[0] => {
+                h.0 = std::array::from_fn(|a| h.0[a].min(c[a]));
+                h.1 = std::array::from_fn(|a| h.1[a].max(c[a] + 1));
+            }
+            _ => heads.push((c, c.map(|x| x + 1))),
+        }
+    }
+    heads
+}
+
+/// A voxel box: `lo` inclusive, `hi` exclusive.
+type VoxelBox = ([i32; 3], [i32; 3]);
+/// Edit (b)'s choice: the lamp head, the box, and the pixels in reach (every 4th).
+type BoxChoice = (VoxelBox, VoxelBox, usize);
+/// Voxels to set (None removes).
+type Voxels = Vec<(VoxelCoord, Option<MaterialId>)>;
+
+/// Edit (b)'s box: 3 × 3 × 3 in open air on the segment from a road point the camera sees to a lamp
+/// head's lower face, a fraction of the way up. Of the candidates (every 8th pixel on the road,
+/// fractions 0.15, 0.3, 0.5, every head), the one whose light rows reach the most pixels (the
+/// geometric part of the rule, on every 4th pixel); with its head and that count.
+fn choose_box(w: &World, table: &light::emitters::EmitterTable, cam: &Camera, points: &[Option<[f32; 3]>], sun: [f64; 3]) -> Option<BoxChoice> {
+    let sample: Vec<[f32; 3]> = points.iter().step_by(4).flatten().copied().collect();
+    let mut best: Option<BoxChoice> = None;
+    for head in lamp_heads(w) {
+        let top = [0.5 * (head.0[0] + head.1[0]) as f64, head.0[1] as f64, 0.5 * (head.0[2] + head.1[2]) as f64];
+        for y in (0..cam.height).step_by(8) {
+            for x in (0..cam.width).step_by(8) {
+                let Some(p) = points[(y * cam.width + x) as usize] else { continue };
+                if p[1].abs() > 1e-3 {
+                    continue; // the road's surface is y = 0
+                }
+                for t in [0.15, 0.3, 0.5] {
+                    let c: [i32; 3] = std::array::from_fn(|a| (p[a] as f64 + t * (top[a] - p[a] as f64)).floor() as i32);
+                    let (lo, hi) = (c.map(|v| v - 1), c.map(|v| v + 2));
+                    let free = (lo[0]..hi[0]).all(|x| (lo[1]..hi[1]).all(|y| (lo[2]..hi[2]).all(|z| w.get(VoxelCoord::new(x, y, z)).is_none())));
+                    if !free {
+                        continue;
+                    }
+                    let boxes = [Relight { lo, hi }];
+                    let (rows, br) = (light_rows(&[], table, &boxes), relight_rows(sun, &boxes));
+                    let n = sample.iter().filter(|p| relit_by_light(**p, 0.0, &br, &rows)).count();
+                    if best.is_none_or(|b| n > b.2) {
+                        best = Some((head, (lo, hi), n));
+                    }
+                }
+            }
+        }
+    }
+    best
+}
+
+/// Surface points of the camera's pixels by the exact DDA (`None`: sky), as f32 like the shader's.
+fn surface_points(w: &World, cam: &Camera) -> Vec<Option<[f32; 3]>> {
+    (0..cam.width * cam.height)
+        .map(|i| {
+            let r = cam.ray(i % cam.width, i / cam.width);
+            trace(w, &r, 1e9).map(|hit| std::array::from_fn(|a| (r.origin[a] + hit.t * r.dir[a]) as f32))
+        })
+        .collect()
+}
+
+fn lum32(c: &[f32; 4]) -> f32 {
+    0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+}
+
+/// R3, R4 (4B part 2, ADR-0006 Amendment 2): lights on, 21 h, 320 × 180, the 3E rig with the bounce.
+/// Two edits: (a) a whole lamp head removed; (b) a 3 × 3 × 3 box placed in open air between a lamp
+/// head and the road. R3: after each edit the pixels relit by a light equal the host rule on every
+/// pixel whose history is otherwise accepted (<= 0.05% differ, >= 100 relit by a light); the arm
+/// without the light rows must differ on >= 100. R4: 4 frames after the edit, the pixels whose
+/// converged value changed by > 25% outside the rebuilt regions have a filtered relative MSE <= 3 x
+/// that of an arm reset at the edit; the arm without the light rows must fail it.
+#[test]
+fn edits_relight_what_they_change_of_the_lights() {
+    let mut rig = Rig::new(&[Dressing::Full]);
+    let mut f = rig.frame_set(0, R_W, R_H);
+    let cam = cameras(R_W, R_H, false)[0].1;
+    let light = lighting(NIGHT);
+    let sun = light.sun_dir;
+    let before = surface_points(&rig.nights[0].world, &cam);
+
+    // Edit (b)'s box and its lamp head (edit (a) removes the same head): the placement whose light
+    // rows can change the light of the most pixels (the rule's geometric part; no threshold).
+    let (head, bx) = {
+        let n = &rig.nights[0];
+        let (head, b, count) = choose_box(&n.world, &n.scene.emitters().unwrap().unwrap().table, &cam, &before, sun).expect("a box in open air under a lamp head");
+        eprintln!("chosen: head {head:?}, box {b:?} ({count} of every 4th px in reach)");
+        (head, b)
+    };
+    let pole = rig.nights[0].world.materials().id_of("metal_pole").unwrap();
+    let head_saved = rig.voxels(0, head.0, head.1);
+    let box_saved = rig.voxels(0, bx.0, bx.1);
+    let edits: [(&str, Voxels, Relight); 2] = [
+        ("a_lamp_head_removed", head_saved.iter().map(|&(c, _)| (c, None)).collect(), Relight { lo: head.0, hi: head.1 }),
+        ("b_box_placed", box_saved.iter().map(|&(c, _)| (c, Some(pole))).collect(), Relight { lo: bx.0, hi: bx.1 }),
+    ];
+    let saved = [head_saved.clone(), box_saved.clone()];
+
+    let t_old = converged_small(&mut rig, &mut f, &cam, &light);
+    let mut failed = Vec::new();
+    for ((name, edit, b), undo) in edits.iter().zip(&saved) {
+        // The edit's converged image, surface points and light rows (as the viewer lists them).
+        let changed = rig.edit(&mut f, edit);
+        let t_new = converged_small(&mut rig, &mut f, &cam, &light);
+        let points = surface_points(&rig.nights[0].world, &cam);
+        let rows = light_rows(&changed, &rig.nights[0].scene.emitters().unwrap().unwrap().table, &[*b]);
+        let restored = rig.edit(&mut f, undo);
+        let boxes = [*b];
+        let br = relight_rows(sun, &boxes);
+        eprintln!("{name}: {} changed emitters, {} light rows ({} on restoring)", changed.len(), rows.len(), restored.len());
+
+        let mut arms = BTreeMap::new();
+        for arm in ["lights", "none", "reset"] {
+            rig.new_history(&mut f);
+            let c = cam;
+            rig.run(&mut f, &move |_| c, &light, r_step(1), 1..=R_BEFORE, 8);
+            let hist = rig.history_colour(&f);
+            rig.edit(&mut f, edit);
+            rig.next_boxes = boxes.to_vec();
+            if arm == "lights" {
+                rig.next_rows = rows.clone();
+            }
+            rig.one(&mut f, &cam, &light, Step { reset: arm == "reset", ..r_step(R_BEFORE + 1) });
+            let st = rig.state(&f);
+            rig.run(&mut f, &move |_| c, &light, r_step(R_BEFORE + 2), R_BEFORE + 2..=R_BEFORE + 4, 3);
+            let x = rig.radiance(&f);
+            rig.edit(&mut f, undo);
+            arms.insert(arm, (st, x, hist));
+        }
+
+        // R3: the host rule on the pixels otherwise accepted, with the history before the edit frame.
+        let hist = &arms["lights"].2;
+        for arm in ["lights", "none"] {
+            let st = &arms[arm].0;
+            let (mut relit, mut differ, mut decided) = (0usize, 0usize, 0usize);
+            for (i, p) in points.iter().enumerate() {
+                let (Some(p), r) = (*p, st[i].1) else { continue };
+                if r != reason::ACCEPTED && r != reason::RELIT_LIGHT {
+                    continue;
+                }
+                decided += 1;
+                let h = relit_by_light(p, lum32(&hist[i]), &br, &rows);
+                if r == reason::RELIT_LIGHT {
+                    relit += 1;
+                }
+                if (r == reason::RELIT_LIGHT) != h {
+                    differ += 1;
+                }
+            }
+            let ok = differ * 2000 <= (R_W * R_H) as usize && relit >= 100;
+            eprintln!("R3 {name} {arm}: {relit} px relit by a light, {differ} of {decided} decisions differ from the host rule ({} px) {}", R_W * R_H, if ok { "(passes)" } else { "(fails)" });
+            match arm {
+                "lights" if !ok => failed.push(format!("R3 {name}")),
+                "none" if differ < 100 => failed.push(format!("R3 {name}: the control without light rows differs on only {differ} px")),
+                _ => {}
+            }
+        }
+        // R4: changed pixels with a history outside the rebuilt regions.
+        let st = &arms["lights"].0;
+        let mask: Vec<bool> = (0..(R_W * R_H) as usize)
+            .map(|i| {
+                let (a, b) = (lum(t_old[i]), lum(t_new[i]));
+                matches!(st[i].1, reason::ACCEPTED | reason::RELIT | reason::RELIT_LIGHT) && (a - b).abs() > 0.25 * a.max(b)
+            })
+            .collect();
+        let n = mask.iter().filter(|&&m| m).count();
+        let e: BTreeMap<&str, f64> = arms.iter().map(|(k, (_, x, _))| (*k, rel_mse(x, &t_new, &mask))).collect();
+        let by_reason = |arm: &str| {
+            let mut c = [0usize; 11];
+            for (i, m) in mask.iter().enumerate() {
+                if *m {
+                    c[arms[arm].0[i].1 as usize] += 1;
+                }
+            }
+            c
+        };
+        eprintln!("R4 {name}: {n} changed px (reasons in the lights arm {:?}); 4 frames after the edit: lights {:.4}, none {:.4}, reset {:.4}", by_reason("lights"), e["lights"], e["none"], e["reset"]);
+        if n < 100 {
+            failed.push(format!("R4 {name}: needs >= 100 changed px to be exercised, got {n}"));
+        }
+        if e["lights"] > 3.0 * e["reset"] {
+            failed.push(format!("R4 {name}"));
+        }
+        if e["none"] <= 3.0 * e["reset"] {
+            failed.push(format!("R4 {name}: the control without light rows is not caught"));
+        }
+    }
+    rig.free_frame(f);
+    rig.finish();
+    assert!(failed.is_empty(), "failed: {failed:?}");
 }

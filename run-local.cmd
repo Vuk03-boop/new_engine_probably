@@ -1,7 +1,7 @@
 @echo off
 rem One-click local run for checks the cloud session cannot do (docs/CLOUD.md).
-rem Current task: Phase 4B part 1 (the lights in the real-time path),
-rem docs/changes/2026-09-26-phase4b-many-lights.md: G10-G14, Q1-Q4, M1-M4, V.
+rem Current task: Phase 4B parts 1 and 2 (the lights in the real-time path; relight for lights),
+rem docs/changes/2026-09-26-phase4b-many-lights.md: G10-G14, Q1-Q4, M1-M4, V; R3-R5, E4.
 rem Double-click it after pulling. It only builds, tests and renders: no installs, no source edits, no git.
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0engine" || (echo Cannot find the engine folder next to this script. & pause & exit /b 1)
@@ -12,23 +12,24 @@ if not exist "%VULKAN_SDK%\Bin\slangc.exe" (echo slangc.exe is missing from %VUL
 
 set STAMP=run
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HHmm"`) do set STAMP=%%i
-set OUT=results\local-run\%STAMP%-4b1
+set OUT=results\local-run\%STAMP%-4b
 if not exist "%OUT%" mkdir "%OUT%"
 set SUMMARY=%OUT%\summary.txt
 set VLOG=%OUT%\viewer_v.jsonl
 set M4LOG=%OUT%\viewer_m4.jsonl
+set E4LOG=%OUT%\viewer_e4.jsonl
 rem The 1080p references and converged images are cached here, so a rerun skips them (not pushed).
 set NE_4B_DIR=%TEMP%\ne_4b
 set NIGHT=cargo test --release -j 2 -p gpu --test night -- --test-threads=1 --nocapture
 
-> "%SUMMARY%" echo Phase 4B part 1, local run %STAMP%
+> "%SUMMARY%" echo Phase 4B parts 1 and 2, local run %STAMP%
 for /f "delims=" %%i in ('git rev-parse --short HEAD 2^>nul') do >> "%SUMMARY%" echo commit %%i
 for /f "delims=" %%i in ('cargo --version') do >> "%SUMMARY%" echo %%i
 >> "%SUMMARY%" echo VULKAN_SDK %VULKAN_SDK%
 >> "%SUMMARY%" echo NE_4B_DIR %NE_4B_DIR%
 >> "%SUMMARY%" echo.
 
-echo Running the 4B part 1 checks. This takes about 1.5-2 hours; keep the laptop plugged in.
+echo Running the 4B part 1 and part 2 checks. This takes about 2-2.5 hours; keep the laptop plugged in.
 echo Viewer windows open after the first tests (about 20-40 minutes in) and fly or walk by themselves:
 echo do not touch the mouse or keyboard until this window says Done.
 echo.
@@ -52,6 +53,11 @@ call :step g12_denoise "cargo test --release -j 2 -p gpu --test denoise -- --tes
 call :step g12_emitters "cargo test --release -j 2 -p gpu --test emitters -- --test-threads=1 --nocapture"
 call :step g12_edit "cargo test --release -j 2 -p gpu --test edit -- --test-threads=1 --nocapture"
 
+rem Part 2. R3, R4: relight for lights. R5: 3E R1/R2 (inside g12_denoise, both with and without the
+rem bounce), temporal and denoise as in G12, and the pixel-exact raster views.
+call :step r3_r4_relight_lights "%NIGHT% edits_relight_what_they_change_of_the_lights"
+call :step r5_raster "cargo test --release -j 2 -p gpu --test raster -- --test-threads=1 --nocapture"
+
 rem V: viewer runs with validation on.
 call :step v_night21 "target\release\viewer.exe --scene night --hour 21 --size 1920x1080 --frames 600 --log %VLOG%"
 call :step v_sunset "target\release\viewer.exe --scene night --hour 17.9 --run-day --size 1920x1080 --frames 900 --log %VLOG%"
@@ -59,7 +65,10 @@ call :step v_lights_off21 "target\release\viewer.exe --scene night --hour 21 --l
 call :step v_lights_on12 "target\release\viewer.exe --scene night --hour 12 --lights on --size 1920x1080 --frames 300 --log %VLOG%"
 call :step v_spp2 "target\release\viewer.exe --scene night --hour 21 --emitter-spp 2 --size 1920x1080 --frames 300 --log %VLOG%"
 call :step v_spp4 "target\release\viewer.exe --scene night --hour 21 --emitter-spp 4 --size 1920x1080 --frames 300 --log %VLOG%"
-call :step v_edits21 "target\release\viewer.exe --scene night --hour 21 --edit-script --size 1920x1080 --frames 400 --log %VLOG%"
+rem E4 with validation on (400 frames, N = 1, 8, 32).
+call :step e4_valid_n1 "target\release\viewer.exe --scene night --hour 21 --edit-script --edit-size 1 --size 1920x1080 --frames 400 --log %VLOG%"
+call :step e4_valid_n8 "target\release\viewer.exe --scene night --hour 21 --edit-script --edit-size 8 --size 1920x1080 --frames 400 --log %VLOG%"
+call :step e4_valid_n32 "target\release\viewer.exe --scene night --hour 21 --edit-script --edit-size 32 --size 1920x1080 --frames 400 --log %VLOG%"
 call :step v_street21 "target\release\viewer.exe --scene street --hour 21 --size 1920x1080 --frames 300 --log %VLOG%"
 
 rem M4: frame cost in the viewer, validation off (data).
@@ -68,6 +77,10 @@ call :step m4_night_1775 "target\release\viewer.exe --scene night --hour 17.75 -
 call :step m4_night_185 "target\release\viewer.exe --scene night --hour 18.5 --walk --size 1920x1080 --frames 3000 --log %M4LOG%"
 call :step m4_night_21 "target\release\viewer.exe --scene night --hour 21 --walk --size 1920x1080 --frames 3000 --log %M4LOG%"
 call :step m4_street_21 "target\release\viewer.exe --scene street --hour 21 --walk --size 1920x1080 --frames 3000 --log %M4LOG%"
+rem E4: the edit budget with the lights on (2,000 frames, N = 1, 8, 32).
+call :step e4_n1 "target\release\viewer.exe --scene night --hour 21 --edit-script --edit-size 1 --size 1920x1080 --frames 2000 --log %E4LOG%"
+call :step e4_n8 "target\release\viewer.exe --scene night --hour 21 --edit-script --edit-size 8 --size 1920x1080 --frames 2000 --log %E4LOG%"
+call :step e4_n32 "target\release\viewer.exe --scene night --hour 21 --edit-script --edit-size 32 --size 1920x1080 --frames 2000 --log %E4LOG%"
 rem M1 time and the compose cost (timing run).
 call :step m1_cost "%NIGHT% equal_time_curve_cost"
 set NE_NO_VALIDATION=
@@ -90,7 +103,7 @@ if errorlevel 1 (
 )
 >> "%SUMMARY%" echo.
 >> "%SUMMARY%" echo Expected: g12_denoise FAIL by design ^(accepted C1 and D4^); its numbers are compared with the 3E/3G logs.
->> "%SUMMARY%" echo NOT RUN on purpose: gpu gate ^(35+ min; with the lights off the frame path is M3's byte for byte, C10^), gpu reference, raster, ray, device ^(unchanged^).
+>> "%SUMMARY%" echo NOT RUN on purpose: gpu gate ^(35+ min; with the lights off the frame path is M3's byte for byte, C10^), gpu reference, ray, device ^(unchanged^).
 
 echo.
 type "%SUMMARY%"

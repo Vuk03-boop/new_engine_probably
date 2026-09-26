@@ -8,12 +8,13 @@
 //!   emitters and the per-material emitted radiance on the device under `Category::GpuMaterial`.
 //! - [`SceneEmitters`] is the table a `GpuScene` publishes with its meshes and TLAS
 //!   (`GpuScene::build_lit`); `GpuScene::update` builds the next one before the swap.
+//! - 4B part 2: [`changed`] lists the emitters an update changed, for relight (ADR-0006 Amendment 2).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::mem::{offset_of, size_of};
 
 use ash::vk;
-use light::emitters::{luminance, EmitterId, EmitterQuad, EmitterTable};
+use light::emitters::{luminance, Emitter, EmitterId, EmitterQuad, EmitterTable};
 use memory::{Category, LedgerError};
 use world::{MaterialId, MaterialRegistry};
 
@@ -88,6 +89,37 @@ pub fn table(regions: &BTreeMap<RegionKey, RegionMesh>, registry: &MaterialRegis
         set.set_region(k, Some(r), snapshot);
     }
     set.table(snapshot)
+}
+
+/// 4B: the emitters of `regions` whose geometry or radiance is in only one of `old` and `new` (as a
+/// multiset; the old one's first, then the new one's, each in table order). A quad split differently
+/// counts as changed, which only relights more. Emitters outside `regions` are the same in both.
+pub fn changed(old: &EmitterTable, new: &EmitterTable, regions: &BTreeSet<RegionKey>) -> Vec<Emitter> {
+    type Key = (u8, [u64; 3], [u64; 3], [u64; 3], [u64; 3]);
+    let key = |e: &Emitter| -> Key { (e.face, e.p0.map(f64::to_bits), e.eu.map(f64::to_bits), e.ev.map(f64::to_bits), e.radiance.map(f64::to_bits)) };
+    let inside = |e: &&Emitter| regions.contains(&RegionKey { x: e.id.key[0], y: e.id.key[1], z: e.id.key[2] });
+    let count = |t: &EmitterTable| {
+        let mut m: BTreeMap<Key, usize> = BTreeMap::new();
+        for e in t.emitters.iter().filter(inside) {
+            *m.entry(key(e)).or_default() += 1;
+        }
+        m
+    };
+    let (a, b) = (count(old), count(new));
+    let mut out = Vec::new();
+    for (t, other) in [(old, &b), (new, &a)] {
+        // Of each key, the copies beyond the other table's count.
+        let mut seen: BTreeMap<Key, usize> = BTreeMap::new();
+        for e in t.emitters.iter().filter(inside) {
+            let k = key(e);
+            let n = seen.entry(k).or_default();
+            *n += 1;
+            if *n > other.get(&k).copied().unwrap_or(0) {
+                out.push(*e);
+            }
+        }
+    }
+    out
 }
 
 /// One emitter as `reference.slang` reads it (std430, 80 bytes).
@@ -261,6 +293,29 @@ mod tests {
         let rows = GpuEmitter::of(&tables[1]);
         assert_eq!(rows.len(), tables[1].len());
         assert!(rows.iter().all(|r| r.meta[0] <= light::emitters::COIN_ONE && (r.meta[1] as usize) < rows.len() && r.meta[2] < 6));
+    }
+
+    /// 4B: `changed` lists the emitters in only one of two tables, within the rebuilt regions, as a
+    /// multiset: moved, removed and recoloured quads count; an unchanged region does not.
+    #[test]
+    fn changed_lists_what_differs() {
+        let mut r = MaterialRegistry::new();
+        let hot = r.register("hot", world::MaterialParams { base_color: [0.5; 3], emissive: [10.0, 5.0, 1.0] }).unwrap();
+        let warm = r.register("warm", world::MaterialParams { base_color: [0.5; 3], emissive: [1.0, 1.0, 1.0] }).unwrap();
+        let q = |region: i32, i: u32, m, u0: i32| EmitterQuad { id: EmitterId { key: [region, 0, 0], quad: i, snapshot: 1 }, material: m, face: 3, plane: 0, u0, v0: 0, u1: u0 + 1, v1: 1 };
+        let old = EmitterTable::build(&r, 1, [q(0, 0, hot, 0), q(0, 1, hot, 2), q(0, 2, hot, 4), q(0, 3, hot, 6), q(1, 0, hot, 40)]).unwrap();
+        // Region 0: quad 0 kept (new index), quad 1 moved, quad 2 removed, quad 3 recoloured. Region 1
+        // moved too, but it is not in the rebuilt set.
+        let new = EmitterTable::build(&r, 2, [q(0, 5, hot, 0), q(0, 6, hot, 3), q(0, 7, warm, 6), q(1, 0, hot, 41)]).unwrap();
+        let regions: BTreeSet<RegionKey> = [RegionKey { x: 0, y: 0, z: 0 }].into();
+        // Face 3 lies on y; u runs along z.
+        let got: Vec<(f64, f64)> = changed(&old, &new, &regions).iter().map(|e| (e.p0[2], e.radiance[1])).collect();
+        let set = |v: &[(f64, f64)]| v.iter().map(|&(u, g)| (u as i32, g as i32)).collect::<BTreeSet<_>>();
+        assert_eq!(set(&got), set(&[(2.0, 5.0), (4.0, 5.0), (6.0, 5.0), (3.0, 5.0), (6.0, 1.0)]));
+        assert_eq!(got.len(), 5, "{got:?}: old 2, 4, 6 (hot), new 3 (hot) and 6 (warm)");
+        let all: BTreeSet<RegionKey> = [RegionKey { x: 0, y: 0, z: 0 }, RegionKey { x: 1, y: 0, z: 0 }].into();
+        assert_eq!(changed(&old, &new, &all).len(), 7);
+        assert!(changed(&old, &old, &all).is_empty());
     }
 
     /// Runs every job inline and publishes; the published brick keys.

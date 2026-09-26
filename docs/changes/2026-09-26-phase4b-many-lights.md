@@ -1,8 +1,8 @@
 # Change: Phase 4B — many lights without reuse (the control)
 
-Status: **part 1 built; cloud checks pass (C8–C10); GPU checks NOT RUN until the laptop run.** Criteria were frozen 2026-09-26, before any 4B code or run, and have not changed. Both parts are frozen here. A part 2 criterion may change only before part 2's first run, with the reason written in this record.
+Status: **parts 1 and 2 built; cloud checks pass (C8–C10); GPU checks NOT RUN until the laptop run** (one `run-local.cmd` covers both parts). Criteria were frozen 2026-09-26, before any 4B code or run, and have not changed. Both parts are frozen here. A part 2 criterion may change only before part 2's first run, with the reason written in this record.
 Date and baseline: 2026-09-26, branch `claude/what-is-next-jcbt1f` from `main` at `eb17538` (4A merged). Written in a cloud session (no GPU; [CLOUD.md](../CLOUD.md)).
-Authorization: S-024 (4A and 4B authorized). The user asked for the plan before any code ("Do you need to plan 4b or is it already planned?", then "You are at max greenlight", 2026-09-26), then started part 1 ("You are on medium go", 2026-09-26).
+Authorization: S-024 (4A and 4B authorized). The user asked for the plan before any code ("Do you need to plan 4b or is it already planned?", then "You are at max greenlight", 2026-09-26), then started part 1 ("You are on medium go", 2026-09-26). With the laptop offline for a few hours, part 2 was built before part 1's results so one laptop run covers both ("Sure", then "Continue", 2026-09-26); this reorders the plan's "part 2 after part 1's results and your look" and changes no criterion.
 
 ## Objective
 
@@ -244,9 +244,9 @@ The design relies on the M3 shader modules staying byte for byte what they are. 
   - The references and converged images take about 25 min. They are cached in `%TEMP%\ne_4b` so a rerun skips them.
   - The M3 regression files take about 20 min.
   - The rest is tests, viewer runs and FLIP.
-  - Logs go to `engine/results/local-run/<date>-4b1/`, and images and FLIP results to `engine/results/phase4b/`.
+  - Logs go to `engine/results/local-run/<date>-4b/` (one folder for both parts), and images and FLIP results to `engine/results/phase4b/`.
   - FLIP needs the user's Python with `flip-evaluator` 1.7 (A-008). Without it, that step is NOT RUN.
-- **Part 2:** a second run, about 30 min.
+- **Part 2:** a second run, about 30 min. (Done instead as one run with part 1: `run-local.cmd` has both.)
 
 ## Commands and evidence actually produced
 
@@ -300,8 +300,42 @@ Cloud session: Linux x86_64, 4 cores, no GPU. The `gpu` crate was built with the
 | G10–G14, G12's M3 files, Q1–Q4, M1–M4, V | **NOT RUN** (no GPU): `run-local.cmd` | laptop |
 | `run-local.cmd` | untested (a Windows batch file cannot run here); re-read against CLOUD.md's rules | — |
 
+## Part 2: what was built (2026-09-26, cloud session)
+
+- **`temporal.slang`:** an `#ifdef EMITTERS` block (`relit_by_light`, reason 10) after the 3E rule, in a second module `temporal_lit` (`build.rs`). The light head sits at relight row 33 (after the 16 box pairs), then 3 rows per light (centre and radius; normal or 0 and Y; Y·A and the box index or −1).
+- **`gpu::temporal`:**
+  - `LightRow` (`of`, `merge`, `bound`, `rows`), `light_rows`, `merged_boxes`, and `relit_by_light` (the rule on the host, in the shader's f32 order);
+  - `History::set_light_rows` (the next frame only);
+  - `Temporal` holds both pipelines and runs the lit one, with the rows written after the box rows, whenever the history's lights are on;
+  - `reason::RELIT_LIGHT`; the relight buffer grows by 3,088 bytes.
+- **`gpu::emitters::changed`** and **`GpuScene::take_changed_emitters`**: the emitters of the rebuilt regions in only one of the old and new tables, collected at each update (`UpdateStats::changed_emitters_ms`).
+- **`debug_view.slang`:** reason 10 is pale gold in the reason view.
+- **Viewer:** the frame that shows an edit builds the rows (with the lights on) and hands them to the history; `edits.lights_ms` in the JSON (the diff and the rows, per edit).
+- **Tests:**
+  - `gpu --lib`: the lit module's layout and the light head's position, the rows (caps, merge, shadow ranking), the host rule's cases, and `changed` (moved, removed, recoloured; unrebuilt regions ignored);
+  - `night.rs`: `edits_relight_what_they_change_of_the_lights` (R3, R4), with the rig's world, pipeline, `edit` and `rebind`, and one-frame boxes and rows.
+- **Implementation choices within the design** (no criterion changed):
+  - **Edit (b)'s place.** The 3E street camera looks away from the lamps (they stand on the far sidewalk behind it), so a box right under a head is out of view. The box goes on the segment from a road point the camera sees to a lamp head's lower face, 0.15, 0.3 or 0.5 of the way up, in open air. The test picks the candidate whose rows reach the most pixels (the rule's geometric part), like 3E's choice of occluder. Edit (a) removes that same head. A CPU dry run of this choice: head x 191–195, box [130, 33, 52]–[133, 36, 55], 4,454 pixels in geometric reach.
+  - Shadow rows are ranked by the bound at the box's centre, without the in-front test (ties in table order).
+  - The history luminance is the bilinear history's, before Catmull-Rom.
+  - R3's host points come from the exact DDA, as in 3E. The comparison counts pixels with reason 0 or 10 in that arm.
+  - R4's converged images use seed `0x4BCC` and s = 1, 4,096 frames. Like 3E's R2, R4 also fails if fewer than 100 pixels changed (the instrument must be exercised).
+  - `build.rs` gains the `temporal_lit` entry (a companion to `temporal.slang`).
+
+## Part 2: evidence
+
+| Check | Result | Scope |
+|---|---|---|
+| C10 (part 2) | pass: `temporal.spv` and `temporal.json` are byte-identical to main's, as are all other main modules except `debug_view_fs.spv` (the reason 10 colour, allowed); new: `temporal_lit` | cloud, supplemental |
+| `gpu --lib` | exit 0, **21 pass** (17 + 4 new); `engine/results/test_gpu_lib_4b2_cloud.log` | cloud, no device |
+| Pure suite | exit 0, 155 pass, 4 ignored (unchanged); `engine/results/test_pure_4b2_cloud.log` | cloud |
+| Clippy (`--workspace --all-targets`) | exit 0, only the 6 old `world` lints; `engine/results/clippy_4b2_cloud.log` | cloud |
+| CPU dry run of edit (b)'s choice (a throwaway test, deleted) | see above; the thresholded counts need the GPU's history | cloud |
+| R3, R4, R5, E4 | **NOT RUN** (no GPU): `run-local.cmd` steps `r3_r4_relight_lights`, `g12_denoise` (3E R1 and R2, with and without the bounce), `g12_temporal`, `r5_raster`, `e4_n1/8/32`, `e4_valid_n1/8/32` | laptop |
+| `run-local.cmd` | untested (a Windows batch file cannot run here); re-read against CLOUD.md's rules | — |
+
 ## Next
 
-1. **Part 1 on the laptop:** pull the branch, run `run-local.cmd` (about 1.5–2 h), and push `engine/results`. The G and Q criteria are judged from those logs, then your look.
-2. **Part 2** comes after part 1's results and your look.
+1. **Both parts on the laptop:** pull the branch, run `run-local.cmd` (about 2–2.5 h; 40 steps), and push `engine/results`. The G, Q, R and E criteria are judged from those logs, then your look.
+2. **After the results:** set the default `--emitter-spp` by M1's rule.
 3. **Unchanged:** 4C–4G are not authorized. Before 4C, point me to the P05 and P08 reviews and PDFs, and provide the ReSTIR sources.

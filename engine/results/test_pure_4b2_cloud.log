@@ -1,0 +1,298 @@
+    Finished `release` profile [optimized] target(s) in 0.08s
+     Running unittests src/lib.rs (target/release/deps/derived-7961a5b03a1c8991)
+
+running 12 tests
+test mesh::tests::diagonal_edge_ray_is_the_documented_difference ... ok
+test mesh::tests::greedy_merges_a_slab_but_never_across_materials ... ok
+test mesh::tests::single_voxel_gives_six_unit_quads_facing_out ... ok
+test slots::tests::double_free_and_stale_free_are_rejected ... ok
+test mesh::tests::faces_hidden_by_a_neighbour_brick_are_not_emitted ... ok
+test slots::tests::exhausted_generation_retires_the_slot ... ok
+test slots::tests::free_slots_are_reused_lowest_first ... ok
+test slots::tests::freed_handle_stops_resolving_and_reuse_gets_a_new_generation ... ok
+test surface::tests::affected_keys_interior_edge_and_corner ... ok
+test surface::tests::dependency_check_is_exact_not_brick_granular ... ok
+test surface::tests::neighbour_brick_hides_boundary_faces ... ok
+test surface::tests::single_and_adjacent_voxels ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/perf_phase1.rs (target/release/deps/perf_phase1-d1d86e0c8bf79ca5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/memory_account.rs (target/release/deps/memory_account-2659d47286a15827)
+
+running 1 test
+test reported_pipeline_memory_brackets_measured_heap ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+     Running tests/mesh.rs (target/release/deps/mesh-e84858c0a3663621)
+
+running 8 tests
+test negative_controls_coverage_checker_reports_planted_defects ... ok
+test pipeline_publishes_meshes_equal_to_direct_extraction_in_both_modes ... ok
+test rays_agree_with_the_voxel_dda_across_chunk_boundaries ... ok
+test negative_control_ray_checker_reports_a_shifted_face ... ok
+test rays_agree_with_the_voxel_dda_on_the_street ... ok
+test coverage_is_exact_on_the_street_and_random_worlds ... ok
+test negative_control_unsplit_greedy_has_t_junctions ... ok
+test watertight_triangulation_shares_every_edge ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.18s
+
+     Running tests/persisted.rs (target/release/deps/persisted-004278d3dfab22b4)
+
+running 1 test
+test reloaded_world_publishes_the_oracle_and_commits_feed_edit_batches ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+     Running tests/scenarios.rs (target/release/deps/scenarios-138a38b5418e232c)
+
+running 15 tests
+test duplicate_completion_is_rejected ... ok
+test edit_batches_sharing_a_key_merge_into_one_publication ... ok
+test initial_population_matches_oracle ... ok
+test boundary_edit_rederives_the_neighbour_and_removes_empty_bricks ... ok
+test negative_control_retiring_without_readers_is_caught ... ok
+test negative_control_missing_neighbour_dirty_is_caught ... ok
+test neighbour_interior_change_is_accepted_by_content ... ok
+test publication_holds_the_prior_snapshot_until_the_whole_set_is_ready ... ok
+test redirtied_target_cancels_the_in_flight_job ... ok
+test retirement_waits_for_readers_and_reused_slots_reject_old_handles ... ok
+test staged_result_is_revalidated_at_publication_after_an_unnotified_change ... ok
+test unnotified_face_change_is_rejected_as_stale ... ok
+test sustained_edits_defer_publication_and_recover ... ok
+test overload_is_bounded_lossless_and_deterministic ... ok
+test publication_shares_unchanged_shards_and_keeps_old_snapshots_intact ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+
+     Running tests/stress.rs (target/release/deps/stress-da61faa5a4976fd3)
+
+running 5 tests
+test stress_is_deterministic ... ok
+test negative_controls_each_guard_is_needed ... ok
+test threaded_workers_with_random_delays ... ok
+test random_interleavings_keep_every_invariant ... ok
+test cancellation_and_stale_check_are_independent_guards ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.13s
+
+     Running unittests src/lib.rs (target/release/deps/light-a7cd5dd657ae2dec)
+
+running 35 tests
+test atmosphere::tests::diagnostic_step_dependence_at_twilight ... ignored
+test atmosphere::tests::ground_blocks_a_set_sun ... ok
+test atmosphere::tests::step_layout_covers_the_segment_in_order ... ok
+test atmosphere::tests::zenith_transmittance_matches_the_closed_form ... ok
+test emitters::tests::alias_selection_matches_the_realized_probabilities ... ok
+test emitters::tests::bad_emission_and_stale_snapshots_are_refused ... ok
+test emitters::tests::geometry_and_order_are_canonical ... ok
+test emitters::tests::lights_follow_the_sun ... ok
+test emitters::tests::lights_switch_by_hand_until_the_horizon ... ok
+test emitters::tests::spherical_rectangle_is_uniform_in_solid_angle ... ok
+test emitters::tests::tiny_emitters_are_never_impossible ... ok
+test emitters::tests::uniform_index_is_uniform_and_in_range ... ok
+test exposure::tests::automatic_exposure_adapts_and_matches_the_metric ... ok
+test exposure::tests::exposure_follows_the_lit_pixels ... ok
+test reference::fingerprint::diagnostic_street_fingerprint ... ignored
+test reference::tests::albedos_outside_the_unit_range_are_refused ... ok
+test reference::tests::point_sun_on_a_plane_matches_the_closed_form ... ok
+test reference::tests::white_furnace_is_one ... ok
+test sample::tests::basis_is_orthonormal ... ok
+test sample::tests::phases_integrate_to_one ... ok
+test sample::tests::rng_is_uniform_and_deterministic ... ok
+test sample::tests::samplers_match_their_pdfs ... ok
+test atmosphere::tests::multiple_scattering_adds_light_and_the_sky_is_blue ... ok
+test sky::tests::diagnostic_sky_error_by_elevation_and_ground ... ignored
+test sky::tests::transmittance_table_matches_the_integral ... ok
+test sky::tests::view_mapping_round_trips ... ok
+test sky_ref::tests::baked_reference_noise_is_within_budget ... ok
+test atmosphere::tests::one_event_monte_carlo_matches_single_scattering_quadrature ... ok
+test sky_ref::tests::file_round_trips_and_refuses_mismatches ... ok
+test sky_ref::tests::grid_directions_map_to_their_texels ... ok
+test sun::tests::equinox_path_at_45_degrees ... ok
+test sun::tests::sun_radiance_times_solid_angle_is_the_irradiance ... ok
+test sky_ref::tests::correction_is_one_when_uncorrected_and_matches_at_grid_points ... ok
+test sky::tests::sky_table_matches_the_monte_carlo_sky ... ok
+test atmosphere::tests::default_step_count_is_converged_within_one_percent ... ok
+
+test result: ok. 32 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 7.67s
+
+     Running tests/emitters.rs (target/release/deps/emitters-e12c7ecbd94a3cc9)
+
+running 7 tests
+test diagnostic_magnitudes ... ignored
+test emissive_rectangle_matches_lamberts_formula ... ok
+test emitters_off_ignores_the_table ... ok
+test night_street_renders_finite ... ok
+test table_identity_follows_geometry_and_snapshots ... ok
+test night_dressing_light_counts ... ok
+test emissive_furnace_sums_the_bounces ... ok
+
+test result: ok. 6 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 13.24s
+
+     Running unittests src/lib.rs (target/release/deps/memory-62381af4b1a5e09d)
+
+running 9 tests
+test ledger::tests::foreign_grants_and_overfull_live_are_rejected ... ok
+test ledger::tests::grants_track_live_reserved_high_water_and_peak ... ok
+test ledger::tests::device_budget_takes_the_smaller_ceiling_minus_headroom ... ok
+test ledger::tests::report_lists_used_categories ... ok
+test ledger::tests::refusal_is_deterministic_and_changes_nothing_but_the_counter ... ok
+test tests::category_names_are_unique ... ok
+test tests::container_bounds_hold_live_below_reserved ... ok
+test tests::report_sums_rows_and_splits_host_from_device ... ok
+test tests::tracker_keeps_high_water_per_category_and_total ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/release/deps/walk-a12e4f7a8c2f253b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/collision.rs (target/release/deps/collision-c745fb7b89b4fe3e)
+
+running 14 tests
+test inside_corner_holds ... ok
+test lands_and_rests_exactly_on_the_floor ... ok
+test frame_rate_does_not_change_the_path ... ok
+test overlap_check_detects_penetration ... ok
+test resolve_start_lifts_out_of_solid ... ok
+test slides_along_walls_without_snagging ... ok
+test snaps_down_a_curb_instead_of_falling ... ok
+test ceilings_stop_a_jump ... ok
+test step_up_needs_headroom ... ok
+test night_street_start_is_free ... ok
+test thin_walls_and_floors_do_not_tunnel ... ok
+test street_block_curb_and_shop_front ... ok
+test step_height_sweep ... ok
+test random_walks_never_overlap_the_street_block ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.54s
+
+     Running unittests src/lib.rs (target/release/deps/world-73e8cc8a4f4d2efd)
+
+running 35 tests
+test coords::tests::negative_voxels_use_floor_division ... ok
+test coords::tests::neighbouring_voxels_across_brick_and_chunk_edges_get_distinct_slots ... ok
+test edit::tests::apply_matches_direct_writes_including_versions ... ok
+test coords::tests::brick_origin_and_offset_cross_chunk_edges ... ok
+test coords::tests::split_join_round_trip_including_negatives_and_boundaries ... ok
+test edit::tests::empty_and_no_op_transactions_keep_the_version ... ok
+test material::tests::duplicate_name_is_rejected_without_side_effects ... ok
+test material::tests::ids_are_stable_and_in_registration_order ... ok
+test edit::tests::transaction_with_an_unknown_material_changes_nothing ... ok
+test material::tests::unknown_id_is_not_contained ... ok
+test persist::codec::tests::crc32_matches_the_standard_check_value ... ok
+test persist::codec::tests::reader_round_trips_and_reports_truncation ... ok
+test reference::tests::exact_edge_graze_is_not_a_hit ... ok
+test reference::tests::half_open_faces ... ok
+test reference::tests::hits_from_each_axis_direction_with_correct_face ... ok
+test reference::tests::misses_and_empty_world ... ok
+test reference::tests::negative_coordinates_hit ... ok
+test reference::tests::origin_inside_hits_at_zero_without_face ... ok
+test reference::tests::t_max_is_inclusive ... ok
+test material::tests::registry_capacity_is_the_full_u16_range ... ok
+test reference::tests::zero_direction_is_rejected - should panic ... ok
+test world::tests::bounds_are_chunk_granular_and_cover_all_voxels ... ok
+test world::tests::clearing_empty_space_allocates_nothing ... ok
+test world::tests::clearing_last_voxel_frees_brick_then_chunk ... ok
+test world::tests::empty_world_reads_empty_and_stores_nothing ... ok
+test world::tests::material_identity_is_exact_and_overwrite_replaces_it ... ok
+test world::tests::payload_estimate_scales_with_stored_bricks_only ... ok
+test world::tests::recreated_brick_never_reuses_an_old_version ... ok
+test world::tests::same_edits_give_identical_worlds_and_order_independent_content ... ok
+test world::tests::set_get_round_trip_across_brick_and_chunk_edges ... ok
+test world::tests::unknown_material_is_rejected_and_changes_nothing ... ok
+test world::tests::versions_advance_only_on_real_changes_and_only_for_the_touched_brick ... ok
+test scene::tests::scene_contains_every_registered_material ... ok
+test scene::tests::generator_is_deterministic ... ok
+test scene::tests::night_street_keeps_the_day_street_and_adds_lights ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.63s
+
+     Running unittests src/bin/persist_cost.rs (target/release/deps/persist_cost-7a5b6af2bbff0202)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/ref_render.rs (target/release/deps/ref_render-a47fb37eddf79b2c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/memory_account.rs (target/release/deps/memory_account-5ab4b8ee6fc4d263)
+
+running 1 test
+test reported_world_memory_brackets_measured_heap ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running tests/persist.rs (target/release/deps/persist-b681e0dc9952ced4)
+
+running 14 tests
+test format_matches_the_checked_in_fixture ... ok
+test every_single_byte_flip_in_a_journal_is_detected_or_dropped_as_the_tail ... ok
+test journal_must_continue_the_snapshot ... ok
+test materials_map_by_name_and_missing_names_fail_loudly ... ok
+test remapped_store_requires_a_snapshot_before_commits ... ok
+test every_single_byte_flip_in_a_snapshot_is_detected ... ok
+test random_and_empty_worlds_round_trip_exactly ... ok
+test crash_between_snapshot_and_journal_restart_loads_and_continues ... ok
+test snapshot_plus_journal_replay_equals_the_live_world ... ok
+test torn_tail_at_every_offset_drops_only_the_last_transaction ... ok
+test store_open_repairs_a_torn_tail_and_continues ... ok
+test unknown_major_version_is_refused_and_unknown_sections_are_skipped ... ok
+test store_commits_snapshots_and_reopens_exactly ... ok
+test street_block_round_trips_exactly ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running tests/reference_agreement.rs (target/release/deps/reference_agreement-be7a1f946f96dc87)
+
+running 2 tests
+test comparison_detects_a_single_missing_voxel ... ok
+test dda_matches_brute_force_exactly ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.47s
+
+   Doc-tests derived
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests light
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests memory
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests walk
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests world
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -27,6 +27,12 @@
 //   accepted is instead rejected as "relit" when the ray from its surface point towards the sun
 //   crosses the box (its sun shadow may have changed) or the point is within the box's sky radius of
 //   it (its sky visibility may have changed by more than about 2%).
+// - 4B relight for lights (ADR-0006 Amendment 2), only in the lit module (`-D EMITTERS`; without it this
+//   is the M3 module): after the 3E rule, a pixel whose history would still be accepted is rejected as
+//   "relit by a light" (reason 10) when some light row both matters there (the pixel is in front of
+//   the emitter, and the unoccluded irradiance bound Y(L_e) * min(2 pi, A / d^2) over pi is at least 2%
+//   of the history's luminance) and can change there (the emitter changed, or the segment from the
+//   pixel to the emitter's centre crosses the row's edit box grown by the emitter's radius).
 // - Outputs: next guides, next history colour and state, motion, and, in place in `radiance`, the
 //   resolved colour (xyz) and the state (w) for the light and debug views. The state buffers hold
 //   age (bits 0-15) | reason (bits 16-23) | bad material (bit 24); in `radiance.w` the same number is
@@ -59,6 +65,8 @@ struct Params
 [[vk::binding(11, 0)]] RWStructuredBuffer<uint> next_state;
 [[vk::binding(12, 0)]] RWStructuredBuffer<float2> motion;
 // [0]: sun direction (xyz), box count (w); then per box: (lo.xyz, sky radius), (hi.xyz, 0). Voxels.
+// 4B (lit module): at [LIGHT_HEAD] the light row count (x), then per row (gpu::temporal::LightRow):
+// (centre.xyz, radius), (normal.xyz or 0 for both sides, Y), (Y * A, edit box index or -1, 0, 0).
 [[vk::binding(13, 0)]] StructuredBuffer<float4> relight;
 [[vk::push_constant]] ConstantBuffer<Params> params;
 
@@ -78,6 +86,14 @@ static const uint R_DISOCCLUDED = 6u;
 static const uint R_EDITED = 7u;
 static const uint R_RESET = 8u;
 static const uint R_RELIT = 9u;
+#ifdef EMITTERS
+static const uint R_RELIT_LIGHT = 10u;
+// 1 + 2 * gpu::temporal::MAX_RELIGHT_BOXES.
+static const uint LIGHT_HEAD = 33u;
+static const float LIGHT_FRACTION = 0.02;
+static const float TWO_PI = 6.28318530717958647692;
+static const float INV_PI = 0.31830988618379067154;
+#endif
 
 static const uint FACE_NONE = 7u;
 static const float SNAP = 1.0e-3;
@@ -166,6 +182,56 @@ bool relit(float3 p)
     }
     return false;
 }
+
+#ifdef EMITTERS
+// Whether a light row's light at surface point p, with history luminance yh, may have changed.
+bool relit_by_light(float3 p, float yh)
+{
+    uint n = uint(relight[LIGHT_HEAD].x);
+    for (uint k = 0u; k < n; k++)
+    {
+        float4 a = relight[LIGHT_HEAD + 1u + 3u * k];
+        float4 b = relight[LIGHT_HEAD + 2u + 3u * k];
+        float4 c = relight[LIGHT_HEAD + 3u + 3u * k];
+        float3 v = p - a.xyz;
+        // In front of a one-sided emitter.
+        if (dot(b.xyz, b.xyz) > 0.0 && dot(v, b.xyz) <= 0.0)
+            continue;
+        // The unoccluded irradiance bound over pi against the history (albedo 1).
+        float d = max(sqrt(dot(v, v)) - a.w, 0.0);
+        float bound = d > 0.0 ? min(TWO_PI * b.w, c.x / (d * d)) : TWO_PI * b.w;
+        if (bound * INV_PI < LIGHT_FRACTION * yh)
+            continue;
+        int bx = int(c.y);
+        if (bx < 0)
+            return true;
+        // The segment p -> centre against the edit box grown by the radius (slabs, t in [0, 1]).
+        float3 lo = relight[1u + 2u * uint(bx)].xyz - a.w;
+        float3 hi = relight[2u + 2u * uint(bx)].xyz + a.w;
+        float3 s = a.xyz - p;
+        float enter = 0.0;
+        float leave = 1.0;
+        for (uint ax = 0u; ax < 3u; ax++)
+        {
+            if (s[ax] == 0.0)
+            {
+                if (p[ax] < lo[ax] || p[ax] > hi[ax])
+                    leave = -1.0;
+            }
+            else
+            {
+                float t0 = (lo[ax] - p[ax]) / s[ax];
+                float t1 = (hi[ax] - p[ax]) / s[ax];
+                enter = max(enter, min(t0, t1));
+                leave = min(leave, max(t0, t1));
+            }
+        }
+        if (enter <= leave)
+            return true;
+    }
+    return false;
+}
+#endif
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
@@ -282,6 +348,10 @@ void main(uint3 tid: SV_DispatchThreadID)
             reason = nearest_reason == R_ACCEPTED ? R_NO_PREV : nearest_reason;
         else if (relit(p))
             reason = R_RELIT;
+#ifdef EMITTERS
+        else if (relit_by_light(p, dot(hist / wsum, float3(0.2126, 0.7152, 0.0722))))
+            reason = R_RELIT_LIGHT;
+#endif
         // Catmull-Rom over the 4x4 taps, only when all of them with a weight are valid.
         if (reason == R_ACCEPTED && (flags & F_BILINEAR) == 0u)
         {

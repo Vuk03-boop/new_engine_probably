@@ -24,7 +24,7 @@ use std::time::Instant;
 
 use ash::vk;
 use derived::{Pipeline, ReadError, ReaderToken};
-use light::emitters::StaleTable;
+use light::emitters::{Emitter, StaleTable};
 use world::dims::BRICK_EDGE;
 use world::{BrickKey, MaterialRegistry, VoxelCoord};
 
@@ -73,6 +73,8 @@ pub struct UpdateStats {
     /// 4A: the emitter table's host build and upload (0 without a table), and its emitter count.
     pub emitters_ms: f64,
     pub emitters: Option<usize>,
+    /// 4B: listing the emitters this update changed ([`GpuScene::take_changed_emitters`]).
+    pub changed_emitters_ms: f64,
 }
 
 pub struct GpuScene {
@@ -80,6 +82,8 @@ pub struct GpuScene {
     pub accel: Option<Accel>,
     /// 4A: the emitter table of the snapshot shown (scenes built with [`GpuScene::build_lit`]).
     emitters: Option<SceneEmitters>,
+    /// 4B: the emitters the updates since the last [`GpuScene::take_changed_emitters`] changed.
+    changed_emitters: Vec<Emitter>,
     /// The 1C snapshot (raw id) the scene shows.
     pub snapshot: u64,
     /// Per region: the snapshot it was last built from (the debug view's version view).
@@ -175,7 +179,7 @@ impl GpuScene {
             }
         };
         let built_at = meshes.regions.keys().map(|&k| (k, snapshot)).collect();
-        Ok(GpuScene { meshes, accel, emitters, snapshot, built_at, retiring: Retirement::default(), faults: SceneFaults::default(), accel_faults: AccelFaults::default(), updates: 0, deferred: 0 })
+        Ok(GpuScene { meshes, accel, emitters, changed_emitters: Vec::new(), snapshot, built_at, retiring: Retirement::default(), faults: SceneFaults::default(), accel_faults: AccelFaults::default(), updates: 0, deferred: 0 })
     }
 
     pub fn size(&self) -> RegionSize {
@@ -273,6 +277,10 @@ impl GpuScene {
         }
         if let Some((n, _)) = next {
             let old = self.emitters.replace(n).expect("a next table comes from a table");
+            // 4B: what the relight for lights needs (ADR-0006 Amendment 2).
+            let t = Instant::now();
+            self.changed_emitters.extend(crate::emitters::changed(&old.table, &self.emitters.as_ref().unwrap().table, &keys));
+            stats.changed_emitters_ms = t.elapsed().as_secs_f64() * 1e3;
             self.retire(last, Garbage::Buffer(old.device.emitters));
             self.retire(last, Garbage::Buffer(old.device.emission));
         }
@@ -326,6 +334,12 @@ impl GpuScene {
                 e.table.check(self.snapshot).map(|_| Some(e))
             }
         }
+    }
+
+    /// 4B: the emitters the updates since the last call changed (in only one of a table and the next,
+    /// `emitters::changed`); empty for a scene without a table.
+    pub fn take_changed_emitters(&mut self) -> Vec<Emitter> {
+        std::mem::take(&mut self.changed_emitters)
     }
 
     /// Device bytes of the emitter table (`GpuMaterial`); 0 without one.

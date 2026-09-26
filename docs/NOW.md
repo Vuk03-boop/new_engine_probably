@@ -1,4 +1,4 @@
-# NOW — Phase 4 (M4): 4A done; 4B part 1 built, waiting for the laptop run
+# NOW — Phase 4 (M4): 4A done; 4B parts 1 and 2 built, waiting for the laptop run
 
 **Updated 2026-09-26.** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
 
@@ -27,11 +27,11 @@
   - **part 2 cloud checks pass:** C6, C7; the magnitudes M1–M2 are measured (below);
   - **part 2 passed on the RTX 3050:** G6–G9 (`run-local.cmd`, 2026-09-25 20:29; analysed in a cloud session from the pushed logs);
   - **L moved to 4B** with the rendering it switches (in 4A it would switch nothing on screen).
-- **4B part 1 built, cloud checks pass, GPU checks NOT RUN** ([record](changes/2026-09-26-phase4b-many-lights.md)). Criteria were frozen 2026-09-26, before any code or run ("You are at max greenlight"); part 1 was started with "You are on medium go".
+- **4B parts 1 and 2 built, cloud checks pass, GPU checks NOT RUN** ([record](changes/2026-09-26-phase4b-many-lights.md)). Criteria were frozen 2026-09-26, before any code or run ("You are at max greenlight"); part 1 was started with "You are on medium go". With the laptop offline, part 2 was built before part 1's results ("Sure", then "Continue"), so one laptop run covers both; no criterion changed.
   - **Built:** the lit shade module (`shade_lit`), `gpu::compose` (emission after reconstruction and the exposure meter), `History::set_lights` (a lights change is a full reset, ADR-0006 Amendment 2), `light::emitters::Lights`, `light::exposure::{Meter, adapt}`, the viewer's `--lights`, L and `--emitter-spp` with the automatic exposure, `gpu/tests/night.rs`, `results/phase4b/flip.py`, and `run-local.cmd` for part 1.
   - **Cloud (2026-09-26):** C8–C10 pass. The pure suite has 155 passing; `gpu --lib` 17; clippy shows only the 6 old `world` lints. All 12 of main's shader modules are byte-identical to this build's.
   - **Part 1:** the lit shade pass (emitter samples at the primary and bounce hits); emission and the exposure meter after reconstruction (`gpu::compose`); the lights switch (a light jump); the metered exposure while the lights are on; the equal-time curve; quality at blue hour and night.
-  - **Part 2:** relight for lights (ADR-0006 Amendment 2).
+  - **Part 2 built:** relight for lights (ADR-0006 Amendment 2, completed): the lit temporal module `temporal_lit` (reason 10, relit by a light), `temporal::{LightRow, light_rows, relit_by_light}`, `History::set_light_rows`, `gpu::emitters::changed` and `GpuScene::take_changed_emitters`, the reason-10 colour, the viewer's rows per edit (`edits.lights_ms`), and R3/R4 in `night.rs` (`edits_relight_what_they_change_of_the_lights`). Cloud: `temporal.spv` is still byte-identical to main's (C10); `gpu --lib` 21; pure 155; clippy only the 6 old lints.
   - **Design rule:** lights off runs main's shade module byte for byte. This was checked feasible in the cloud with the pinned slangc's Linux release.
   - **Choices in the plan, yours to override** (listed in the record): the exposure follows the lights; L holds until the next horizon crossing; the default samples per pixel come from the curve; 1080p with 8 seeds; blue hour is compared per pixel with the converged real-time image.
 - **Not authorized:**
@@ -69,8 +69,8 @@
 - **Repository** (since 2026-09-25):
   - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
   - **4A is merged into `main`** (PR https://github.com/Vuk03-boop/new_engine_probably/pull/1, merge commit `16edb67`, 2026-09-25, at the user's request; a merge commit, so the hashes cited in the 4A record stay valid). New work starts from `main`; the 4A branches `claude/tender-keller-9u9d6t` and `claude/nice-dijkstra-xpg7tr` are finished.
-  - The 4B plan and part 1 are on branch `claude/what-is-next-jcbt1f` (from `main` at `eb17538`), not merged.
-  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, now holding 4B part 1's 33 steps (untested: written in a cloud session). The 4A part 2 steps ran once, all 15 exit 0. Logs go to `engine/results/local-run/<date>-<tag>/`; the user pushes `engine/results` back.
+  - The 4B plan and parts 1 and 2 are on branch `claude/what-is-next-jcbt1f` (from `main` at `eb17538`), not merged.
+  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, now holding 4B parts 1 and 2 (40 steps; untested: written in a cloud session). The 4A part 2 steps ran once, all 15 exit 0. Logs go to `engine/results/local-run/<date>-<tag>/`; the user pushes `engine/results` back.
   - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
   - Binary data is protected from line-ending conversion by `.gitattributes`.
   - Commits and pushes happen only on the user's request.
@@ -82,6 +82,9 @@
   - `engine/results/local-run/`: the laptop runs of `run-local.cmd`.
 
 ## Last checks (2026-09-25, RTX 3050; 2026-09-26, cloud)
+
+- **4B part 2 (2026-09-26, cloud, no GPU; [record](changes/2026-09-26-phase4b-many-lights.md)):** C10 holds for `temporal.spv` (all main modules byte-identical except `debug_view_fs.spv`, the reason-10 colour); `gpu --lib` 21 pass (`test_gpu_lib_4b2_cloud.log`); pure 155 pass, 4 ignored (`test_pure_4b2_cloud.log`); clippy exit 0, only the 6 old `world` lints (`clippy_4b2_cloud.log`). A CPU dry run of R3/R4's edit placement found a box with 4,454 pixels in geometric reach. R3–R5 and E4: NOT RUN.
+- **4B part 1 (2026-09-26, cloud):** C8–C10 pass; pure 155, `gpu --lib` 17, clippy only the old lints. G10–G14, Q1–Q4, M1–M4, V: NOT RUN.
 
 - **4B planning check (2026-09-26, cloud, no GPU):** with the pinned slangc 2026.13.1 (its Linux release, in the session's scratch space; supplemental, not the laptop's SDK):
   - `shade.slang` with a stub `#ifdef EMITTERS` block and a changed comment, compiled without the define, gives SPIR-V and reflection byte-identical to main's;
@@ -125,22 +128,18 @@
 ## Milestone progress
 
 - M1, M2 and M3: 100%, accepted (M2 34 units, M3 35 units).
-- **M4: 6 of 33 units** (S-024): 4A done.
+- **M4: 6 of 33 units** (S-024): 4A done; 4B (3 units) counts once its laptop results pass.
   - Weights: 4A 6, 4B 3, 4C 7, 4D 8, 4E 3, 4F 3, 4G 3.
   - 4E and 4F count once they are measured and recorded, admitted or not.
 
 ## Exact next action
 
-1. **4B part 1 on the laptop.** The user pulls `claude/what-is-next-jcbt1f` and double-clicks `run-local.cmd`.
-   - It takes about 1.5–2 h; the references are cached in `%TEMP%\ne_4b`.
+1. **4B parts 1 and 2 on the laptop.** The user pulls `claude/what-is-next-jcbt1f` and double-clicks `run-local.cmd`.
+   - It takes about 2–2.5 h (40 steps); the references are cached in `%TEMP%\ne_4b`.
    - Viewer windows open 20–40 min in and must not be touched.
-   - The user then pushes `engine/results`.
-   - Then: judge G10–G14, G12, V, Q1–Q4 and M1–M4 from the logs, per the [4B record](changes/2026-09-26-phase4b-many-lights.md); set the default `--emitter-spp` by M1's rule; then the user's look; then part 2 (relight for lights).
-   - The scope of 4B, as authorized (the record details it):
-     - one emitter sample per pixel at the primary and bounce hits, then the temporal pass and the filter;
-     - L, the automatic switch and the night exposure (moved from 4A);
-     - relight rules for emitters (part 2);
-     - the equal-time curve over samples per pixel and light counts.
+   - Logs go to `engine/results/local-run/<date>-4b/`; the user then pushes `engine/results`.
+   - Then: judge G10–G14, G12, V, Q1–Q4, M1–M4 (part 1) and R3–R5, E4 (part 2) from the logs, per the [4B record](changes/2026-09-26-phase4b-many-lights.md); set the default `--emitter-spp` by M1's rule; then the user's look.
+   - `g12_denoise` shows FAIL by design (accepted C1 and D4); R5 reads 3E R1/R2's numbers from that log.
    - 4A's recommendations are built into the frozen criteria:
      - energy on reflected light (emission excluded);
      - 8 seed sequences for the night's heavy tail;

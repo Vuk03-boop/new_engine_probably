@@ -95,7 +95,7 @@ use gpu::scene::{affected_regions, region_meshes, Garbage, GpuScene};
 use gpu::shade::{self, radiance_to_fragment, Shade, ShadeBindings, ShadeFaults, ShadeSettings, ShadeTargets};
 use gpu::sky::{SkyTables, SkyView};
 use gpu::denoise::{Denoise, DenoiseBindings, DenoiseFaults, DenoiseSettings, DenoiseTargets};
-use gpu::temporal::{History, Relight, Temporal, TemporalBindings, TemporalFaults, TemporalSettings};
+use gpu::temporal::{light_rows, History, Relight, Temporal, TemporalBindings, TemporalFaults, TemporalSettings};
 use gpu::staging::{Uploader, DEFAULT_RING_BYTES};
 use gpu::timing::{percentile, GpuTimer};
 use gpu::{FrameReaders, Gpu, Timeline};
@@ -108,7 +108,7 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use winit::window::{Window, WindowId};
 use world::dims::VOXEL_SIZE_M;
-use light::emitters::{Lights, LightsMode};
+use light::emitters::{Emitter, Lights, LightsMode};
 use world::scene::Dressing;
 use world::{scene, BrickKey, MaterialId, Transaction, VoxelCoord, World};
 
@@ -391,6 +391,9 @@ struct EditTiming {
     rebind_ms: f64,
     /// 4A: the emitter table's host build and upload inside the update (night scene; else 0).
     emitters_ms: f64,
+    /// 4B: the light rows' host time (listing the changed emitters, and the rows of the frame that
+    /// shows the edit with the lights on; else 0).
+    lights_ms: f64,
     regions: usize,
     /// Edit start to the completion of the first frame showing it (polled once per frame).
     visible_ms: f64,
@@ -414,6 +417,8 @@ struct Edits {
     /// 3E: voxels edited but not yet on the device, and those the next shaded frame relights.
     relight_pending: Vec<Relight>,
     relight: Vec<Relight>,
+    /// 4B: the emitters the updates since the last shaded frame changed (for its light rows).
+    light_changed: Vec<Emitter>,
     /// The voxels the last `RemoveBox` changed, with their previous contents, and its box.
     removed_box: Vec<(VoxelCoord, Option<MaterialId>)>,
     removed_bounds: Option<([i32; 3], [i32; 3])>,
@@ -1112,6 +1117,17 @@ impl App {
                 let gap = self.last_shaded.is_none_or(|f| f + 1 != self.frame_index);
                 let ts = TemporalSettings { max_age: self.args.max_age, ..TemporalSettings::default() };
                 h.set_lights(lit);
+                // 4B: the frame showing an edit relights what it changed of the lights.
+                if lit && (!self.edits.relight.is_empty() || !self.edits.light_changed.is_empty()) {
+                    let t = Instant::now();
+                    if let Ok(Some(em)) = s.scene.emitters() {
+                        h.set_light_rows(&light_rows(&self.edits.light_changed, &em.table, &self.edits.relight));
+                    }
+                    let ms = t.elapsed().as_secs_f64() * 1e3;
+                    for (_, t) in self.edits.unshown.iter_mut() {
+                        t.lights_ms += ms;
+                    }
+                }
                 tp.record(&s.gpu, scene.cmd, tb, h, &camera, self.sun.sun_dir, ts, TemporalFaults::default(), gap, &self.edits.relight);
                 // 3E: the filter shows the accumulated lighting reconstructed; the history stays raw.
                 if let (true, Some(d), Some(db), Some(dt)) = (self.denoise, &s.denoise, &s.denoise_bindings, &s.denoise_targets) {
@@ -1125,6 +1141,7 @@ impl App {
                 self.metered[slot as usize] = true;
             }
             self.edits.relight.clear();
+            self.edits.light_changed.clear();
             self.last_shaded = Some(self.frame_index);
             radiance_to_fragment(&s.gpu, scene.cmd);
         }
@@ -1393,6 +1410,7 @@ impl App {
         self.edits.dirty.clear();
         let pending = std::mem::take(&mut self.edits.relight_pending);
         self.edits.relight.extend(pending);
+        self.edits.light_changed.extend(s.scene.take_changed_emitters());
         // Rebuild what points at replaced buffers. The frames in flight have finished (the
         // acceleration update waited for them; the wait here covers the mesh-only path).
         let t = Instant::now();
@@ -1432,6 +1450,7 @@ impl App {
             t.accel_ms = u.accel_ms;
             t.rebind_ms = rebind_ms;
             t.emitters_ms = u.emitters_ms;
+            t.lights_ms = u.changed_emitters_ms;
             t.regions = regions;
         }
         Ok(())
@@ -1458,7 +1477,7 @@ impl App {
         let e = &self.edits;
         let col = |f: fn(&EditTiming) -> f64| Series::summary(&e.done.iter().map(f).collect::<Vec<_>>());
         format!(
-            "{{\"applied\":{},\"shown\":{},\"rejected\":{},\"deferred\":{},\"not_shown_at_exit\":{},\"voxels\":{},\"regions\":{},\"commit_ms\":{},\"layout_ms\":{},\"upload_ms\":{},\"accel_ms\":{},\"rebind_ms\":{},\"emitters_ms\":{},\"visible_ms\":{},\"visible_all_ms\":[{}]}}",
+            "{{\"applied\":{},\"shown\":{},\"rejected\":{},\"deferred\":{},\"not_shown_at_exit\":{},\"voxels\":{},\"regions\":{},\"commit_ms\":{},\"layout_ms\":{},\"upload_ms\":{},\"accel_ms\":{},\"rebind_ms\":{},\"emitters_ms\":{},\"lights_ms\":{},\"visible_ms\":{},\"visible_all_ms\":[{}]}}",
             e.applied,
             e.done.len(),
             e.rejected,
@@ -1472,6 +1491,7 @@ impl App {
             col(|t| t.accel_ms),
             col(|t| t.rebind_ms),
             col(|t| t.emitters_ms),
+            col(|t| t.lights_ms),
             col(|t| t.visible_ms),
             e.done.iter().map(|t| format!("{:.2}", t.visible_ms)).collect::<Vec<_>>().join(",")
         )
