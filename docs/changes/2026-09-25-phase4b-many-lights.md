@@ -151,6 +151,13 @@ Logs: `engine/results/local-run/2026-09-26_0920-4b/` (`summary.txt`: 27 of 29 st
 - **G4 Q2 at low_night age 1:** the same heavy tail. It is the information 4C needs (the criteria say so).
 - **G5's R2 control has no power, and the engine did nothing wrong.** The full arm equals the reset arm. The 3E-only arm's stale history is 1.7× the reset arm's 4-frame error, since at night the reset arm's noise is large, and only one edit changed enough pixels to be judged. Fixing it means stronger edits (e.g. the whole lamp head, a neon box in view). That is a test change after the run, so it needs the user's decision.
 
+- **Does G4 propagate? (reasoning, not measured).**
+  - It does not compound. The filter writes only the shown radiance; the history stays unbiased (Q1b), so the loss does not grow over frames.
+  - It is on screen in every night and blue-hour frame, and it is uneven: largest where rare bright samples carry the light (neon near façades, the bounce). The automatic exposure partly hides the overall level.
+  - **It confounds later measurements.** 4C lowers the noise, so it would also shrink the filter's loss and look better for that reason. 4D's extra bounces (7–10% of the night light) are the same size as the loss.
+  - Day is unaffected (M3's Q1 within ±2%).
+  - Hence: understand G4 before 4C.
+
 ## Next
 
 1. Done: implemented, cloud checks C1–C4 pass, `run-local.cmd` rewritten, committed and pushed.

@@ -37,6 +37,7 @@
 - **4B laptop run (RTX 3050, 2026-09-26 09:20, commit `cd28474`, `engine/results/local-run/2026-09-26_0920-4b/`; analysed in a cloud session; details in the record's "Laptop run"):** G1, G2, G3, G6, G7, G8 and G4's FLIP (Q4) pass; M1 and M2 recorded (night walk p50 7.9 / 8.8 ms, p99 12.0 / 11.7 ms for Full / Dense); 0 validation errors everywhere.
   - **G4 FAIL.** Q1a: **the filter removes 5–24% of the night image's energy** (filtered minus raw from the same frames). Q1b passes, so the history is unbiased. Q2 fails at low_night age 1 only. Hypothesis: the SVGF-style weights are asymmetric, so rare bright samples are averaged down and never spread. A filter change is outside 4B.
   - **G5 FAIL, on the negative control only.** R1 passes, and so does R2 wherever it is judged. The 3E-only arm's error is 1.7× the reset arm's (limit 3×), and only 1 of 3 edits changed enough pixels to be judged, so the test lacks power. The engine did nothing wrong.
+  - **G4 propagates into measurement, not into the history:** the history stays unbiased, but 4C / 4D comparisons made through the filter would be confounded (the record's "Does G4 propagate?"). So G4 is understood before 4C.
   - S-025 was not exercised by the run (the sunset run ended at 18.24 h); the user's viewer check is still open.
 - **Not authorized:**
   - 4C–4G: reservoir reuse, P05, P08, the M4 gate;
@@ -139,10 +140,12 @@
 
 ## Exact next action
 
-1. **The user decides on 4B's two failures** (4B stays open until then):
-   - G4: authorize a diagnostic of the filter's energy loss (a per-pixel filtered-minus-raw map, cloud CPU or one short laptop test), then a filter fix, which is outside 4B's scope; or accept the loss as 4B's known limitation and let 4C's lower noise shrink it (its Q2 failure is 4C's input either way).
-   - G5: authorize a recorded test correction (stronger edits so R2's 3E-only control has power: the whole lamp head, a neon box in view) and a rerun of G5 only (about 8 minutes); or accept R1's caught control as enough.
-2. After that decision, 4B closes (3 units) or its accepted failures are recorded; ADR-0006 Amendment 2 moves from proposed once G5 is settled.
+1. **Next session: local, on the laptop with the RTX 3050** (the user, 2026-09-26: "i am starting you in a native chat where you can run it yourself"). Pull branch `claude/focused-faraday-ygdjx7`. It is a local session, so do not read CLOUD.md; build with `-j 2`, and GPU tests run directly (`cargo test --release -j 2 -p gpu --test lights <name>`; G4's 1080p references are cached in `%TEMP%\ne_gate_4b` when `NE_GATE_DIR` points there).
+   - **Recommended, and the user moved the work local to run it** (the exact words "go on 1 and 2" were not given; confirm in one line before the first edit):
+     - (a) **G5 test correction:** stronger edits so R2's 3E-only control has power (the whole lamp head; a neon box the street camera sees). Record it as a correction after the run in the record, with the reason ("only 1 of 3 edits judged; 3E-only 1.7× reset against 3×"). Pass limits unchanged. Then rerun `edits_relight_emitter_light` only (about 8 min).
+     - (b) **G4 diagnostic, no engine change:** where the filter loses energy. Per pixel, filtered minus raw luminance at ages 1 / 16 / 64 from the same frames, binned by the raw value's rank (and by the variance the filter uses). The hypothesis to confirm or reject: the asymmetric SVGF weights average rare bright samples down and dark neighbours reject them (`shaders/denoise.slang`). Include a control that can fail (e.g. a flat-noise input where the filter should keep energy).
+   - **Not authorized:** changing the filter or its defaults (outside 4B). After (b), the user chooses: a filter fix (scope change, own record or 4B amendment) or accepting the loss as a 4B limitation.
+2. After those decisions, 4B closes (3 units) or its accepted failures are recorded. ADR-0006 Amendment 2 moves from proposed once G5 is settled.
 3. **The user judges the night look**: `viewer.exe --scene night --hour 17.5 --run-day` (lights, colours, exposure; L flips the lights). With S-025, once the sun is below −12° (hour 19.14, about 19:08, on the default path) the age view should go white while the day runs; it was capped at 8–16 frames before.
 4. **Before 4C** (not authorized):
    - the user points to the P05 / P08 reviews and PDFs;
