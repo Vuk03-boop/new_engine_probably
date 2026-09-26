@@ -19,6 +19,8 @@ const SHADERS: &[(&str, &str, &str, &str, &[&str])] = &[
     ("reference.slang", "main", "compute", "reference", &["-capability", "spvRayQueryKHR"]),
     // 3B: real-time lighting from the G-buffer.
     ("shade.slang", "main", "compute", "shade", &["-capability", "spvRayQueryKHR"]),
+    // 4B: the same file with the emitter terms (the lit module). Without EMITTERS it is the M3 one.
+    ("shade.slang", "main", "compute", "shade_lit", &["-capability", "spvRayQueryKHR", "-D", "EMITTERS"]),
     // 3C: the sky-view table.
     ("sky.slang", "main", "compute", "sky", &[]),
     // S-020: the sky correction's bake (a tool, not a frame pass).
@@ -27,6 +29,8 @@ const SHADERS: &[(&str, &str, &str, &str, &[&str])] = &[
     ("temporal.slang", "main", "compute", "temporal", &[]),
     // 3E: the native reconstruction.
     ("denoise.slang", "main", "compute", "denoise", &[]),
+    // 4B: emission after reconstruction and the exposure meter.
+    ("compose.slang", "main", "compute", "compose", &[]),
 ];
 
 fn main() {

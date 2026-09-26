@@ -16,6 +16,10 @@
 //! voxel boxes ([`Relight`]) for the frame after it is published, and pixels whose sun ray crosses a
 //! box or that lie within its sky radius restart as "relit"; while the sun moves, the age cap shrinks
 //! so that the history spans at most `sun_tolerance_deg` of sun motion.
+//!
+//! 4B (ADR-0006 Amendment 2): the street's lights switching on or off is a light jump too. The caller
+//! tells the history whether the lights are on ([`History::set_lights`]); a change from the previous
+//! frame resets every pixel.
 
 use std::mem::size_of;
 
@@ -184,6 +188,7 @@ pub fn host_layout() -> Vec<Param> {
 struct Prev {
     cam: Camera,
     sun: [f64; 3],
+    lights: bool,
 }
 
 /// Why this frame was a global reset (all false: history carried over).
@@ -192,12 +197,14 @@ pub struct ResetCause {
     pub first: bool,
     pub cut: bool,
     pub light: bool,
+    /// 4B: the lights switched on or off since the previous frame.
+    pub lights: bool,
     pub forced: bool,
 }
 
 impl ResetCause {
     pub fn any(&self) -> bool {
-        self.first || self.cut || self.light || self.forced
+        self.first || self.cut || self.light || self.lights || self.forced
     }
 }
 
@@ -220,6 +227,8 @@ pub struct History {
     pub frames: u64,
     /// The age cap of the last frame recorded (`TemporalSettings::age_cap`).
     pub age_cap: u32,
+    /// 4B: whether the lights are on for the next frame recorded ([`History::set_lights`]).
+    lights: bool,
 }
 
 impl History {
@@ -251,7 +260,13 @@ impl History {
         };
         let mut it = bufs.into_iter();
         let mut n = || it.next().unwrap();
-        Ok(History { width, height, guides: [n(), n()], hist: [n(), n()], state: [n(), n()], motion: n(), relight, parity: 0, prev: None, frames: 0, age_cap: 0 })
+        Ok(History { width, height, guides: [n(), n()], hist: [n(), n()], state: [n(), n()], motion: n(), relight, parity: 0, prev: None, frames: 0, age_cap: 0, lights: false })
+    }
+
+    /// 4B: whether the street's lights are on for the next frame recorded (off by default). A change
+    /// from the previous frame is a light jump: that frame resets every pixel.
+    pub fn set_lights(&mut self, on: bool) {
+        self.lights = on;
     }
 
     pub fn device_bytes(&self) -> u64 {
@@ -280,6 +295,14 @@ impl History {
         let st = out[0].as_chunks::<4>().0.iter().map(|c| u32::from_le_bytes(*c)).map(|s| (s & 0xFFFF, (s >> 16) & 0xFF)).collect();
         let mo = out[1].as_chunks::<8>().0.iter().map(|c| [f32::from_le_bytes(c[0..4].try_into().unwrap()), f32::from_le_bytes(c[4..8].try_into().unwrap())]).collect();
         Ok((st, mo))
+    }
+
+    /// 4B: reads back the history colour of the last frame written: the resolved running mean (xyz)
+    /// and the luminance moment (w). Waits.
+    pub fn read_colour(&self, gpu: &Gpu, alloc: &mut Allocator, timeline: &mut Timeline) -> Result<Vec<[f32; 4]>> {
+        let px = (self.width * self.height) as u64;
+        let out = download(gpu, alloc, timeline, &[(&self.hist[self.parity], 0, px * 16)])?.remove(0);
+        Ok(out.as_chunks::<16>().0.iter().map(|c| [0, 1, 2, 3].map(|k| f32::from_le_bytes(c[4 * k..4 * k + 4].try_into().unwrap()))).collect())
     }
 
     /// Reads back the guides of the last frame written (face | material << 3, plane, region key,
@@ -389,7 +412,7 @@ impl Temporal {
                 let moved = (0..3).map(|a| (cam.eye[a] - p.cam.eye[a]).powi(2)).sum::<f64>().sqrt();
                 let cos = (0..3).map(|a| sun[a] * p.sun[a]).sum::<f64>().clamp(-1.0, 1.0);
                 sun_deg = cos.acos().to_degrees();
-                ResetCause { first: false, cut: moved > CUT_VOXELS, light: sun_deg > LIGHT_JUMP_DEG, forced: force_reset }
+                ResetCause { first: false, cut: moved > CUT_VOXELS, light: sun_deg > LIGHT_JUMP_DEG, lights: p.lights != history.lights, forced: force_reset }
             }
         };
         history.age_cap = s.age_cap(sun_deg);
@@ -432,7 +455,7 @@ impl Temporal {
             dev.cmd_dispatch(cmd, cam.width.div_ceil(8), cam.height.div_ceil(8), 1);
         }
         history.parity = 1 - history.parity;
-        history.prev = Some(Prev { cam: *cam, sun });
+        history.prev = Some(Prev { cam: *cam, sun, lights: history.lights });
         history.frames += 1;
         cause
     }

@@ -20,6 +20,13 @@
 //! ray) and the sky (one more visibility ray) times both albedos, exactly as the reference's second
 //! vertex with `max_bounces` 1. Up to 4 rays per pixel (3C: 2). The hit's material comes from the
 //! region table ([`Accel::table`]), bound next to the TLAS.
+//!
+//! 4B (the lit module, `shade_lit.spv`): `shade.slang` compiled with `EMITTERS`. Without it the module
+//! is the M3 one, byte for byte, and runs whenever the lights are off. The lit module binds the
+//! scene's emitter rows ([`Shade::bind_lit`]) and, with [`ShadeSettings::emitters`], draws
+//! `emitter_spp` emitter samples at the primary vertex and at the bounce hit (the reference's
+//! estimator; with 1 sample frame f equals the reference's sample f with `emitters_direct` and
+//! `emitters_indirect`). Emission is added later by [`crate::compose`]. Up to 4 + 2s rays per pixel.
 
 use std::mem::size_of;
 
@@ -30,6 +37,7 @@ use memory::Category;
 
 use crate::accel::{Accel, RegionRef};
 use crate::alloc::{Allocator, Buffer, Kind};
+use crate::emitters::{GpuEmitter, RefEmitters};
 use crate::context::{Gpu, GpuError, Result, VkCheck};
 use crate::raster::{Camera, Targets};
 use crate::reference::RefMaterials;
@@ -39,6 +47,9 @@ use crate::timeline::Timeline;
 
 pub const SPIRV: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/shade.spv"));
 pub const REFLECTION: &str = include_str!(concat!(env!("OUT_DIR"), "/shade.json"));
+/// 4B: the lit module (`EMITTERS`).
+pub const SPIRV_LIT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/shade_lit.spv"));
+pub const REFLECTION_LIT: &str = include_str!(concat!(env!("OUT_DIR"), "/shade_lit.json"));
 
 /// Bytes per pixel of the radiance output.
 pub const RADIANCE_BYTES: u64 = 16;
@@ -50,8 +61,14 @@ pub mod flags {
     pub const POINT_SUN: u32 = 4;
     pub const UNIFORM_SKY: u32 = 8;
     pub const BOUNCE: u32 = 16;
+    /// 4B, lit module only.
+    pub const EMITTERS: u32 = 32;
     pub const FAULT_FLIP_X: u32 = 256;
     pub const FAULT_DEPTH: u32 = 512;
+    pub const FAULT_EMITTER_AFTER: u32 = 1024;
+    pub const FAULT_NO_BOUNCE_EMITTERS: u32 = 2048;
+    pub const FAULT_EMISSION_IN_SHADE: u32 = 4096;
+    pub const FAULT_EMITTER_SUM: u32 = 8192;
 }
 
 /// What the pass computes.
@@ -65,11 +82,15 @@ pub struct ShadeSettings {
     pub uniform_sky: bool,
     /// 3F: one bounce of diffuse light (sun and sky at the continuation ray's hit).
     pub bounce: bool,
+    /// 4B: emitter samples at the primary vertex and the bounce hit (the lit module).
+    pub emitters: bool,
+    /// 4B: emitter samples per vertex (1, 2 or 4), averaged.
+    pub emitter_spp: u32,
 }
 
 impl Default for ShadeSettings {
     fn default() -> ShadeSettings {
-        ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: true }
+        ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: true, emitters: false, emitter_spp: 1 }
     }
 }
 
@@ -80,6 +101,14 @@ pub struct ShadeFaults {
     pub flip_x: bool,
     /// Rebuild the surface point 1% too far along the pixel ray.
     pub depth: bool,
+    /// 4B: the emitter numbers drawn after the continuation's (breaks the reference's stream order).
+    pub emitter_after_continuation: bool,
+    /// 4B: no emitter samples at the bounce hit.
+    pub no_bounce_emitters: bool,
+    /// 4B: emission added in the shade pass, before reconstruction.
+    pub emission_in_shade: bool,
+    /// 4B: the emitter samples added, not averaged.
+    pub emitter_sum: bool,
 }
 
 /// Host mirror of the shader's push constants (128 bytes).
@@ -108,7 +137,20 @@ impl Params {
     pub fn new(cam: &Camera, light: &Lighting, s: ShadeSettings, faults: ShadeFaults, frame: u32, seed: u32) -> Params {
         let v = |a: [f64; 3], sc: f64, w: f64| [(a[0] * sc) as f32, (a[1] * sc) as f32, (a[2] * sc) as f32, w as f32];
         let mut f = 0;
-        for (on, bit) in [(s.sun, flags::SUN), (s.sky, flags::SKY), (s.point_sun, flags::POINT_SUN), (s.uniform_sky, flags::UNIFORM_SKY), (s.bounce, flags::BOUNCE), (faults.flip_x, flags::FAULT_FLIP_X), (faults.depth, flags::FAULT_DEPTH)] {
+        for (on, bit) in [
+            (s.sun, flags::SUN),
+            (s.sky, flags::SKY),
+            (s.point_sun, flags::POINT_SUN),
+            (s.uniform_sky, flags::UNIFORM_SKY),
+            (s.bounce, flags::BOUNCE),
+            (s.emitters, flags::EMITTERS),
+            (faults.flip_x, flags::FAULT_FLIP_X),
+            (faults.depth, flags::FAULT_DEPTH),
+            (faults.emitter_after_continuation, flags::FAULT_EMITTER_AFTER),
+            (faults.no_bounce_emitters, flags::FAULT_NO_BOUNCE_EMITTERS),
+            (faults.emission_in_shade, flags::FAULT_EMISSION_IN_SHADE),
+            (faults.emitter_sum, flags::FAULT_EMITTER_SUM),
+        ] {
             if on {
                 f |= bit;
             }
@@ -125,6 +167,8 @@ impl Params {
             frame,
             seed,
             flags: f,
+            // pad0: the emitter count, set by `Shade::record` from the bindings (lit module only).
+            pad1: s.emitter_spp.max(1),
             ..Params::default()
         }
     }
@@ -169,6 +213,15 @@ pub fn host_layout() -> Vec<Param> {
     ]
 }
 
+/// 4B: the lit module's layout: [`host_layout`] plus the emitter rows (binding 8) and the
+/// per-material emission (binding 9).
+pub fn host_layout_lit() -> Vec<Param> {
+    let mut v = host_layout();
+    v.insert(8, Param::Descriptor { name: "emitters", binding: 8, element: GpuEmitter::fields() });
+    v.insert(9, Param::Descriptor { name: "emission", binding: 9, element: vec![] });
+    v
+}
+
 /// The radiance output, one RGBA32F per pixel, row-major.
 pub struct ShadeTargets {
     pub width: u32,
@@ -198,9 +251,16 @@ impl ShadeTargets {
 pub struct ShadeBindings {
     pool: vk::DescriptorPool,
     set: vk::DescriptorSet,
+    /// 4B: the emitter count of a lit set (`Shade::bind_lit`); `None` for the M3 set.
+    emitters: Option<u32>,
 }
 
 impl ShadeBindings {
+    /// Whether this set is for the lit module, and its emitter count.
+    pub fn emitters(&self) -> Option<u32> {
+        self.emitters
+    }
+
     pub fn destroy(self, gpu: &Gpu) {
         unsafe { gpu.device.destroy_descriptor_pool(self.pool, None) };
     }
@@ -211,26 +271,18 @@ impl ShadeBindings {
     }
 }
 
-pub struct Shade {
+/// One compiled module's pipeline.
+struct Module {
     set_layout: vk::DescriptorSetLayout,
     layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
 }
 
-impl Shade {
-    pub fn new(gpu: &Gpu) -> Result<Shade> {
-        Self::with_reflection(gpu, REFLECTION)
-    }
-
-    /// Checks `reflection` against [`host_layout`] first; a mismatch is `GpuError::Layout`.
-    pub fn with_reflection(gpu: &Gpu, reflection: &str) -> Result<Shade> {
-        reflect::check(reflection, &host_layout()).map_err(GpuError::Layout)?;
-        if !gpu.ray_tracing() {
-            return Err(GpuError::NoDevice("real-time lighting needs a ray-tracing device".into()));
-        }
+impl Module {
+    fn new(gpu: &Gpu, spirv: &[u8], lit: bool) -> Result<Module> {
         let dev = &gpu.device;
         let b = |i: u32, ty| vk::DescriptorSetLayoutBinding::default().binding(i).descriptor_type(ty).descriptor_count(1).stage_flags(vk::ShaderStageFlags::COMPUTE);
-        let bindings = [
+        let mut bindings = vec![
             b(0, vk::DescriptorType::SAMPLED_IMAGE),
             b(1, vk::DescriptorType::SAMPLED_IMAGE),
             b(2, vk::DescriptorType::SAMPLED_IMAGE),
@@ -240,11 +292,15 @@ impl Shade {
             b(6, vk::DescriptorType::STORAGE_BUFFER),
             b(7, vk::DescriptorType::STORAGE_BUFFER),
         ];
+        if lit {
+            bindings.push(b(8, vk::DescriptorType::STORAGE_BUFFER));
+            bindings.push(b(9, vk::DescriptorType::STORAGE_BUFFER));
+        }
         let set_layout = unsafe { dev.create_descriptor_set_layout(&vk::DescriptorSetLayoutCreateInfo::default().bindings(&bindings), None) }.vk("vkCreateDescriptorSetLayout")?;
         let pc = [vk::PushConstantRange::default().stage_flags(vk::ShaderStageFlags::COMPUTE).offset(0).size(size_of::<Params>() as u32)];
         let sl = [set_layout];
         let layout = unsafe { dev.create_pipeline_layout(&vk::PipelineLayoutCreateInfo::default().set_layouts(&sl).push_constant_ranges(&pc), None) }.vk("vkCreatePipelineLayout")?;
-        let (chunks, rest) = SPIRV.as_chunks::<4>();
+        let (chunks, rest) = spirv.as_chunks::<4>();
         assert!(rest.is_empty(), "SPIR-V is whole words");
         let words: Vec<u32> = chunks.iter().map(|&c| u32::from_le_bytes(c)).collect();
         let module = unsafe { dev.create_shader_module(&vk::ShaderModuleCreateInfo::default().code(&words), None) }.vk("vkCreateShaderModule")?;
@@ -253,22 +309,75 @@ impl Shade {
         let pipeline = unsafe { dev.create_compute_pipelines(vk::PipelineCache::null(), &info, None) };
         unsafe { dev.destroy_shader_module(module, None) };
         let pipeline = pipeline.map_err(|(_, e)| GpuError::Vk { call: "vkCreateComputePipelines", result: e })?[0];
-        Ok(Shade { set_layout, layout, pipeline })
+        Ok(Module { set_layout, layout, pipeline })
+    }
+
+    fn destroy(self, gpu: &Gpu) {
+        unsafe {
+            gpu.device.destroy_pipeline(self.pipeline, None);
+            gpu.device.destroy_pipeline_layout(self.layout, None);
+            gpu.device.destroy_descriptor_set_layout(self.set_layout, None);
+        }
+    }
+}
+
+/// The M3 module and (4B) the lit one.
+pub struct Shade {
+    m3: Module,
+    lit: Module,
+}
+
+impl Shade {
+    pub fn new(gpu: &Gpu) -> Result<Shade> {
+        Self::with_reflection(gpu, REFLECTION)
+    }
+
+    /// Checks `reflection` against [`host_layout`] first (and the lit module against
+    /// [`host_layout_lit`]); a mismatch is `GpuError::Layout`.
+    pub fn with_reflection(gpu: &Gpu, reflection: &str) -> Result<Shade> {
+        reflect::check(reflection, &host_layout()).map_err(GpuError::Layout)?;
+        reflect::check(REFLECTION_LIT, &host_layout_lit()).map_err(GpuError::Layout)?;
+        if !gpu.ray_tracing() {
+            return Err(GpuError::NoDevice("real-time lighting needs a ray-tracing device".into()));
+        }
+        let m3 = Module::new(gpu, SPIRV, false)?;
+        let lit = match Module::new(gpu, SPIRV_LIT, true) {
+            Ok(m) => m,
+            Err(e) => {
+                m3.destroy(gpu);
+                return Err(e);
+            }
+        };
+        Ok(Shade { m3, lit })
     }
 
     /// Binds the G-buffer targets, the TLAS, the albedo table, the output, the sky-view table and the
-    /// region table (3F).
+    /// region table (3F), for the M3 module (lights off).
     /// Rebind after a resize or a scene update (the TLAS changes), when the GPU no longer uses the old
     /// set. The sky-view table is rewritten in place when the sun moves; no rebind is needed.
     pub fn bind(&self, gpu: &Gpu, targets: &Targets, accel: &Accel, albedo: &RefMaterials, out: &ShadeTargets, sky_view: &Buffer) -> Result<ShadeBindings> {
+        self.bind_with(gpu, targets, accel, albedo, out, sky_view, None)
+    }
+
+    /// 4B: as [`Shade::bind`], for the lit module, with the scene's emitter table `em` (built from the
+    /// same registry as `albedo`). Rebind after every scene update: the table changes with it.
+    #[allow(clippy::too_many_arguments)]
+    pub fn bind_lit(&self, gpu: &Gpu, targets: &Targets, accel: &Accel, albedo: &RefMaterials, out: &ShadeTargets, sky_view: &Buffer, em: &RefEmitters) -> Result<ShadeBindings> {
+        assert_eq!(em.materials, albedo.count, "the emitter table and the albedos come from one registry");
+        self.bind_with(gpu, targets, accel, albedo, out, sky_view, Some(em))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn bind_with(&self, gpu: &Gpu, targets: &Targets, accel: &Accel, albedo: &RefMaterials, out: &ShadeTargets, sky_view: &Buffer, em: Option<&RefEmitters>) -> Result<ShadeBindings> {
         let dev = &gpu.device;
+        let m = if em.is_some() { &self.lit } else { &self.m3 };
         let sizes = [
             vk::DescriptorPoolSize { ty: vk::DescriptorType::SAMPLED_IMAGE, descriptor_count: 3 },
             vk::DescriptorPoolSize { ty: vk::DescriptorType::ACCELERATION_STRUCTURE_KHR, descriptor_count: 1 },
-            vk::DescriptorPoolSize { ty: vk::DescriptorType::STORAGE_BUFFER, descriptor_count: 4 },
+            vk::DescriptorPoolSize { ty: vk::DescriptorType::STORAGE_BUFFER, descriptor_count: 6 },
         ];
         let pool = unsafe { dev.create_descriptor_pool(&vk::DescriptorPoolCreateInfo::default().max_sets(1).pool_sizes(&sizes), None) }.vk("vkCreateDescriptorPool")?;
-        let layouts = [self.set_layout];
+        let layouts = [m.set_layout];
         let set = match unsafe { dev.allocate_descriptor_sets(&vk::DescriptorSetAllocateInfo::default().descriptor_pool(pool).set_layouts(&layouts)) }.vk("vkAllocateDescriptorSets") {
             Ok(s) => s[0],
             Err(e) => {
@@ -282,41 +391,54 @@ impl Shade {
         let tlas = [accel.tlas()];
         let mut as_write = vk::WriteDescriptorSetAccelerationStructureKHR::default().acceleration_structures(&tlas);
         let (table, table_size) = accel.table();
-        let bufs = [
+        let mut bufs = vec![
             [vk::DescriptorBufferInfo { buffer: albedo.buffer.buffer, offset: 0, range: (albedo.count as u64 * 16).max(16) }],
             [vk::DescriptorBufferInfo { buffer: out.radiance.buffer, offset: 0, range: out.radiance.size }],
             [vk::DescriptorBufferInfo { buffer: sky_view.buffer, offset: 0, range: sky_view.size }],
             [vk::DescriptorBufferInfo { buffer: table, offset: 0, range: table_size }],
         ];
+        if let Some(em) = em {
+            let row = size_of::<GpuEmitter>() as u64;
+            bufs.push([vk::DescriptorBufferInfo { buffer: em.emitters.buffer, offset: 0, range: (em.count as u64 * row).max(row) }]);
+            bufs.push([vk::DescriptorBufferInfo { buffer: em.emission.buffer, offset: 0, range: (em.materials as u64 * 16).max(16) }]);
+        }
         let mut writes: Vec<_> = images.iter().enumerate().map(|(i, info)| vk::WriteDescriptorSet::default().dst_set(set).dst_binding(i as u32).descriptor_type(vk::DescriptorType::SAMPLED_IMAGE).image_info(info)).collect();
         writes.push(vk::WriteDescriptorSet::default().dst_set(set).dst_binding(3).descriptor_type(vk::DescriptorType::ACCELERATION_STRUCTURE_KHR).descriptor_count(1).push_next(&mut as_write));
         for (k, info) in bufs.iter().enumerate() {
             writes.push(vk::WriteDescriptorSet::default().dst_set(set).dst_binding(4 + k as u32).descriptor_type(vk::DescriptorType::STORAGE_BUFFER).buffer_info(info));
         }
         unsafe { dev.update_descriptor_sets(&writes, &[]) };
-        Ok(ShadeBindings { pool, set })
+        Ok(ShadeBindings { pool, set, emitters: em.map(|e| e.count) })
     }
 
-    /// Records the pass. The targets must already be readable ([`crate::debug_view::targets_to_read`]);
-    /// the caller makes the radiance writes visible to its consumer ([`radiance_to_fragment`]).
+    /// Records the pass: the lit module for a lit set (the emitter count from the set), else the M3
+    /// module. The targets must already be readable ([`crate::debug_view::targets_to_read`]); the
+    /// caller makes the radiance writes visible to its consumer ([`radiance_to_fragment`]).
     pub fn record(&self, gpu: &Gpu, cmd: vk::CommandBuffer, bindings: &ShadeBindings, out: &ShadeTargets, params: &Params) {
         assert_eq!((out.width, out.height), (params.width, params.height), "camera and output must have the same size");
+        let lit_flags = flags::EMITTERS | flags::FAULT_EMITTER_AFTER | flags::FAULT_NO_BOUNCE_EMITTERS | flags::FAULT_EMISSION_IN_SHADE | flags::FAULT_EMITTER_SUM;
+        assert!(bindings.emitters.is_some() || params.flags & lit_flags == 0, "emitter settings need a lit set (Shade::bind_lit)");
+        let mut p = *params;
+        let m = match bindings.emitters {
+            Some(n) => {
+                p.pad0 = n;
+                &self.lit
+            }
+            None => &self.m3,
+        };
         let dev = &gpu.device;
-        let bytes = unsafe { std::slice::from_raw_parts(params as *const Params as *const u8, size_of::<Params>()) };
+        let bytes = unsafe { std::slice::from_raw_parts(&p as *const Params as *const u8, size_of::<Params>()) };
         unsafe {
-            dev.cmd_bind_pipeline(cmd, vk::PipelineBindPoint::COMPUTE, self.pipeline);
-            dev.cmd_bind_descriptor_sets(cmd, vk::PipelineBindPoint::COMPUTE, self.layout, 0, &[bindings.set], &[]);
-            dev.cmd_push_constants(cmd, self.layout, vk::ShaderStageFlags::COMPUTE, 0, bytes);
+            dev.cmd_bind_pipeline(cmd, vk::PipelineBindPoint::COMPUTE, m.pipeline);
+            dev.cmd_bind_descriptor_sets(cmd, vk::PipelineBindPoint::COMPUTE, m.layout, 0, &[bindings.set], &[]);
+            dev.cmd_push_constants(cmd, m.layout, vk::ShaderStageFlags::COMPUTE, 0, bytes);
             dev.cmd_dispatch(cmd, out.width.div_ceil(8), out.height.div_ceil(8), 1);
         }
     }
 
     pub fn destroy(self, gpu: &Gpu) {
-        unsafe {
-            gpu.device.destroy_pipeline(self.pipeline, None);
-            gpu.device.destroy_pipeline_layout(self.layout, None);
-            gpu.device.destroy_descriptor_set_layout(self.set_layout, None);
-        }
+        self.m3.destroy(gpu);
+        self.lit.destroy(gpu);
     }
 }
 
@@ -328,4 +450,25 @@ pub fn radiance_to_fragment(gpu: &Gpu, cmd: vk::CommandBuffer) {
         .dst_stage_mask(vk::PipelineStageFlags2::FRAGMENT_SHADER)
         .dst_access_mask(vk::AccessFlags2::SHADER_STORAGE_READ)];
     unsafe { gpu.device.cmd_pipeline_barrier2(cmd, &vk::DependencyInfo::default().memory_barriers(&b)) };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// C9 (4B): both compiled modules match their host layouts without a device, and a moved field
+    /// of the lit module's emitter row is refused.
+    #[test]
+    fn host_layouts_match_the_compiled_modules() {
+        reflect::check(REFLECTION, &host_layout()).unwrap();
+        reflect::check(REFLECTION_LIT, &host_layout_lit()).unwrap();
+        assert!(reflect::check(REFLECTION, &host_layout_lit()).is_err(), "the M3 module has no emitter bindings");
+        let mut bad = host_layout_lit();
+        for p in &mut bad {
+            if let Param::Descriptor { name: "emitters", element, .. } = p {
+                element.last_mut().unwrap().offset += 4;
+            }
+        }
+        assert!(reflect::check(REFLECTION_LIT, &bad).is_err());
+    }
 }

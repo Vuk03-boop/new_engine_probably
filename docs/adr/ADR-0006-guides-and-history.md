@@ -77,3 +77,12 @@ Status: **accepted 2026-09-24 with 3E closing (S-018 for the D4 gap, S-019 for t
 ## Implementation status
 
 See the [3D record](../changes/2026-09-24-phase3d-temporal.md).
+
+## Amendment 2 (4B, 2026-09-26): the lights
+
+Status: **part 1 accepted as design** (delegated within S-024: lighting technique; the [4B record](../changes/2026-09-26-phase4b-many-lights.md) froze it before any code). Part 2 (relight for lights) is added here when it is built.
+
+- **The lights switching is a light jump** (Phase 4 decision 3). The caller tells the history whether the street's lights are on for the next frame (`History::set_lights`). A change from the previous frame resets every pixel (reason 8, `ResetCause::lights`), like the sun's 1° jump. The M3 callers never set it, so their behaviour is unchanged.
+- **Emission never enters the history** (ADR-0005 Amendment 3): `gpu::compose` adds it to the shown radiance after the temporal pass and the filter.
+- **Validation:** 4B G13 (a lights change resets every surface pixel; unchanged lights accept them; the history is bit-identical with and without compose, and a compose before the temporal pass is caught).
+- **Numbering:** the Phase 4 proposal named this amendment for 4C's reservoir history; that becomes Amendment 3.

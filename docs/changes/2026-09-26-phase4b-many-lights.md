@@ -1,8 +1,8 @@
 # Change: Phase 4B — many lights without reuse (the control)
 
-Status: **planned. Criteria frozen 2026-09-26, before any 4B code or run.** Both parts are frozen here. A part 2 criterion may change only before part 2's first run, with the reason written in this record.
+Status: **part 1 built; cloud checks pass (C8–C10); GPU checks NOT RUN until the laptop run.** Criteria were frozen 2026-09-26, before any 4B code or run, and have not changed. Both parts are frozen here. A part 2 criterion may change only before part 2's first run, with the reason written in this record.
 Date and baseline: 2026-09-26, branch `claude/what-is-next-jcbt1f` from `main` at `eb17538` (4A merged). Written in a cloud session (no GPU; [CLOUD.md](../CLOUD.md)).
-Authorization: S-024 (4A and 4B authorized). The user asked for the plan before any code ("Do you need to plan 4b or is it already planned?", then "You are at max greenlight", 2026-09-26). Code starts on the user's go.
+Authorization: S-024 (4A and 4B authorized). The user asked for the plan before any code ("Do you need to plan 4b or is it already planned?", then "You are at max greenlight", 2026-09-26), then started part 1 ("You are on medium go", 2026-09-26).
 
 ## Objective
 
@@ -253,12 +253,55 @@ The design relies on the M3 shader modules staying byte for byte what they are. 
 | Check | Result | Scope |
 |---|---|---|
 | slangc byte identity (see *Checked before planning*) | holds: with the `EMITTERS` block compiled out, the shade module and its reflection are byte-identical to main's; `reference.spv` is unchanged by a new shared helper | cloud, the pinned slangc's Linux release, a stub block; supplemental |
-| Everything else | **NOT RUN:** no 4B code exists yet | — |
+| Everything else in the plan phase | NOT RUN: no 4B code existed yet | — |
+
+## Part 1: what was built (2026-09-26, cloud session)
+
+- **`gpu::shade`:** `shade.slang` is compiled twice (`shade` and `shade_lit`, `build.rs`). The lit module's `EMITTERS` block draws `emitter_spp` samples at the primary vertex and at the bounce hit, as designed. `ShadeSettings` gains `emitters` and `emitter_spp`. `ShadeFaults` gains `emitter_after_continuation`, `no_bounce_emitters`, `emission_in_shade` and `emitter_sum`. `Shade::bind_lit` binds the table, and `Shade::record` picks the module from the set.
+- **`gpu::compose`** (new) and `compose.slang`:
+  - emission after reconstruction, and the meter (per 16×16 workgroup, into a host-visible buffer per slot, `ComposeTargets::reading`);
+  - a compute-to-host barrier after the dispatch;
+  - the planted `meter_without_emission`.
+- **`gpu::temporal`:**
+  - `History::set_lights`: the caller says whether the lights are on for the next frame, and a change is `ResetCause::lights`, a full reset. The signature of `Temporal::record` is unchanged, so the M3 callers are untouched.
+  - `History::read_colour` (for the tests).
+- **`light`:**
+  - `emitters::{Lights, LightsMode}`;
+  - `exposure::{Meter, adapt, ADAPT_SECONDS, MIN_EXPOSURE, MAX_EXPOSURE}`.
+- **Viewer:**
+  - `--lights`, L, `--emitter-spp`;
+  - the lit set and compose rebound at start, resize and after every edit;
+  - the automatic exposure (`Exposure`), and the meter's readings when a slot's frame has completed;
+  - the title and the JSON fields;
+  - the start state is not counted as a switch.
+- **Tests:** `gpu/tests/night.rs` (G10, G11, G13, G14, Q1–Q4 with M2, M3 (b), M1). `ShadeSettings` literals in the M3 test files gain `emitters: false, emitter_spp: 1` (no behaviour change).
+- **Tools and the local run:**
+  - `results/phase4b/flip.py` (Q4, and M3 (a) from `ref_light` PFMs);
+  - `run-local.cmd` rewritten for part 1 (33 steps).
+- **How M3 (a) runs:** `ref_light --scene night --bounces 1 --spp 16384 --times blue_hour,night` writes the one-bounce references with 4A's seed and cameras, and `flip.py` shows both at the eight-bounce image's metric exposure. Its PFM reader and exposure reproduce `ref_light`'s own exposures for two 4A images (11,549 and 7,735).
+- **Implementation choices within the design** (no criterion changed):
+  - M1's references and arms use the full night transport (sun, sky, emitters; the sun and sky give nothing at 21 h);
+  - converged images use seed `0x4BCC`, frames 1–8,192, 16 per submission;
+  - the M1 and M2 cost arms use frame index = repetition.
+
+## Part 1: evidence
+
+Cloud session: Linux x86_64, 4 cores, no GPU. The `gpu` crate was built with the pinned slangc 2026.13.1 (its Linux release, downloaded to the session's scratch space) and the distribution's `spirv-val`. This is a supplemental compile check, not the laptop's SDK.
+
+| Check | Result | Scope |
+|---|---|---|
+| C8 (`light`: `emitters::tests::lights_switch_by_hand_until_the_horizon`, `exposure::tests::automatic_exposure_adapts_and_matches_the_metric`) | pass | cloud |
+| C9 (`gpu --lib`: `shade::tests::host_layouts_match_the_compiled_modules`, `compose::tests::host_layout_matches_the_compiled_module`) | pass, including the moved-field controls and the M3 module refusing the lit layout | cloud, no device |
+| C10 | pass: all 12 of main's modules (SPIR-V and reflection, 24 files) are byte-identical to this build's, including `shade.spv`, `temporal.spv` and `reference.spv`; the new modules are `shade_lit.spv` and `compose.spv` | cloud, supplemental |
+| Pure suite (`cargo test --release -j 2`) | exit 0, **155 pass** (153 + C8's 2), 4 ignored; `engine/results/test_pure_4b1_cloud.log` | cloud |
+| `gpu --lib` | exit 0, 17 pass (15 + C9's 2); `engine/results/test_gpu_lib_4b1_cloud.log` | cloud, no device |
+| Clippy (`--workspace --all-targets`) | exit 0, only the 6 old `world` lints (4 new ones in 4B code were fixed first); `engine/results/clippy_4b1_cloud.log` | cloud |
+| Builds: `viewer`, `gpu` bins and every `gpu` test binary (`night` included) | exit 0, no warnings | cloud, substitute SDK |
+| G10–G14, G12's M3 files, Q1–Q4, M1–M4, V | **NOT RUN** (no GPU): `run-local.cmd` | laptop |
+| `run-local.cmd` | untested (a Windows batch file cannot run here); re-read against CLOUD.md's rules | — |
 
 ## Next
 
-1. **On your go:**
-   - part 1 in a cloud session: the code, then the cloud checks (C8–C10 and the device-free builds);
-   - then `run-local.cmd` on the laptop.
+1. **Part 1 on the laptop:** pull the branch, run `run-local.cmd` (about 1.5–2 h), and push `engine/results`. The G and Q criteria are judged from those logs, then your look.
 2. **Part 2** comes after part 1's results and your look.
 3. **Unchanged:** 4C–4G are not authorized. Before 4C, point me to the P05 and P08 reviews and PDFs, and provide the ReSTIR sources.

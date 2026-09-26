@@ -29,6 +29,7 @@
 
 pub mod accel;
 pub mod alloc;
+pub mod compose;
 pub mod context;
 pub mod debug_view;
 pub mod decode;

@@ -256,6 +256,61 @@ pub fn lights_on(sun_dir: V3) -> bool {
     sun_dir[1] < 0.0
 }
 
+/// How the lights are set (4B, Phase 4 decision 3).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LightsMode {
+    /// Follow [`lights_on`].
+    Auto,
+    /// Set by hand; held until the sun next crosses the horizon.
+    On,
+    Off,
+}
+
+/// The street's lights (4B): they follow the sun ([`lights_on`]) until L switches them; a hand
+/// setting holds until the sun next crosses the horizon, then the rule takes over again.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Lights {
+    mode: LightsMode,
+    /// The rule's value when last updated (a change is a horizon crossing).
+    rule: Option<bool>,
+}
+
+impl Lights {
+    /// The start state (`--lights auto|on|off`).
+    pub fn new(mode: LightsMode) -> Lights {
+        Lights { mode, rule: None }
+    }
+
+    /// Follows the sun at `sun_dir`; returns whether the lights are on.
+    pub fn update(&mut self, sun_dir: V3) -> bool {
+        let rule = lights_on(sun_dir);
+        if self.rule.is_some_and(|r| r != rule) {
+            self.mode = LightsMode::Auto;
+        }
+        self.rule = Some(rule);
+        self.on()
+    }
+
+    /// Whether the lights are on (the last update's sun for `Auto`).
+    pub fn on(&self) -> bool {
+        match self.mode {
+            LightsMode::Auto => self.rule.unwrap_or(false),
+            LightsMode::On => true,
+            LightsMode::Off => false,
+        }
+    }
+
+    /// L: inverts the current state and holds it until the next horizon crossing.
+    pub fn toggle(&mut self) {
+        self.mode = if self.on() { LightsMode::Off } else { LightsMode::On };
+    }
+
+    /// Whether the state was set by hand.
+    pub fn manual(&self) -> bool {
+        self.mode != LightsMode::Auto
+    }
+}
+
 /// Below this solid angle (sr) an emitter is sampled by area instead of by solid angle. In f32 (the
 /// GPU) the solid angle Σgᵢ − 2π carries about 10⁻⁶ sr of cancellation error, ≤ 10⁻⁴ relative here;
 /// and a quad this small in solid angle is far enough away that area sampling's 1/d² is bounded.
@@ -354,6 +409,37 @@ mod tests {
         assert_eq!(got, [("dusk", false), ("blue_hour", true), ("night", true)]);
         // The switch sits at sunset (elevation 0°, 18 h at the equinox).
         assert!(!on(17.99) && on(18.01));
+    }
+
+    /// C8 (4B): the lights follow the rule; L inverts and holds until the next horizon crossing.
+    #[test]
+    fn lights_switch_by_hand_until_the_horizon() {
+        let path = SunPath::default();
+        let d = |h: f64| path.direction(h);
+        let mut l = Lights::new(LightsMode::Auto);
+        for (name, hour) in REFERENCE_TIMES.iter().chain(NIGHT_TIMES.iter()) {
+            assert_eq!(l.update(d(*hour)), lights_on(d(*hour)), "{name}");
+        }
+        // By day: L switches them on, and they stay on through the day until sunset...
+        let mut l = Lights::new(LightsMode::Auto);
+        assert!(!l.update(d(12.0)));
+        l.toggle();
+        assert!(l.on() && l.manual());
+        assert!(l.update(d(15.0)) && l.update(d(17.9)));
+        // ... where the rule takes over (on, since the sun has set) and then follows it.
+        assert!(l.update(d(18.1)) && !l.manual());
+        // At night: L switches them off until sunrise, when the rule (off) takes over.
+        l.toggle();
+        assert!(!l.on() && !l.update(d(21.0)) && !l.update(d(5.9)));
+        assert!(!l.update(d(6.1)) && !l.manual());
+        assert!(l.update(d(18.1)), "the rule follows the sun again");
+        // The start states hold the same way.
+        let mut on = Lights::new(LightsMode::On);
+        assert!(on.update(d(12.0)) && on.update(d(17.9)) && on.update(d(18.1)) && !on.manual());
+        assert!(!on.update(d(6.1)));
+        let mut off = Lights::new(LightsMode::Off);
+        assert!(!off.update(d(21.0)) && !off.update(d(5.9)) && !off.update(d(6.1)));
+        assert!(off.update(d(18.1)) && !off.manual());
     }
 
     fn reg() -> (MaterialRegistry, MaterialId, MaterialId, MaterialId) {

@@ -1,4 +1,4 @@
-# NOW — Phase 4 (M4): 4A done; 4B planned, criteria frozen
+# NOW — Phase 4 (M4): 4A done; 4B part 1 built, waiting for the laptop run
 
 **Updated 2026-09-26.** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
 
@@ -27,7 +27,9 @@
   - **part 2 cloud checks pass:** C6, C7; the magnitudes M1–M2 are measured (below);
   - **part 2 passed on the RTX 3050:** G6–G9 (`run-local.cmd`, 2026-09-25 20:29; analysed in a cloud session from the pushed logs);
   - **L moved to 4B** with the rendering it switches (in 4A it would switch nothing on screen).
-- **4B planned, no code yet** ([record](changes/2026-09-26-phase4b-many-lights.md)). Criteria were frozen 2026-09-26, before any code or run, at the user's request ("You are at max greenlight").
+- **4B part 1 built, cloud checks pass, GPU checks NOT RUN** ([record](changes/2026-09-26-phase4b-many-lights.md)). Criteria were frozen 2026-09-26, before any code or run ("You are at max greenlight"); part 1 was started with "You are on medium go".
+  - **Built:** the lit shade module (`shade_lit`), `gpu::compose` (emission after reconstruction and the exposure meter), `History::set_lights` (a lights change is a full reset, ADR-0006 Amendment 2), `light::emitters::Lights`, `light::exposure::{Meter, adapt}`, the viewer's `--lights`, L and `--emitter-spp` with the automatic exposure, `gpu/tests/night.rs`, `results/phase4b/flip.py`, and `run-local.cmd` for part 1.
+  - **Cloud (2026-09-26):** C8–C10 pass. The pure suite has 155 passing; `gpu --lib` 17; clippy shows only the 6 old `world` lints. All 12 of main's shader modules are byte-identical to this build's.
   - **Part 1:** the lit shade pass (emitter samples at the primary and bounce hits); emission and the exposure meter after reconstruction (`gpu::compose`); the lights switch (a light jump); the metered exposure while the lights are on; the equal-time curve; quality at blue hour and night.
   - **Part 2:** relight for lights (ADR-0006 Amendment 2).
   - **Design rule:** lights off runs main's shade module byte for byte. This was checked feasible in the cloud with the pinned slangc's Linux release.
@@ -67,8 +69,8 @@
 - **Repository** (since 2026-09-25):
   - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
   - **4A is merged into `main`** (PR https://github.com/Vuk03-boop/new_engine_probably/pull/1, merge commit `16edb67`, 2026-09-25, at the user's request; a merge commit, so the hashes cited in the 4A record stay valid). New work starts from `main`; the 4A branches `claude/tender-keller-9u9d6t` and `claude/nice-dijkstra-xpg7tr` are finished.
-  - The 4B plan is on branch `claude/what-is-next-jcbt1f` (from `main` at `eb17538`), not merged.
-  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, still holding the 4A part 2 checks (it ran once, all 15 steps exit 0). 4B will replace its steps. Logs go to `engine/results/local-run/<date>-<tag>/`; the user pushes `engine/results` back.
+  - The 4B plan and part 1 are on branch `claude/what-is-next-jcbt1f` (from `main` at `eb17538`), not merged.
+  - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, now holding 4B part 1's 33 steps (untested: written in a cloud session). The 4A part 2 steps ran once, all 15 exit 0. Logs go to `engine/results/local-run/<date>-<tag>/`; the user pushes `engine/results` back.
   - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
   - Binary data is protected from line-ending conversion by `.gitattributes`.
   - Commits and pushes happen only on the user's request.
@@ -129,10 +131,11 @@
 
 ## Exact next action
 
-1. **4B part 1, on the user's go.** The plan and frozen criteria are in the [4B record](changes/2026-09-26-phase4b-many-lights.md).
-   - First, code in a cloud session, then the cloud checks C8–C10.
-   - Then rewrite `run-local.cmd` for G10–G14, Q1–Q4, M1–M4 and V (about 1.5 h on the laptop).
-   - `run-local.cmd` still holds 4A part 2's steps until then.
+1. **4B part 1 on the laptop.** The user pulls `claude/what-is-next-jcbt1f` and double-clicks `run-local.cmd`.
+   - It takes about 1.5–2 h; the references are cached in `%TEMP%\ne_4b`.
+   - Viewer windows open 20–40 min in and must not be touched.
+   - The user then pushes `engine/results`.
+   - Then: judge G10–G14, G12, V, Q1–Q4 and M1–M4 from the logs, per the [4B record](changes/2026-09-26-phase4b-many-lights.md); set the default `--emitter-spp` by M1's rule; then the user's look; then part 2 (relight for lights).
    - The scope of 4B, as authorized (the record details it):
      - one emitter sample per pixel at the primary and bounce hits, then the temporal pass and the filter;
      - L, the automatic switch and the night exposure (moved from 4A);

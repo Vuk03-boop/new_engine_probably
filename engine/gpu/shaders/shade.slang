@@ -22,11 +22,23 @@
 // face, material and snapped point come from the ray query and the region table (as in
 // `reference.slang`). The stream continues in the reference's order (sun pair, then direction pair).
 // Light from bounces >= 2 is not computed (reported against the reference, 3F record).
+// 4B (EMITTERS, the lit module; ADR-0005 Amendment 3): build.rs compiles this file twice. Without
+// EMITTERS it is the M3 module, byte for byte; with it, binding 8 holds the scene's emitter rows and
+// binding 9 the per-material emission (used only by a planted fault). At the primary vertex, and at
+// the bounce hit, `pad1` (s) emitter samples are drawn after the sun's two numbers and before the
+// continuation's, each exactly the reference's `emitter_sample` (alias selection by power, a point
+// uniform in the quad's solid angle or by area below SOLID_ANGLE_MIN, one visibility segment), and
+// averaged. With s = 1 frame f equals the reference's one-bounce sample f with EMITTERS_DIRECT and
+// EMITTERS_INDIRECT, emission off. `pad0` is the emitter count; none are drawn when it is 0.
+// Emission is not added here: gpu::compose adds it after reconstruction.
 // Output w: 1 when the pixel's or the bounce hit's surface id is outside its table (must stay 0),
 // else 0.
 
 #include "light_common.slang"
 #include "sky_common.slang"
+#ifdef EMITTERS
+#include "emitters_common.slang"
+#endif
 
 struct Params
 {
@@ -63,6 +75,10 @@ struct RegionRef
 [[vk::binding(6, 0)]] StructuredBuffer<float4> sky_view;
 [[vk::binding(7, 0)]] StructuredBuffer<RegionRef> regions;
 [[vk::push_constant]] ConstantBuffer<Params> params;
+#ifdef EMITTERS
+[[vk::binding(8, 0)]] StructuredBuffer<Emitter> emitters;
+[[vk::binding(9, 0)]] StructuredBuffer<float4> emission;
+#endif
 
 static const uint F_SUN = 1u;
 static const uint F_SKY = 2u;
@@ -71,6 +87,13 @@ static const uint F_UNIFORM_SKY = 8u;
 static const uint F_BOUNCE = 16u;
 static const uint F_FAULT_FLIP_X = 256u;
 static const uint F_FAULT_DEPTH = 512u;
+#ifdef EMITTERS
+static const uint F_EMITTERS = 32u;
+static const uint F_FAULT_EMITTER_AFTER = 1024u;
+static const uint F_FAULT_NO_BOUNCE_EMITTERS = 2048u;
+static const uint F_FAULT_EMISSION_IN_SHADE = 4096u;
+static const uint F_FAULT_EMITTER_SUM = 8192u;
+#endif
 
 // The axis-aligned face normal from the octahedral target: the dominant axis, with its sign.
 float3 face_normal(float2 e)
@@ -151,6 +174,60 @@ uint trace_surface(float3 origin, float3 dir, out float3 point, out float3 norma
     return 1u;
 }
 
+#ifdef EMITTERS
+// The segment origin -> origin + seg (TMax 1 along the unnormalized direction).
+bool occluded_segment(float3 origin, float3 seg)
+{
+    RayDesc ray;
+    ray.Origin = origin;
+    ray.Direction = seg;
+    ray.TMin = 0.0;
+    ray.TMax = 1.0;
+    RayQuery<RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rq;
+    rq.TraceRayInline(tlas, RAY_FLAG_NONE, 0xFF, ray);
+    rq.Proceed();
+    return rq.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
+}
+
+// One emitter sample at (p, n), without albedo: the reference's `emitter_sample` without its faults.
+float3 emitter_sample(float3 p, float3 n, inout uint rng)
+{
+    uint i = uniform_index(params.pad0, rng);
+    Emitter e = emitters[i];
+    if ((next_u32(rng) >> 8u) >= e.meta.x)
+        e = emitters[e.meta.y];
+    float u = rnd(rng);
+    float v = rnd(rng);
+    float3 ne = face_normal(e.meta.z);
+    if (dot(ne, p - e.p0_area.xyz) <= 0.0)
+        return float3(0.0, 0.0, 0.0);
+    SphRect r = sph_rect(e.p0_area.xyz, e.eu_pdf.xyz, e.ev.xyz, p);
+    bool solid = r.solid_angle >= SOLID_ANGLE_MIN;
+    float3 y = solid ? sph_rect_sample(r, u, v) : e.p0_area.xyz + u * e.eu_pdf.xyz + v * e.ev.xyz;
+    float3 d = y - p;
+    float d2 = dot(d, d);
+    float3 w = d * rsqrt(d2);
+    float cx = dot(n, w);
+    float cy = -dot(ne, w);
+    if (cx <= 0.0 || cy <= 0.0)
+        return float3(0.0, 0.0, 0.0);
+    if (occluded_segment(p, y + ne * RAY_OFFSET - p))
+        return float3(0.0, 0.0, 0.0);
+    float k = solid ? r.solid_angle : e.p0_area.w * cy / d2;
+    return e.radiance.xyz * (cx * k / (e.eu_pdf.w * PI));
+}
+
+// The mean of s = pad1 emitter samples (their sum with the planted EMITTER_SUM).
+float3 emitter_light(float3 p, float3 n, inout uint rng)
+{
+    uint s = max(params.pad1, 1u);
+    float3 sum = float3(0.0, 0.0, 0.0);
+    for (uint k = 0u; k < s; k++)
+        sum += emitter_sample(p, n, rng);
+    return (params.flags & F_FAULT_EMITTER_SUM) != 0u ? sum : sum / float(s);
+}
+#endif
+
 [shader("compute")]
 [numthreads(8, 8, 1)]
 void main(uint3 tid: SV_DispatchThreadID)
@@ -206,9 +283,21 @@ void main(uint3 tid: SV_DispatchThreadID)
         if (c > 0.0 && !occluded(p, ws))
             l = rho * params.sun_ground.xyz * (c / PI);
     }
+#ifdef EMITTERS
+    bool em_on = (params.flags & F_EMITTERS) != 0u && params.pad0 > 0u;
+    bool em_after = (params.flags & F_FAULT_EMITTER_AFTER) != 0u;
+    if ((params.flags & F_FAULT_EMISSION_IN_SHADE) != 0u)
+        l += emission[material].xyz;
+    if (em_on && !em_after)
+        l += rho * emitter_light(p, n, rng);
+#endif
     float v1 = rnd(rng);
     float v2 = rnd(rng);
     float3 wi = cosine_hemisphere(n, v1, v2);
+#ifdef EMITTERS
+    if (em_on && em_after)
+        l += rho * emitter_light(p, n, rng);
+#endif
     if ((params.flags & F_BOUNCE) != 0u)
     {
         float3 p2, n2, rho2;
@@ -233,6 +322,10 @@ void main(uint3 tid: SV_DispatchThreadID)
                 if (c > 0.0 && !occluded(p2, ws))
                     l += beta * params.sun_ground.xyz * (c / PI);
             }
+#ifdef EMITTERS
+            if (em_on && (params.flags & F_FAULT_NO_BOUNCE_EMITTERS) == 0u)
+                l += beta * emitter_light(p2, n2, rng);
+#endif
             float x1 = rnd(rng);
             float x2 = rnd(rng);
             if (sky_on)

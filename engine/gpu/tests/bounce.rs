@@ -30,7 +30,7 @@ use world::scene;
 const NEAR: f64 = 0.1;
 const SEED: u32 = 0x3F;
 /// Sun and sky with the bounce (the default).
-const BOUNCE: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: true };
+const BOUNCE: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: true, emitters: false, emitter_spp: 1 };
 
 fn gpu() -> Gpu {
     let g = Gpu::new().expect("an RT-capable Vulkan device is required for gpu tests");
@@ -227,7 +227,7 @@ fn one_bounce_equals_the_reference_sample_per_pixel() {
     let mut failed = Vec::new();
     // Per arm kind: (arms, arms failed, total mismatches).
     let mut tally: std::collections::BTreeMap<&str, (usize, usize, usize)> = Default::default();
-    let none = ShadeSettings { sun: false, sky: false, point_sun: false, uniform_sky: false, bounce: true };
+    let none = ShadeSettings { sun: false, sky: false, point_sun: false, uniform_sky: false, bounce: true, emitters: false, emitter_spp: 1 };
     let mut arms: Vec<(String, f64, ShadeSettings, Settings)> = vec![("uniform sky".into(), 12.0, ShadeSettings { uniform_sky: true, ..none }, Settings { uniform_sky: true, max_bounces: 1, ..Settings::default() })];
     for hour in [8.0, 12.0, 17.75] {
         for point_sun in [true, false] {

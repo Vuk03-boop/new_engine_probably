@@ -33,7 +33,7 @@ use world::reference::{trace, Ray};
 use world::{scene, BrickKey, MaterialId, Transaction, VoxelCoord, World};
 
 /// Sun and sky without the 3F bounce: the lighting this file's criteria were measured with.
-const DIRECT: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false };
+const DIRECT: ShadeSettings = ShadeSettings { sun: true, sky: true, point_sun: false, uniform_sky: false, bounce: false, emitters: false, emitter_spp: 1 };
 const NEAR: f64 = 0.1;
 const SEED: u32 = 0x3E;
 const W: u32 = 320;
