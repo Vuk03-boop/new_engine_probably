@@ -72,7 +72,7 @@ Status: **accepted 2026-09-24 with 3E closing (S-018 for the D4 gap, S-019 for t
 
 ## Amendment 2 (4B, 2026-09-25): emitters
 
-Status: **proposed with 4B (delegated lighting technique, S-024); accepted when 4B's G5 passes on the laptop.** Record: [4B](../changes/2026-09-25-phase4b-many-lights.md).
+Status: **accepted 2026-09-26 (S-026):** G5's R1 and R2 pass in all 3 corrected edits on the RTX 3050; R2's control is accepted as underpowered at night (first proposed with 4B, S-024). Record: [4B](../changes/2026-09-25-phase4b-many-lights.md).
 
 - **The lights' switch is a light jump.** `History::set_lights` carries whether the lights are on; a change from the previous frame resets every history (`ResetCause::lights`), like the sun's > 1° jump.
 - **Relight rules for emitter light**, applied while the lights are on, besides Amendment 1's sun and sky rules. A pixel whose history would otherwise be accepted restarts as *relit* (reason 9) when a bound on the change of its **direct** emitter light is at least **2%** of its history's luminance Y_h (the bilinear taps' mean; `temporal::EMITTER_TOLERANCE`). With d the distance from the surface point to the box grown by 1 voxel:
@@ -96,6 +96,6 @@ Status: **accepted 2026-09-25 (S-025).** Record: [4B](../changes/2026-09-25-phas
 
 ## Implementation status
 
-See the [3D record](../changes/2026-09-24-phase3d-temporal.md). Amendment 2 (4B): implemented in `gpu::temporal` (`changed_power`, `Relight::with_lights`, `History::set_lights`) and `shaders/temporal.slang`; the row layout passes C2 (cloud); G5 and G6 are NOT RUN until the laptop runs `run-local.cmd` ([4B record](../changes/2026-09-25-phase4b-many-lights.md)).
+See the [3D record](../changes/2026-09-24-phase3d-temporal.md). Amendment 2 (4B): implemented in `gpu::temporal` (`changed_power`, `Relight::with_lights`, `History::set_lights`) and `shaders/temporal.slang`; the row layout passes C2 (cloud); G5 (R1, R2; its R2 control accepted as underpowered at night, S-026) and G6 pass on the RTX 3050 ([4B record](../changes/2026-09-25-phase4b-many-lights.md)).
 
 Amendment 3 (4B): `TemporalSettings::sun_cap_min_elevation_deg`, applied in `Temporal::record` through `TemporalSettings::age_cap(sun_deg, elevation_deg)`; the pure test passes in the cloud; the viewer's night look with the day running is NOT RUN until the user looks again.

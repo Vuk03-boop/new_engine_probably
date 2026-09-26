@@ -1,0 +1,39 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running tests\lights.rs (target\release\deps\lights-6e727c54a2cf0e98.exe)
+
+running 1 test
+test edits_relight_emitter_light ... rig: full (1143 emitters), 960x540
+G5: lamp head [[63, 69, 0], [67, 72, 4])
+G5 remove the lamp head: box [[63, 69, 0], [67, 72, 4]), 48 voxels set
+  E1 power bound 8.5216e1; E2 lights [0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055]
+  the edited box covers 0 px of the street camera after the edit
+  R1 full: 394910 px relit, 0 decisions differ from the host rule (passes)
+  R1 e3: 0 px relit, 394910 decisions differ from the host rule (fails)
+  R2: 93453 changed px (0 of them not relit: the approximation's misses; 83557 relit px changed by <= 10%); 4 frames after the edit: full 0.3309, 3E only 0.4744, reset 0.3309; rebuilt regions 4
+G5 add neon in open air: box [[120, 16, 160], [128, 24, 168]), 512 voxels set
+  E1 power bound 2.2619e1; E2 lights [0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002]
+  the edited box covers 926 px of the street camera after the edit
+  R1 full: 375100 px relit, 0 decisions differ from the host rule (passes)
+  R1 e3: 16256 px relit, 358844 decisions differ from the host rule (fails)
+  R2: 11025 changed px (0 of them not relit: the approximation's misses; 267945 relit px changed by <= 10%); 4 frames after the edit: full 0.3206, 3E only 0.3070, reset 0.3206; rebuilt regions 3
+G5 stone beside a lamp head: box [[63, 68, 5], [67, 72, 9]), 64 voxels set
+  E1 power bound 0.0000e0; E2 lights [0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055, 0.055]
+  the edited box covers 0 px of the street camera after the edit
+  R1 full: 394588 px relit, 0 decisions differ from the host rule (passes)
+  R1 e3: 0 px relit, 394588 decisions differ from the host rule (fails)
+  R2: 10020 changed px (0 of them not relit: the approximation's misses; 214650 relit px changed by <= 10%); 4 frames after the edit: full 0.1068, 3E only 0.1786, reset 0.1068; rebuilt regions 2
+validation: 0 errors, 0 warnings
+
+thread 'edits_relight_emitter_light' (7948) panicked at gpu\tests\lights.rs:1384:5:
+failed: ["R2 control (3E rules only) not caught in any edit"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    edits_relight_emitter_light
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 472.17s
+
+error: test failed, to rerun pass `-p gpu --test lights`

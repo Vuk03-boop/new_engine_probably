@@ -9,6 +9,8 @@
 //! Run: `cargo test --release -j 2 -p gpu --test lights -- --test-threads=1 --nocapture`; M1 (the
 //! equal-time curve) is ignored there and runs with validation off:
 //! `set NE_NO_VALIDATION=1 && cargo test --release -j 2 -p gpu --test lights -- --ignored --test-threads=1 --nocapture equal_time_curve`.
+//! G4's filter-energy diagnostic (no criterion; about 40 s with G4's references cached):
+//! `cargo test --release -j 2 -p gpu --test lights -- --ignored --test-threads=1 --nocapture diagnostic_g4_filter_energy`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
@@ -129,12 +131,14 @@ struct Step {
     force_reset: bool,
     /// Bind the shade pass without the table (`Shade::bind`): the M3-unchanged control.
     plain: bool,
+    /// The filter's settings (the viewer's defaults; the G4 diagnostic's ablation arms change them).
+    dn: DenoiseSettings,
 }
 
 impl Step {
     /// The viewer's frame with the lights on (bounce, emitters, temporal defaults, the filter).
     fn viewer() -> Step {
-        Step { shade: lit(), faults: ShadeFaults::default(), ts: TemporalSettings::default(), temporal: true, filter: true, lights: true, force_reset: false, plain: false }
+        Step { shade: lit(), faults: ShadeFaults::default(), ts: TemporalSettings::default(), temporal: true, filter: true, lights: true, force_reset: false, plain: false, dn: DenoiseSettings::default() }
     }
 
     /// The shade pass alone.
@@ -337,7 +341,7 @@ impl Rig {
         stamp(1, false);
         stamp(2, true);
         if step.temporal && step.filter {
-            self.denoise.record(g, cmd, &b.db, h, self.dn.as_ref().unwrap(), DenoiseSettings::default(), DenoiseFaults::default());
+            self.denoise.record(g, cmd, &b.db, h, self.dn.as_ref().unwrap(), step.dn, DenoiseFaults::default());
         }
         stamp(2, false);
         stamp(3, true);
@@ -1009,6 +1013,144 @@ fn night_against_the_reference() {
     assert!(failed.is_empty(), "failed: {failed:?}");
 }
 
+/// Like `run_still`, with any step (the filter's settings included).
+fn run_still_step(rig: &mut Rig, cam: &Camera, light: &Lighting, step: Step, ages: &[u32]) -> BTreeMap<u32, Vec<[f32; 4]>> {
+    rig.new_history();
+    let last = *ages.iter().max().unwrap();
+    let mut out = BTreeMap::new();
+    for k in 1..=last {
+        if let Some(x) = rig.frame(cam, light, step, &[], k, ages.contains(&k)) {
+            out.insert(k, x);
+        }
+    }
+    out
+}
+
+/// The filter's energy change over the masked pixels, relative to the raw history of the same frames.
+fn energy_change(f: &[[f32; 4]], r: &[[f32; 4]], m: &[bool]) -> f64 {
+    let (mut sf, mut sr) = (0.0, 0.0);
+    for i in (0..m.len()).filter(|&i| m[i]) {
+        sf += lum4(f[i]);
+        sr += lum4(r[i]);
+    }
+    (sf - sr) / sr.max(1e-300)
+}
+
+/// Per rank bin of `key` over the masked pixels (percentile edges `EDGES`): the bin's share of the raw
+/// energy and its part of the filter's energy change (both relative to the total raw energy).
+const EDGES: [f64; 6] = [0.0, 0.5, 0.9, 0.99, 0.999, 1.0];
+fn rank_bins(key: &[f64], f: &[[f32; 4]], r: &[[f32; 4]], m: &[bool]) -> Vec<(f64, f64)> {
+    let mut idx: Vec<usize> = (0..m.len()).filter(|&i| m[i]).collect();
+    idx.sort_by(|&a, &b| key[a].total_cmp(&key[b]));
+    let total: f64 = idx.iter().map(|&i| lum4(r[i])).sum::<f64>().max(1e-300);
+    let n = idx.len();
+    EDGES
+        .windows(2)
+        .map(|e| {
+            let bin = &idx[(e[0] * n as f64) as usize..(e[1] * n as f64) as usize];
+            (bin.iter().map(|&i| lum4(r[i])).sum::<f64>() / total, bin.iter().map(|&i| lum4(f[i]) - lum4(r[i])).sum::<f64>() / total)
+        })
+        .collect()
+}
+
+/// G4 diagnostic (on demand, no criterion; 4B record, "G4 diagnostic"): where the filter loses energy
+/// at night. The viewer's frame (1080p, Full, 21 h) from a fresh history, raw and filtered from the same
+/// frames (the filter writes only the shown radiance). Reports, at ages 1 / 16 / 64:
+/// - the energy change per rank bin of the raw luminance and of the reference's per-sample variance;
+/// - the brightest 1% of pixels' change against the change of the pixels within the filter's reach
+///   (6 px: levels at steps 1 and 2) of them: a filter that spreads a bright sample conserves it there;
+/// - ablation arms of the filter's existing settings (sigma_l swept, the prefilter, the variance blur).
+///
+/// Controls: `levels 0` (demodulate and remodulate only) must keep energy to 10^-4 (the instrument);
+/// the M3 transport at dusk on the same geometry (17.5 h, emitters and lights off), where M3's Q1 held,
+/// is the low-tail comparison.
+#[test]
+#[ignore]
+fn diagnostic_g4_filter_energy() {
+    let (w, h) = (1920, 1080);
+    let mut rig = Rig::new(Dressing::Full, w, h);
+    let ages = [1u32, 16, 64];
+    let d = DenoiseSettings::default();
+    let mut failed = Vec::new();
+    let arms: Vec<(String, DenoiseSettings)> = [1.0f32, 2.0, 4.0, 8.0, 16.0, 64.0, 1e6]
+        .iter()
+        .map(|&s| (format!("sigma_l {s}{}", if s == d.sigma_l { " (default)" } else { "" }), DenoiseSettings { sigma_l: s, ..d }))
+        .chain([
+            ("prefilter off".to_string(), DenoiseSettings { prefilter_levels: 0, ..d }),
+            ("prefilter_age 8 (P)".to_string(), DenoiseSettings { prefilter_age: 8, ..d }),
+            ("variance blur off".to_string(), DenoiseSettings { variance_blur: false, ..d }),
+            ("levels 1".to_string(), DenoiseSettings { levels: 1, ..d }),
+            ("levels 0 (control)".to_string(), DenoiseSettings { levels: 0, prefilter_levels: 0, ..d }),
+        ])
+        .collect();
+    let night = lighting(NIGHT);
+    let dusk = lighting(17.5);
+    let dusk_step = Step { shade: ShadeSettings::default(), lights: false, ..Step::viewer() };
+    for (cname, cam) in cameras(w, h) {
+        for (time, light, base) in [("night", &night, Step::viewer()), ("dusk (control, M3 transport)", &dusk, dusk_step)] {
+            let raw = run_still_step(&mut rig, &cam, light, Step { filter: false, ..base }, &ages);
+            let guides = rig.guides();
+            let m: Vec<bool> = guides.iter().map(|g| g[0] & 7 != FACE_NONE).collect();
+            eprintln!("G4 diagnostic {cname} {time}: {} surface px", m.iter().filter(|&&b| b).count());
+            for (name, dn) in &arms {
+                if time != "night" && !(dn == &d || name.starts_with("levels 0")) {
+                    continue;
+                }
+                let filt = run_still_step(&mut rig, &cam, light, Step { dn: *dn, ..base }, &ages);
+                let ch: Vec<f64> = ages.iter().map(|a| energy_change(&filt[a], &raw[a], &m)).collect();
+                eprintln!("  {name:24} energy change at ages 1 / 16 / 64: {:+.4} / {:+.4} / {:+.4}", ch[0], ch[1], ch[2]);
+                if name.starts_with("levels 0") && ch.iter().any(|c| c.abs() > 1e-4) {
+                    failed.push(format!("control levels 0 {cname} {time}: {ch:?}"));
+                }
+                if *dn != d || time != "night" {
+                    continue;
+                }
+                // The default arm at night: where the change sits.
+                let r = rig.cached_reference(&format!("{cname}_night"), &cam, light, 16_384);
+                let var: Vec<f64> = (0..m.len()).map(|i| (lum(r.std_error(i)) * (r.samples as f64).sqrt()).powi(2)).collect();
+                for &a in &ages {
+                    let (f, x) = (&filt[&a], &raw[&a]);
+                    let key: Vec<f64> = x.iter().map(|&c| lum4(c)).collect();
+                    let fmt = |b: &[(f64, f64)]| b.iter().map(|(s, c)| format!("{:5.1}% {:+.4}", 100.0 * s, c)).collect::<Vec<_>>().join(" | ");
+                    eprintln!("    age {a:2}, bins by raw rank   (p0-50 | 50-90 | 90-99 | 99-99.9 | 99.9-100; energy share, change): {}", fmt(&rank_bins(&key, f, x, &m)));
+                    eprintln!("    age {a:2}, bins by ref variance                                                    : {}", fmt(&rank_bins(&var, f, x, &m)));
+                    // The brightest 1% and their neighbourhood within the filter's reach (not in the 1%).
+                    let mut idx: Vec<usize> = (0..m.len()).filter(|&i| m[i]).collect();
+                    idx.sort_by(|&p, &q| key[q].total_cmp(&key[p]));
+                    let top = &idx[..idx.len() / 100];
+                    let mut is_top = vec![false; m.len()];
+                    for &i in top {
+                        is_top[i] = true;
+                    }
+                    let mut near = vec![false; m.len()];
+                    for &i in top {
+                        let (px, py) = ((i as u32 % w) as i32, (i as u32 / w) as i32);
+                        for dy in -6..=6 {
+                            for dx in -6..=6 {
+                                let (qx, qy) = (px + dx, py + dy);
+                                if qx >= 0 && qy >= 0 && qx < w as i32 && qy < h as i32 {
+                                    let q = (qy as u32 * w + qx as u32) as usize;
+                                    near[q] |= m[q] && !is_top[q];
+                                }
+                            }
+                        }
+                    }
+                    let total: f64 = idx.iter().map(|&i| key[i]).sum();
+                    let sum_over = |sel: &dyn Fn(usize) -> bool| (0..m.len()).filter(|&i| sel(i)).map(|i| lum4(f[i]) - key[i]).sum::<f64>() / total;
+                    let (dt, dn_, rest) = (sum_over(&|i| is_top[i]), sum_over(&|i| near[i]), sum_over(&|i| m[i] && !is_top[i] && !near[i]));
+                    eprintln!(
+                        "    age {a:2}, brightest 1% change {dt:+.4}, their 6-px neighbourhood ({} px) {dn_:+.4} (recovers {:.1}% of it), elsewhere {rest:+.4}",
+                        near.iter().filter(|&&b| b).count(),
+                        if dt < 0.0 { -100.0 * dn_ / dt } else { f64::NAN }
+                    );
+                }
+            }
+        }
+    }
+    rig.finish();
+    assert!(failed.is_empty(), "failed: {failed:?}");
+}
+
 // ---------------------------------------------------------------------------------------------
 // G5
 
@@ -1099,14 +1241,21 @@ fn edits_relight_emitter_light() {
     let head_lo: [i32; 3] = std::array::from_fn(|a| head.iter().map(|v| v[a]).min().unwrap());
     let head_hi: [i32; 3] = std::array::from_fn(|a| head.iter().map(|v| v[a] + 1).max().unwrap());
     eprintln!("G5: lamp head [{head_lo:?}, {head_hi:?})");
-    // Neon in open air 1 m in front of a façade, found along the street at 2 m height.
+    // Corrected after the laptop run (4B record, "G5 correction"): the first two edits were a 2^3 corner
+    // of the head and a 2^3 neon box 1 m from a façade, which changed 0 pixels by > 25% and > 4 SE, so
+    // R2 judged only the stone edit. Now: the whole head, and a 0.5 m neon cube in open air 0.5 m in
+    // front of a façade at 1-1.5 m height, found along the street (in the street camera's view).
+    const NEON: i32 = 8;
     let neon_at = (0..64)
-        .map(|k| [120 + 8 * k, 32, 160])
-        .find(|&[x, y, z]| (0..2).all(|dx| (0..2).all(|dy| (0..2).all(|dz| rig.world.get(VoxelCoord::new(x + dx, y + dy, z + dz)).is_none()))) && rig.world.get(VoxelCoord::new(x, y, z + 16)).is_some())
-        .expect("open air 1 m from a façade");
+        .map(|k| [120 + 8 * k, 16, 160])
+        .find(|&[x, y, z]| {
+            (0..NEON).all(|dx| (0..NEON).all(|dy| (0..NEON).all(|dz| rig.world.get(VoxelCoord::new(x + dx, y + dy, z + dz)).is_none())))
+                && (0..NEON).all(|dx| rig.world.get(VoxelCoord::new(x + dx, y, z + NEON + 8)).is_some())
+        })
+        .expect("open air 0.5 m from a façade");
     let edits: Vec<EditBox> = vec![
-        ("remove lamp voxels", head_lo, [head_lo[0] + 2, head_lo[1] + 2, head_lo[2] + 2], None),
-        ("add neon in open air", neon_at, [neon_at[0] + 2, neon_at[1] + 2, neon_at[2] + 2], Some(id("neon_pink"))),
+        ("remove the lamp head", head_lo, head_hi, None),
+        ("add neon in open air", neon_at, [neon_at[0] + NEON, neon_at[1] + NEON, neon_at[2] + NEON], Some(id("neon_pink"))),
         // Between the lamp head and the shop façades across the road (+z), 1 voxel from the head.
         ("stone beside a lamp head", [head_lo[0], head_lo[1] - 1, head_hi[2] + 1], [head_lo[0] + 4, head_lo[1] + 3, head_hi[2] + 5], Some(id("sidewalk"))),
     ];
@@ -1135,6 +1284,8 @@ fn edits_relight_emitter_light() {
                 trace(&rig.world, &r, 1e9).map(|hit| std::array::from_fn(|a| r.origin[a] + hit.t * r.dir[a]))
             })
             .collect();
+        let seen = points.iter().flatten().filter(|p| (0..3).all(|a| p[a] >= lo[a] as f64 - 1e-3 && p[a] <= hi[a] as f64 + 1e-3)).count();
+        eprintln!("  the edited box covers {seen} px of the street camera after the edit");
         rig.edit(&restore);
 
         // R1: unfiltered (the history is the previous frame's radiance on a still camera).

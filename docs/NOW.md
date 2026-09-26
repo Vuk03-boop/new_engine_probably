@@ -1,6 +1,6 @@
-# NOW — Phase 4 (M4): 4A done; 4B run on the laptop, G4 and G5 fail, waiting on the user's decision
+# NOW — Phase 4 (M4): 4A done; 4B's G5 settled, G4 open: the filter fix is next (cloud)
 
-**Updated 2026-09-26 (4B laptop run analysed: 27 of 29 steps pass; G4 and G5 fail).** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
+**Updated 2026-09-26 (local session: G5 rerun and settled, S-026; G4 diagnosed; the filter fix authorized for a cloud session).** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
 
 ## State
 
@@ -39,6 +39,10 @@
   - **G5 FAIL, on the negative control only.** R1 passes, and so does R2 wherever it is judged. The 3E-only arm's error is 1.7× the reset arm's (limit 3×), and only 1 of 3 edits changed enough pixels to be judged, so the test lacks power. The engine did nothing wrong.
   - **G4 propagates into measurement, not into the history:** the history stays unbiased, but 4C / 4D comparisons made through the filter would be confounded (the record's "Does G4 propagate?"). So G4 is understood before 4C.
   - S-025 was not exercised by the run (the sunset run ended at 18.24 h); the user's viewer check is still open.
+- **Local session 2026-09-26 (RTX 3050, on the user's "go 1 and 2"; [record](changes/2026-09-25-phase4b-many-lights.md), "Local session 2026-09-26"; logs `engine/results/local-run/2026-09-26_local-4b-g5-g4/`). Test code and docs only; no engine change.**
+  - **G5 corrected after the run and rerun:** the whole lamp head and a 0.5 m neon cube 0.5 m from a façade replace the 2³ boxes; limits unchanged. R1 and R2 now **pass in all 3 edits** (full rule = reset arm, 0 misses; 93k / 11k / 10k changed px). **R2's control is still not caught** (3E-only 1.43× / 0.96× / 1.67× reset against 3×): 4 frames after a reset the night noise is already 0.1–0.33 rel_mse, so 3× is out of reach at night. Test exit 101.
+  - **G4 diagnosed** (`diagnostic_g4_filter_energy`, new ignored test, exit 0): the loss is made by the filter's **luminance edge-stopping**: without it (σ_l 10⁶) energy is kept within 1.5%; the default loses −10 / −25 / −16% (street, ages 1 / 16 / 64), reproducing the run. The brightest 1% of pixels lose 45–68% of the total energy and neighbours within reach take back only 54–89%. Controls hold: levels 0 is exact, dusk loses ≤ 0.4%. Refinement (untested): from age 8 a never-lit pixel's own moment variance ≈ 0 makes it reject every brighter tap whatever σ_l is.
+- **S-026 (2026-09-26, the user: "accept g5 and dont fix the filter yet will boot you up in the cloud to fix the filter"):** G5's R2 control is accepted as underpowered at night, so **G5 is settled** and [ADR-0006 Amendment 2](adr/ADR-0006-guides-and-history.md) is **accepted**. **The filter fix for G4 is authorized as the next task, in a cloud session** (its own change record; the current filter default stays until its results are judged).
 - **Not authorized:**
   - 4C–4G: reservoir reuse, P05, P08, the M4 gate;
   - glass and water;
@@ -50,7 +54,7 @@
 
 - **Docs:**
   - the proposal (original, kept as written) and `CLAUDE.md`;
-  - [DECISIONS.md](DECISIONS.md): ADR-0001 to ADR-0006 (ADR-0003 and ADR-0005 each gained Amendment 3 in 4A), A-006, A-008, S-001 to S-024;
+  - [DECISIONS.md](DECISIONS.md): ADR-0001 to ADR-0006 (ADR-0003 and ADR-0005 each gained Amendment 3 in 4A), A-006, A-008, S-001 to S-026;
   - [CLOUD.md](CLOUD.md): rules for cloud sessions only (read when `CLAUDE_CODE_REMOTE=true`), and the one-click `run-local.cmd` handoff;
   - the change records in `docs/changes/`;
   - [BUILD-ROADMAP](../BUILD-ROADMAP.md) and [TECHNIQUE-MAP](../TECHNIQUE-MAP.md).
@@ -89,6 +93,8 @@
   - `engine/results/local-run/`: the laptop runs of `run-local.cmd`.
 
 ## Last checks
+
+- **Local session 2026-09-26 (RTX 3050, validation on):** `lights edits_relight_emitter_light` exit 101 (R2 control not caught; everything else passes), 472 s, 0 validation errors (`g5_relight.log`); `lights --ignored diagnostic_g4_filter_energy` exit 0, 39 s, 0 validation errors (`g4_diagnostic.log`); clippy `gpu --test lights`: only the old `world` lints. **NOT RUN:** the other `lights` tests and the rest of `run-local.cmd` (unchanged code; the only shared change is the test `Step`'s new filter-settings field, default = the old value).
 
 - **Night cap fix (2026-09-25, cloud, Linux, no GPU):** the new pure test passes (with a planted −90° cutoff caught); pure suite exit 0, 154 pass, 6 ignored (`test_pure_4b_cap_cloud.log`, rerun after the G4 correction); `gpu --lib` exit 0, 22 pass (`test_gpu_lib_4b_cap_cloud.log`); clippy exit 0, only the 6 old `world` lints (`clippy_4b_cap_cloud.log`; substitute SDK). **NOT RUN:** the viewer at night with the day running. G4's noise floor: street 7.47%, low 8.28% per frame at 1080p (`diag_g4_noise_floor_cloud.log`); `lights` builds with the corrected Q1 (substitute SDK), not run (no GPU).
 - **4B (2026-09-25, cloud, Linux, no GPU; [record](changes/2026-09-25-phase4b-many-lights.md)):**
@@ -134,18 +140,17 @@
 ## Milestone progress
 
 - M1, M2 and M3: 100%, accepted (M2 34 units, M3 35 units).
-- **M4: 6 of 33 units** (S-024): 4A done; 4B (3 units) counts once its GPU checks pass.
+- **M4: 6 of 33 units** (S-024): 4A done; 4B (3 units) counts once G4 is resolved (G5 settled, S-026).
   - Weights: 4A 6, 4B 3, 4C 7, 4D 8, 4E 3, 4F 3, 4G 3.
   - 4E and 4F count once they are measured and recorded, admitted or not.
 
 ## Exact next action
 
-1. **Next session: local, on the laptop with the RTX 3050** (the user, 2026-09-26: "i am starting you in a native chat where you can run it yourself"). Pull branch `claude/focused-faraday-ygdjx7`. It is a local session, so do not read CLOUD.md; build with `-j 2`, and GPU tests run directly (`cargo test --release -j 2 -p gpu --test lights <name>`; G4's 1080p references are cached in `%TEMP%\ne_gate_4b` when `NE_GATE_DIR` points there).
-   - **Recommended, and the user moved the work local to run it** (the exact words "go on 1 and 2" were not given; confirm in one line before the first edit):
-     - (a) **G5 test correction:** stronger edits so R2's 3E-only control has power (the whole lamp head; a neon box the street camera sees). Record it as a correction after the run in the record, with the reason ("only 1 of 3 edits judged; 3E-only 1.7× reset against 3×"). Pass limits unchanged. Then rerun `edits_relight_emitter_light` only (about 8 min).
-     - (b) **G4 diagnostic, no engine change:** where the filter loses energy. Per pixel, filtered minus raw luminance at ages 1 / 16 / 64 from the same frames, binned by the raw value's rank (and by the variance the filter uses). The hypothesis to confirm or reject: the asymmetric SVGF weights average rare bright samples down and dark neighbours reject them (`shaders/denoise.slang`). Include a control that can fail (e.g. a flat-noise input where the filter should keep energy).
-   - **Not authorized:** changing the filter or its defaults (outside 4B). After (b), the user chooses: a filter fix (scope change, own record or 4B amendment) or accepting the loss as a 4B limitation.
-2. After those decisions, 4B closes (3 units) or its accepted failures are recorded. ADR-0006 Amendment 2 moves from proposed once G5 is settled.
+1. **Next session: cloud, the G4 filter fix (S-026).** Read `CLAUDE.md`, this file, [CLOUD.md](CLOUD.md), then the [4B record](changes/2026-09-25-phase4b-many-lights.md)'s "Local session 2026-09-26" (the diagnosis and its numbers), `engine/gpu/shaders/denoise.slang`, `engine/gpu/src/denoise.rs` and `diagnostic_g4_filter_energy` in `engine/gpu/tests/lights.rs`. Branch `claude/focused-faraday-ygdjx7`.
+   - Write a new change record first, with criteria frozen before code: G4's Q1a (±2%), Q2 and Q4 at night on both cameras, the diagnostic's energy change, and **M3 not worse at day** (3E / 3G Q1–Q4, `denoise` R1 / R2, the filter's cost ≤ its current ~3.1 ms at 1080p or a stated budget).
+   - Candidates (one change at a time, each a new `DenoiseSettings` field, off = today's filter bit for bit): **symmetric edge-stopping** (σ from the larger of the pixel's and the tap's variance, so a pair weighs the same both ways) and/or **a variance floor** where the moments are young or zero. Sweep it; choose a default from the plateau (the user decides the default change).
+   - Cloud has no GPU: build and pure checks there; the GPU checks go into `run-local.cmd` for the laptop (or the user runs a local session). Unrun GPU checks are NOT RUN.
+2. After the fix is judged, 4B closes (3 units) with G4 resolved, or G4's remaining failure is recorded as accepted.
 3. **The user judges the night look**: `viewer.exe --scene night --hour 17.5 --run-day` (lights, colours, exposure; L flips the lights). With S-025, once the sun is below −12° (hour 19.14, about 19:08, on the default path) the age view should go white while the day runs; it was capped at 8–16 frames before.
 4. **Before 4C** (not authorized):
    - the user points to the P05 / P08 reviews and PDFs;
