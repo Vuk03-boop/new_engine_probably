@@ -1,0 +1,83 @@
+   Compiling gpu v0.1.0 (/home/user/new_engine_probably/engine/gpu)
+    Finished `release` profile [optimized] target(s) in 3.19s
+     Running tests/denoise_model.rs (target/release/deps/denoise_model-6f5bee1829c1621c)
+
+running 1 test
+model: 960x540, 1143 emitters, reference 256 spp
+model street_night: cached /tmp/claude-0/-home-user-new-engine-probably/340d9ffc-81dc-574b-9749-741e52824cd3/scratchpad/model/v1_street_night_960x540_ref256.bin
+street night: 395018 surface px
+  raw rel_mse at ages [1, 4, 8, 16, 64]: ["439886.4948", "51094.1113", "31087.5526", "10841.2738", "2089.5293"]
+  default (Svgf, sigma_l 4)    | a1: E -0.1238 mse 12871.847 ≤ | a4: E -0.0897 mse 1503.558 ≤ | a16: E -0.2556 mse 715.529 ≤ | a64: E -0.1706 mse 178.348 ≤  (1.8 s)
+  levels 0 (control)           | a1: E -0.0000 mse 439886.495 > | a4: E +0.0000 mse 51094.111 > | a16: E +0.0000 mse 10841.274 > | a64: E -0.0000 mse 2089.529 >  (0.3 s)
+  sigma_l 1e6                  | a1: E -0.0393 mse 9454.722 ≤ | a4: E -0.0282 mse 1246.168 ≤ | a16: E -0.0133 mse 865.196 ≤ | a64: E -0.0095 mse 212.335 ≤  (1.6 s)
+  Symmetric sigma_l 1          | a1: E -0.0291 mse 41317.386 > | a4: E -0.0243 mse 4001.538 ≤ | a16: E +0.6780 mse 3680.052 > | a64: E +0.5392 mse 890.427 ≤  (1.7 s)
+  Symmetric sigma_l 2          | a1: E -0.0817 mse 16959.837 ≤ | a4: E -0.0582 mse 1881.751 ≤ | a16: E +0.6174 mse 3072.424 > | a64: E +0.4999 mse 779.091 ≤  (1.7 s)
+  Symmetric sigma_l 4          | a1: E -0.0741 mse 11739.128 ≤ | a4: E -0.0517 mse 1428.428 ≤ | a16: E +0.5441 mse 2732.700 > | a64: E +0.4433 mse 706.396 ≤  (1.6 s)
+  Symmetric sigma_l 8          | a1: E -0.0592 mse 10338.481 ≤ | a4: E -0.0414 mse 1313.200 ≤ | a16: E +0.4760 mse 2530.786 > | a64: E +0.3841 mse 654.700 ≤  (1.7 s)
+  Symmetric sigma_l 16         | a1: E -0.0496 mse 9844.227 ≤ | a4: E -0.0350 mse 1274.858 ≤ | a16: E +0.4170 mse 2407.032 > | a64: E +0.3268 mse 614.680 ≤  (1.7 s)
+  Conservative sigma_l 1       | a1: E +0.0000 mse 194534.284 > | a4: E +0.0000 mse 16747.475 > | a16: E +0.0000 mse 1992.515 ≤ | a64: E +0.0000 mse 425.056 ≤  (2.0 s)
+  Conservative sigma_l 2       | a1: E +0.0000 mse 116443.254 > | a4: E +0.0000 mse 9741.590 ≤ | a16: E -0.0000 mse 1477.928 ≤ | a64: E +0.0000 mse 320.539 ≤  (2.0 s)
+  Conservative sigma_l 4       | a1: E +0.0000 mse 67648.302 > | a4: E -0.0000 mse 5700.581 ≤ | a16: E +0.0000 mse 1259.555 ≤ | a64: E +0.0000 mse 275.233 ≤  (2.0 s)
+  Conservative sigma_l 8       | a1: E +0.0000 mse 44623.679 > | a4: E +0.0000 mse 3904.549 ≤ | a16: E +0.0000 mse 1167.485 ≤ | a64: E +0.0000 mse 256.021 ≤  (1.9 s)
+  Conservative sigma_l 16      | a1: E -0.0000 mse 34556.403 > | a4: E -0.0000 mse 3147.291 ≤ | a16: E +0.0000 mse 1126.606 ≤ | a64: E +0.0000 mse 247.479 ≤  (2.0 s)
+  plain conservative (model) sigma_l 4 | a1: E -0.0000 mse 114679.252 > | a4: E +0.0000 mse 10798.375 ≤ | a16: E +0.0000 mse 2109.565 > | a64: E +0.0000 mse 436.391 ≤  (1.8 s)
+  plain conservative (model) sigma_l 8 | a1: E +0.0000 mse 85803.798 > | a4: E +0.0000 mse 8245.647 ≤ | a16: E -0.0000 mse 1968.079 ≤ | a64: E +0.0000 mse 409.131 ≤  (1.8 s)
+model street_dusk: cached /tmp/claude-0/-home-user-new-engine-probably/340d9ffc-81dc-574b-9749-741e52824cd3/scratchpad/model/v1_street_dusk_960x540_ref256.bin
+street dusk: 395018 surface px
+  raw rel_mse at ages [1, 4, 8, 16, 64]: ["5.8113", "1.5733", "0.8045", "0.4059", "0.1072"]
+  default (Svgf, sigma_l 4)    | a1: E -0.0085 mse 0.212 ≤ | a4: E -0.0026 mse 0.056 ≤ | a16: E -0.0042 mse 0.018 ≤ | a64: E -0.0009 mse 0.009 ≤  (1.6 s)
+  levels 0 (control)           | a1: E -0.0000 mse 5.811 > | a4: E -0.0000 mse 1.573 > | a16: E -0.0000 mse 0.406 > | a64: E -0.0000 mse 0.107 ≤  (0.3 s)
+  sigma_l 1e6                  | a1: E +0.0003 mse 0.168 ≤ | a4: E +0.0002 mse 0.048 ≤ | a16: E +0.0004 mse 0.021 ≤ | a64: E +0.0005 mse 0.014 ≤  (1.8 s)
+  Symmetric sigma_l 1          | a1: E +0.0022 mse 0.449 ≤ | a4: E +0.0000 mse 0.109 ≤ | a16: E +0.0253 mse 0.036 ≤ | a64: E +0.0061 mse 0.012 ≤  (1.8 s)
+  Symmetric sigma_l 2          | a1: E -0.0038 mse 0.251 ≤ | a4: E -0.0013 mse 0.065 ≤ | a16: E +0.0177 mse 0.026 ≤ | a64: E +0.0042 mse 0.010 ≤  (1.9 s)
+  Symmetric sigma_l 4          | a1: E -0.0028 mse 0.196 ≤ | a4: E -0.0008 mse 0.053 ≤ | a16: E +0.0109 mse 0.022 ≤ | a64: E +0.0026 mse 0.010 ≤  (1.8 s)
+  Symmetric sigma_l 8          | a1: E -0.0013 mse 0.179 ≤ | a4: E -0.0003 mse 0.049 ≤ | a16: E +0.0063 mse 0.021 ≤ | a64: E +0.0016 mse 0.011 ≤  (1.7 s)
+  Symmetric sigma_l 16         | a1: E -0.0005 mse 0.173 ≤ | a4: E -0.0000 mse 0.048 ≤ | a16: E +0.0036 mse 0.021 ≤ | a64: E +0.0011 mse 0.012 ≤  (1.8 s)
+  Conservative sigma_l 1       | a1: E +0.0000 mse 1.266 > | a4: E +0.0000 mse 0.330 ≤ | a16: E +0.0000 mse 0.069 ≤ | a64: E +0.0000 mse 0.022 ≤  (2.0 s)
+  Conservative sigma_l 2       | a1: E +0.0000 mse 0.619 ≤ | a4: E +0.0000 mse 0.155 ≤ | a16: E +0.0000 mse 0.036 ≤ | a64: E +0.0000 mse 0.013 ≤  (2.0 s)
+  Conservative sigma_l 4       | a1: E +0.0000 mse 0.325 ≤ | a4: E +0.0000 mse 0.084 ≤ | a16: E +0.0000 mse 0.024 ≤ | a64: E +0.0000 mse 0.010 ≤  (2.0 s)
+  Conservative sigma_l 8       | a1: E +0.0000 mse 0.228 ≤ | a4: E +0.0000 mse 0.062 ≤ | a16: E +0.0000 mse 0.021 ≤ | a64: E -0.0000 mse 0.010 ≤  (1.9 s)
+  Conservative sigma_l 16      | a1: E +0.0000 mse 0.197 ≤ | a4: E +0.0000 mse 0.055 ≤ | a16: E +0.0000 mse 0.020 ≤ | a64: E +0.0000 mse 0.011 ≤  (2.0 s)
+  plain conservative (model) sigma_l 4 | a1: E +0.0000 mse 0.446 ≤ | a4: E +0.0000 mse 0.114 ≤ | a16: E +0.0000 mse 0.031 ≤ | a64: E +0.0000 mse 0.012 ≤  (1.8 s)
+  plain conservative (model) sigma_l 8 | a1: E +0.0000 mse 0.332 ≤ | a4: E +0.0000 mse 0.087 ≤ | a16: E +0.0000 mse 0.027 ≤ | a64: E -0.0000 mse 0.011 ≤  (1.8 s)
+model low_night: cached /tmp/claude-0/-home-user-new-engine-probably/340d9ffc-81dc-574b-9749-741e52824cd3/scratchpad/model/v1_low_night_960x540_ref256.bin
+low night: 270418 surface px
+  raw rel_mse at ages [1, 4, 8, 16, 64]: ["14082.9636", "21166.0021", "5519.3608", "1638.3940", "1517.7117"]
+  default (Svgf, sigma_l 4)    | a1: E -0.0518 mse 1717.497 ≤ | a4: E -0.0414 mse 1792.802 > | a16: E -0.1796 mse 121.530 ≤ | a64: E -0.1269 mse 91.179 ≤  (1.3 s)
+  levels 0 (control)           | a1: E -0.0000 mse 14082.964 > | a4: E +0.0000 mse 21166.002 > | a16: E -0.0000 mse 1638.394 > | a64: E -0.0000 mse 1517.712 >  (0.2 s)
+  sigma_l 1e6                  | a1: E +0.0073 mse 1628.117 ≤ | a4: E +0.0021 mse 1494.794 ≤ | a16: E -0.0106 mse 153.151 ≤ | a64: E -0.0083 mse 105.467 ≤  (1.2 s)
+  Symmetric sigma_l 1          | a1: E +0.0238 mse 3161.691 ≤ | a4: E +0.0181 mse 3326.589 > | a16: E +0.4852 mse 714.838 ≤ | a64: E +0.3681 mse 446.675 ≤  (1.2 s)
+  Symmetric sigma_l 2          | a1: E -0.0180 mse 1966.350 ≤ | a4: E -0.0114 mse 2190.767 > | a16: E +0.4487 mse 578.536 ≤ | a64: E +0.3479 mse 384.084 ≤  (1.4 s)
+  Symmetric sigma_l 4          | a1: E -0.0143 mse 1699.552 ≤ | a4: E -0.0108 mse 1752.297 > | a16: E +0.3979 mse 506.330 ≤ | a64: E +0.3101 mse 342.888 ≤  (1.3 s)
+test model_filter_energy has been running for over 60 seconds
+  Symmetric sigma_l 8          | a1: E -0.0049 mse 1647.973 ≤ | a4: E -0.0054 mse 1601.447 ≤ | a16: E +0.3479 mse 462.890 ≤ | a64: E +0.2679 mse 312.673 ≤  (1.3 s)
+  Symmetric sigma_l 16         | a1: E +0.0010 mse 1635.497 ≤ | a4: E -0.0018 mse 1543.040 ≤ | a16: E +0.3025 mse 430.626 ≤ | a64: E +0.2264 mse 287.432 ≤  (1.3 s)
+  Conservative sigma_l 1       | a1: E +0.0000 mse 4239.063 ≤ | a4: E -0.0000 mse 3779.465 > | a16: E -0.0000 mse 286.187 ≤ | a64: E -0.0000 mse 283.197 ≤  (1.6 s)
+  Conservative sigma_l 2       | a1: E +0.0000 mse 2797.193 ≤ | a4: E +0.0000 mse 2713.857 > | a16: E +0.0000 mse 225.967 ≤ | a64: E -0.0000 mse 194.624 ≤  (1.4 s)
+  Conservative sigma_l 4       | a1: E -0.0000 mse 1932.093 ≤ | a4: E +0.0000 mse 2082.712 > | a16: E +0.0000 mse 198.060 ≤ | a64: E -0.0000 mse 155.748 ≤  (1.4 s)
+  Conservative sigma_l 8       | a1: E -0.0000 mse 1623.106 ≤ | a4: E -0.0000 mse 1820.090 > | a16: E -0.0000 mse 185.478 ≤ | a64: E +0.0000 mse 138.926 ≤  (1.5 s)
+  Conservative sigma_l 16      | a1: E -0.0000 mse 1534.223 ≤ | a4: E -0.0000 mse 1715.743 > | a16: E +0.0000 mse 179.554 ≤ | a64: E +0.0000 mse 131.336 ≤  (1.4 s)
+  plain conservative (model) sigma_l 4 | a1: E -0.0000 mse 2616.681 ≤ | a4: E -0.0000 mse 5270.178 > | a16: E +0.0000 mse 340.782 ≤ | a64: E -0.0000 mse 299.689 ≤  (1.3 s)
+  plain conservative (model) sigma_l 8 | a1: E +0.0000 mse 2083.960 ≤ | a4: E -0.0000 mse 4506.318 > | a16: E -0.0000 mse 317.838 ≤ | a64: E +0.0000 mse 271.223 ≤  (1.2 s)
+model low_dusk: cached /tmp/claude-0/-home-user-new-engine-probably/340d9ffc-81dc-574b-9749-741e52824cd3/scratchpad/model/v1_low_dusk_960x540_ref256.bin
+low dusk: 270418 surface px
+  raw rel_mse at ages [1, 4, 8, 16, 64]: ["4.4488", "1.3749", "0.6679", "0.3281", "0.0868"]
+  default (Svgf, sigma_l 4)    | a1: E -0.0065 mse 0.155 ≤ | a4: E -0.0017 mse 0.171 ≤ | a16: E -0.0030 mse 0.025 ≤ | a64: E -0.0006 mse 0.009 ≤  (1.2 s)
+  levels 0 (control)           | a1: E +0.0000 mse 4.449 > | a4: E +0.0000 mse 1.375 > | a16: E -0.0000 mse 0.328 > | a64: E -0.0000 mse 0.087 ≤  (0.2 s)
+  sigma_l 1e6                  | a1: E +0.0004 mse 0.126 ≤ | a4: E +0.0004 mse 0.167 ≤ | a16: E +0.0004 mse 0.032 ≤ | a64: E +0.0003 mse 0.019 ≤  (1.1 s)
+  Symmetric sigma_l 1          | a1: E +0.0015 mse 0.327 ≤ | a4: E +0.0001 mse 0.214 ≤ | a16: E +0.0197 mse 0.038 ≤ | a64: E +0.0047 mse 0.011 ≤  (1.2 s)
+  Symmetric sigma_l 2          | a1: E -0.0030 mse 0.182 ≤ | a4: E -0.0009 mse 0.178 ≤ | a16: E +0.0138 mse 0.031 ≤ | a64: E +0.0033 mse 0.009 ≤  (1.3 s)
+  Symmetric sigma_l 4          | a1: E -0.0020 mse 0.144 ≤ | a4: E -0.0004 mse 0.169 ≤ | a16: E +0.0085 mse 0.028 ≤ | a64: E +0.0021 mse 0.010 ≤  (1.2 s)
+  Symmetric sigma_l 8          | a1: E -0.0009 mse 0.133 ≤ | a4: E -0.0000 mse 0.167 ≤ | a16: E +0.0049 mse 0.028 ≤ | a64: E +0.0013 mse 0.012 ≤  (1.2 s)
+  Symmetric sigma_l 16         | a1: E -0.0002 mse 0.129 ≤ | a4: E +0.0002 mse 0.167 ≤ | a16: E +0.0028 mse 0.029 ≤ | a64: E +0.0009 mse 0.014 ≤  (1.2 s)
+  Conservative sigma_l 1       | a1: E +0.0000 mse 0.965 > | a4: E +0.0000 mse 0.377 > | a16: E -0.0000 mse 0.064 ≤ | a64: E -0.0000 mse 0.018 ≤  (1.5 s)
+  Conservative sigma_l 2       | a1: E +0.0000 mse 0.466 ≤ | a4: E +0.0000 mse 0.242 ≤ | a16: E -0.0000 mse 0.037 ≤ | a64: E +0.0000 mse 0.011 ≤  (1.5 s)
+  Conservative sigma_l 4       | a1: E +0.0000 mse 0.245 ≤ | a4: E +0.0000 mse 0.190 ≤ | a16: E +0.0000 mse 0.029 ≤ | a64: E -0.0000 mse 0.010 ≤  (1.4 s)
+  Conservative sigma_l 8       | a1: E -0.0000 mse 0.174 ≤ | a4: E -0.0000 mse 0.174 ≤ | a16: E +0.0000 mse 0.027 ≤ | a64: E -0.0000 mse 0.010 ≤  (1.5 s)
+  Conservative sigma_l 16      | a1: E +0.0000 mse 0.151 ≤ | a4: E -0.0000 mse 0.170 ≤ | a16: E -0.0000 mse 0.028 ≤ | a64: E -0.0000 mse 0.012 ≤  (1.5 s)
+  plain conservative (model) sigma_l 4 | a1: E +0.0000 mse 0.348 ≤ | a4: E +0.0000 mse 0.217 ≤ | a16: E -0.0000 mse 0.034 ≤ | a64: E -0.0000 mse 0.011 ≤  (1.3 s)
+  plain conservative (model) sigma_l 8 | a1: E +0.0000 mse 0.261 ≤ | a4: E +0.0000 mse 0.197 ≤ | a16: E +0.0000 mse 0.031 ≤ | a64: E -0.0000 mse 0.011 ≤  (1.3 s)
+test model_filter_energy ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 90.85s
+

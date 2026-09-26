@@ -113,9 +113,38 @@ The model is a model, and the GPU criteria below judge.
 ## Cloud results
 
 - **σ* = 4, fixed 2026-09-26 before any GPU run**, at the user's request to start the laptop run while the model was still running ("Is it possible for me to run it while you are cooking on your end"). This replaces the model-based rule above: σ_l 4 is SVGF's own default, and the 192×108 screen showed no clear reason to prefer 2 or 8. The 960×540 model becomes **data** for the default decision: F1's σ 2 and 8 arms give the night plateau on the GPU. If the model clearly favours 2 or 8, F3–F6 at that value need a second laptop run.
-- C1 so far: pure suite exit 0, 154 pass, 6 ignored (`results/test_pure_4b_filter_cloud.log`); `gpu --lib` exit 0, 23 pass (`results/test_gpu_lib_4b_filter_cloud.log`); clippy exit 0, the 6 old `world` lints plus one in the model, fixed afterwards and to be rerun (`results/clippy_4b_filter_cloud.log`).
+- **C1 pass:**
+  - pure suite exit 0, 154 pass, 6 ignored (`results/test_pure_4b_filter_cloud.log`);
+  - `gpu --lib` exit 0, 23 pass (`results/test_gpu_lib_4b_filter_cloud.log`);
+  - every `gpu` test binary and `viewer` build (substitute SDK);
+  - clippy exit 0, only the 6 old `world` lints (`results/clippy_4b_filter_cloud.log`; the first run also flagged one lint in the model, fixed before this rerun).
 - C2: `conservative_weights_keep_energy` passes (Conservative ≤ 2.4 × 10⁻⁸; Svgf −30 to −43%, Symmetric +45 to +64%).
 
 ## Laptop results
 
 NOT RUN.
+
+### The 960×540 model (data, finished after σ* was fixed; `results/model_4b_filter_960_cloud.log`)
+
+64 frames and a 256-spp reference per scene, both cameras, night (21 h, Full) and dusk (17.5 h, M3 transport). Filtered relative MSE, with the reference's noise subtracted (heavy-tailed at night, so the night values are rough). E is the energy change.
+
+| Arm | street night E, ages 1 / 4 / 16 / 64 | model Q2 passes of 16 | dusk age-1 MSE, street / low |
+|---|---|---|---|
+| default (Svgf 4) | −12.4 / −9.0 / −25.6 / −17.1% | 15 | 0.212 / 0.155 |
+| Symmetric 4 | −7.4 / −5.2 / +54.4 / +44.3% | 14 | 0.196 / 0.144 |
+| Conservative 1 / 2 / 4 / 8 / 16 | 0 at every point (≤ 5 × 10⁻⁵) | 11 / 14 / 14 / 14 / 14 | 1.27 / 0.97; 0.62 / 0.47; 0.33 / 0.25; 0.23 / 0.17; 0.20 / 0.15 |
+| plain conservative (W = 1) 4 / 8 | 0 | 13 / 14 | 0.45 / 0.35; 0.33 / 0.26 |
+
+**Observations:**
+
+- The mirror reproduces the GPU's night loss at this size (street −12 / −26 / −17% at ages 1 / 16 / 64 against the GPU's −10 / −25 / −16%). The conservative arms keep energy at every point.
+- The two points every conservative arm misses:
+  - street night age 1: the candidate at σ_l 4 has 67.6k against the raw-at-8 31.1k, where the default's 12.9k comes with −12% of the energy removed;
+  - low night age 4, which the default also misses.
+  - So **F1's Q2 at street age 1 is likely to fail on the GPU**. That is information for 4C (the heavy tail), not a reason to delete energy.
+- **A larger σ_l is better for the conservative filter:**
+  - at dusk its error falls from σ_l 4 to 16 and reaches the default's at 8–16 (street 0.23 / 0.20 against 0.21);
+  - at night it falls monotonically (street age 1: 67.6k → 44.6k → 34.6k).
+  - The pre-run rule would have picked **σ_l 16** (the tie at 14 passes is broken by the lowest dusk age-1 error).
+  - The laptop run tests σ_l 4 (judged) and 2 / 8 (night data). A later run at 8 or 16 is the likely next step before a default is chosen.
+- The border normaliser matters: plain conservative at σ_l 4 has 1.4–1.7× the error of the border-normalised filter.
