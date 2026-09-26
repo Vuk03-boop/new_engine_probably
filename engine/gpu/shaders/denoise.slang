@@ -25,6 +25,18 @@
 //   3G: init writes the 3x3 mean only for pixels younger than `prefilter_age`; an older pixel's guide
 //   is its own luminance l, stored as -1 - l (`guide_value`, `guide_is_mean`), and its sigma is not
 //   scaled: 3x3 means straddle hard lighting edges and blurred converged images there (3G record).
+// 4B filter fix (docs/changes/2026-09-26-4b-filter-energy.md; `DenoiseSettings::weights`, both flags off
+//   is the filter above bit for bit):
+//   F_SYMMETRIC: sigma from the pixel's plus the tap's variance (each unblurred, each divided by 9 when its
+//     guide is a 3x3 mean), so a pair weighs the same both ways; the variance pre-blur is skipped.
+//   F_CONSERVATIVE: symmetric weights w, and exchanges instead of a weighted mean:
+//     out_p = x_p + sum_q c_pq (x_q - x_p),  c_pq = w_pq / max(W_p, W_q),
+//     W the kernel's sum over a pixel's same-surface taps at the level's step (guides only, so borders
+//     are smoothed like the interior), rounded up to 1/64. c is the same at both ends of a pair, so two
+//     pixels exchange equal and opposite amounts and each surface keeps its energy; W >= the taps' sum
+//     keeps out_p a convex mix. Init packs W for the first two levels into the compact key's free bits
+//     (the material is 16 bits: key.x bits 0-18 are face and material, 19-24 level 0, 25-30 level 1);
+//     later levels use W = 1. Surface tests and the albedo lookup mask them off (KEY_MASK).
 
 struct Params
 {
@@ -57,6 +69,11 @@ static const uint F_PREFILTER = 1u;
 static const uint F_INIT_GUIDE = 2u;
 static const uint F_REMODULATE = 4u;
 static const uint F_NO_VARIANCE_BLUR = 8u;
+static const uint F_SYMMETRIC = 16u;
+static const uint F_CONSERVATIVE = 32u;
+// The compact key's face and material bits; above them init packs the border sums (F_CONSERVATIVE).
+static const uint KEY_MASK = 0x7FFFFu;
+static const float H[5] = { 1.0 / 16.0, 1.0 / 4.0, 3.0 / 8.0, 1.0 / 4.0, 1.0 / 16.0 };
 static const uint F_FAULT_IGNORE_GUIDES = 256u;
 static const uint FACE_NONE = 7u;
 
@@ -83,7 +100,7 @@ float4 hist_at(uint i)
 
 float3 albedo_of(uint4 g)
 {
-    uint m = g.x >> 3;
+    uint m = (g.x & KEY_MASK) >> 3;
     uint count, stride;
     albedo.GetDimensions(count, stride);
     return m < count ? albedo[m].xyz : float3(1.0, 1.0, 1.0);
@@ -93,7 +110,7 @@ bool same_surface(uint4 a, uint4 b)
 {
     if ((params.flags & F_FAULT_IGNORE_GUIDES) != 0u)
         return (b.x & 7u) != FACE_NONE;
-    return a.x == b.x && a.y == b.y;
+    return (a.x & KEY_MASK) == (b.x & KEY_MASK) && a.y == b.y;
 }
 
 float3 demodulate(float3 c, float3 a)
@@ -115,6 +132,31 @@ bool guide_is_mean(float g)
 float4 read_filt(uint which, uint i)
 {
     return which == 0u ? filt_a[i] : filt_b[i];
+}
+
+// F_CONSERVATIVE: the kernel's sum over pixel p's same-surface taps at `step` (full guides; init),
+// rounded up to 1/64 and stored as 0-63 (the sum is at least H0^2 = 0.14, so 9-64 / 64).
+uint border_code(int2 p, uint4 g, int step)
+{
+    float t = 0.0;
+    for (int dy = -2; dy <= 2; dy++)
+    {
+        for (int dx = -2; dx <= 2; dx++)
+        {
+            int2 q = p + int2(dx, dy) * step;
+            if (q.x < 0 || q.y < 0 || q.x >= int(params.width) || q.y >= int(params.height))
+                continue;
+            if (same_surface(g, guide_at(uint(q.y) * params.width + uint(q.x))))
+                t += H[dx + 2] * H[dy + 2];
+        }
+    }
+    return uint(min(ceil(t * 64.0), 64.0)) - 1u;
+}
+
+// The border sum a level reads from a compact key (1 from the third level on).
+float border_of(uint kx, uint level)
+{
+    return level >= 2u ? 1.0 : float(((kx >> (19u + 6u * level)) & 63u) + 1u) / 64.0;
 }
 
 void write_filt(uint which, uint i, float4 v)
@@ -140,6 +182,8 @@ void main(uint3 tid: SV_DispatchThreadID)
     {
         float4 r = radiance[i];
         keys[i] = g.xy;
+        if (!sky && (params.flags & F_CONSERVATIVE) != 0u)
+            keys[i] = uint2(g.x | (border_code(int2(tid.xy), g, 1) << 19) | (border_code(int2(tid.xy), g, 2) << 25), g.y);
         if (sky)
         {
             filt_a[i] = float4(r.xyz, -1.0);
@@ -247,9 +291,13 @@ void main(uint3 tid: SV_DispatchThreadID)
         float gp = pre ? lum_guide[i] : 0.0;
         float lp = pre ? guide_value(gp) : luminance(c.xyz);
         bool mean_guide = pre && guide_is_mean(gp);
+        bool cons = (params.flags & F_CONSERVATIVE) != 0u;
+        bool sym = cons || (params.flags & F_SYMMETRIC) != 0u;
+        // Symmetric: the pixel's own variance in its guide's units (a tap adds its own).
+        float vp = c.w * (mean_guide ? 1.0 / 9.0 : 1.0);
         // The edge-stopping variance: a 3x3 Gaussian of the variance on the same surface (SVGF).
         float gv = c.w, gw = 1.0;
-        if ((params.flags & F_NO_VARIANCE_BLUR) == 0u)
+        if (!sym && (params.flags & F_NO_VARIANCE_BLUR) == 0u)
         {
         gv = 0.0;
         gw = 0.0;
@@ -270,10 +318,14 @@ void main(uint3 tid: SV_DispatchThreadID)
         }
         }
         float sigma = params.sigma_l * sqrt(max(gv / gw * (mean_guide ? 1.0 / 9.0 : 1.0), 1e-12)) + 1e-12;
-        static const float H[5] = { 1.0 / 16.0, 1.0 / 4.0, 3.0 / 8.0, 1.0 / 4.0, 1.0 / 16.0 };
         float3 sum = float3(0.0, 0.0, 0.0);
         float vsum = 0.0;
         float wsum = 0.0;
+        // Conservative: the exchange sum_q c (x_q - x), its coefficients' sum; the level's border sums.
+        float3 ex = float3(0.0, 0.0, 0.0);
+        float csum = 0.0;
+        uint level = firstbitlow(params.step);
+        float wp = border_of(g.x, level);
         for (int dy = -2; dy <= 2; dy++)
         {
             for (int dx = -2; dx <= 2; dx++)
@@ -282,20 +334,49 @@ void main(uint3 tid: SV_DispatchThreadID)
                 if (q.x < 0 || q.y < 0 || q.x >= int(params.width) || q.y >= int(params.height))
                     continue;
                 uint qi = uint(q.y) * params.width + uint(q.x);
-                if (!same_surface(g, key_at(qi)))
+                uint4 kq = key_at(qi);
+                if (!same_surface(g, kq))
                     continue;
                 float4 cq = read_filt(params.src, qi);
-                float lq = pre ? guide_value(lum_guide[qi]) : luminance(cq.xyz);
-                float w = H[dx + 2] * H[dy + 2] * exp(-abs(lq - lp) / sigma);
+                float gq = pre ? lum_guide[qi] : 0.0;
+                float lq = pre ? guide_value(gq) : luminance(cq.xyz);
+                float s = sigma;
+                if (sym)
+                    s = params.sigma_l * sqrt(max(vp + cq.w * (pre && guide_is_mean(gq) ? 1.0 / 9.0 : 1.0), 1e-12)) + 1e-12;
+                float w = H[dx + 2] * H[dy + 2] * exp(-abs(lq - lp) / s);
+                if (cons)
+                {
+                    if (dx != 0 || dy != 0)
+                    {
+                        float cpq = w / max(wp, border_of(kq.x, level));
+                        ex += cpq * (cq.xyz - c.xyz);
+                        vsum += cpq * cpq * cq.w;
+                        csum += cpq;
+                    }
+                    continue;
+                }
                 sum += w * cq.xyz;
                 vsum += w * w * cq.w;
                 wsum += w;
             }
         }
-        if (last)
-            radiance[i] = float4(sum / wsum * albedo_of(g), radiance[i].w);
+        float3 o;
+        float v;
+        if (cons)
+        {
+            // The pixel keeps 1 - csum of its own value.
+            o = c.xyz + ex;
+            v = vsum + (1.0 - csum) * (1.0 - csum) * c.w;
+        }
         else
-            write_filt(dst, i, float4(sum / wsum, vsum / (wsum * wsum)));
+        {
+            o = sum / wsum;
+            v = vsum / (wsum * wsum);
+        }
+        if (last)
+            radiance[i] = float4(o * albedo_of(g), radiance[i].w);
+        else
+            write_filt(dst, i, float4(o, v));
         return;
     }
 

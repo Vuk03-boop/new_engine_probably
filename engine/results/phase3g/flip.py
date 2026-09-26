@@ -1,6 +1,9 @@
 """3G Q4: LDR-FLIP (flip-evaluator 1.7, A-008) of the display images written by `gpu/tests/gate.rs`.
 
-usage: python flip.py <NE_GATE_DIR> <out dir>
+usage: python flip.py <NE_GATE_DIR> <out dir> [image prefix]
+
+The optional prefix selects a candidate filter's images (`NE_FILTER`, e.g. `conservative-4_`; the
+G4 filter record, docs/changes/2026-09-26-4b-filter-energy.md); without it, the default filter's.
 
 For every still arm (camera x time) it compares the raw and the filtered image at ages 1, 16, 64 with
 the reference; for every motion frame the raw and the filtered one. Writes `flip.jsonl` (one line per
@@ -33,11 +36,12 @@ def score(ref, test):
 
 def main():
     src, out = Path(sys.argv[1]), Path(sys.argv[2])
+    pre = sys.argv[3] if len(sys.argv) > 3 else ""
     out.mkdir(parents=True, exist_ok=True)
     lines, failed, sheet_rows, maps = [], [], [], []
     for time in TIMES:
         for cam in CAMERAS:
-            key = f"still_{cam}_{time}"
+            key = f"{pre}still_{cam}_{time}"
             ref = load(src / f"{key}_ref.ppm")
             rec = {"arm": key}
             row = [ref]
@@ -57,7 +61,7 @@ def main():
             lines.append(rec)
             print(json.dumps(rec), flush=True)
     for time, k in MOTION:
-        key = f"motion_{time}_{k}"
+        key = f"{pre}motion_{time}_{k}"
         ref = load(src / f"{key}_ref.ppm")
         (r, _), (f, _) = score(ref, load(src / f"{key}_raw.ppm")), score(ref, load(src / f"{key}_filt.ppm"))
         ok = f <= r

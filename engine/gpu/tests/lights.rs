@@ -19,7 +19,7 @@ use ash::vk;
 use derived::{Config, Merge, Pipeline};
 use gpu::alloc::{Allocator, Kind};
 use gpu::debug_view::{targets_to_read, DebugView, Lighting as ViewLighting, Source, Tables, View};
-use gpu::denoise::{Denoise, DenoiseBindings, DenoiseFaults, DenoiseSettings, DenoiseTargets};
+use gpu::denoise::{Denoise, DenoiseBindings, DenoiseFaults, DenoiseSettings, DenoiseTargets, Weights};
 use gpu::exposure::{sample_pixels, Exposure, ExposureBindings, ExposureTargets};
 use gpu::layout::{build_regions, RegionKey, RegionMesh, RegionSize};
 use gpu::raster::{Bindings as RasterBindings, Camera, Faults, Raster, Targets};
@@ -138,13 +138,29 @@ struct Step {
 impl Step {
     /// The viewer's frame with the lights on (bounce, emitters, temporal defaults, the filter).
     fn viewer() -> Step {
-        Step { shade: lit(), faults: ShadeFaults::default(), ts: TemporalSettings::default(), temporal: true, filter: true, lights: true, force_reset: false, plain: false, dn: DenoiseSettings::default() }
+        Step { shade: lit(), faults: ShadeFaults::default(), ts: TemporalSettings::default(), temporal: true, filter: true, lights: true, force_reset: false, plain: false, dn: filter_under_test() }
     }
 
     /// The shade pass alone.
     fn shade(shade: ShadeSettings) -> Step {
         Step { shade, temporal: false, filter: false, ..Step::viewer() }
     }
+}
+
+/// The filter under test: `NE_FILTER` (`DenoiseSettings::parse`, e.g. `conservative:4`), else the
+/// default. The G4 filter record (`docs/changes/2026-09-26-4b-filter-energy.md`) runs the criteria
+/// with both; the first use prints which.
+fn filter_under_test() -> DenoiseSettings {
+    let d = std::env::var("NE_FILTER").map_or_else(|_| DenoiseSettings::default(), |s| DenoiseSettings::parse(&s).expect("NE_FILTER"));
+    static SAID: std::sync::Once = std::sync::Once::new();
+    SAID.call_once(|| eprintln!("filter under test: {}{}", d.tag(), if std::env::var_os("NE_FILTER").is_some() { " (NE_FILTER)" } else { " (default)" }));
+    d
+}
+
+/// Display-image name prefix: "" for the default filter, else the filter's tag (`conservative-4_`), so
+/// a candidate's images sit beside the default's (FLIP scripts take it as their third argument).
+fn image_prefix() -> String {
+    std::env::var("NE_FILTER").map_or_else(|_| String::new(), |_| format!("{}_", filter_under_test().tag().replace(':', "-")))
 }
 
 struct Bound {
@@ -1003,10 +1019,10 @@ fn night_against_the_reference() {
             eprintln!("  display exposure (metric, from the reference with emission): {ex:.4e}");
             for age in [1u32, 16, 64] {
                 for (tag, x) in [("raw", &raw[&age]), ("filt", &filt[&age])] {
-                    write_display(&format!("still4b_{key}_{tag}_{age}"), w, h, &|i| std::array::from_fn(|c| x[i][c] as f64 + em[i][c]), ex);
+                    write_display(&format!("{}still4b_{key}_{tag}_{age}", image_prefix()), w, h, &|i| std::array::from_fn(|c| x[i][c] as f64 + em[i][c]), ex);
                 }
             }
-            write_display(&format!("still4b_{key}_ref"), w, h, &shown_ref, ex);
+            write_display(&format!("{}still4b_{key}_ref", image_prefix()), w, h, &shown_ref, ex);
         }
     }
     rig.finish();
@@ -1064,6 +1080,10 @@ fn rank_bins(key: &[f64], f: &[[f32; 4]], r: &[[f32; 4]], m: &[bool]) -> Vec<(f6
 /// Controls: `levels 0` (demodulate and remodulate only) must keep energy to 10^-4 (the instrument);
 /// the M3 transport at dusk on the same geometry (17.5 h, emitters and lights off), where M3's Q1 held,
 /// is the low-tail comparison.
+///
+/// The G4 filter record's F2 (`docs/changes/2026-09-26-4b-filter-energy.md`): the conservative arms
+/// keep energy within 10^-3 at every age, both cameras, night and dusk; the default arm reproduces
+/// 4B's printed changes within 10^-4 (the default filter is unchanged); the symmetric arm is data.
 #[test]
 #[ignore]
 fn diagnostic_g4_filter_energy() {
@@ -1081,8 +1101,21 @@ fn diagnostic_g4_filter_energy() {
             ("variance blur off".to_string(), DenoiseSettings { variance_blur: false, ..d }),
             ("levels 1".to_string(), DenoiseSettings { levels: 1, ..d }),
             ("levels 0 (control)".to_string(), DenoiseSettings { levels: 0, prefilter_levels: 0, ..d }),
+            // The G4 filter record's candidates (F2).
+            ("symmetric sigma_l 4".to_string(), DenoiseSettings { weights: Weights::Symmetric, ..d }),
         ])
+        .chain([2.0f32, 4.0, 8.0].iter().map(|&s| (format!("conservative sigma_l {s}"), DenoiseSettings { weights: Weights::Conservative, sigma_l: s, ..d })))
         .collect();
+    // F2's "the default is unchanged": the default arm's changes printed by 4B's local session
+    // (`results/local-run/2026-09-26_local-4b-g5-g4/g4_diagnostic.log`, 4 digits), per camera and time.
+    let before = |cname: &str, time: &str| -> [f64; 3] {
+        match (cname, time.starts_with("night")) {
+            ("street", true) => [-0.1003, -0.2492, -0.1634],
+            ("low", true) => [-0.0750, -0.1935, -0.1283],
+            ("street", false) => [-0.0036, -0.0015, -0.0003],
+            _ => [-0.0028, -0.0013, -0.0003],
+        }
+    };
     let night = lighting(NIGHT);
     let dusk = lighting(17.5);
     let dusk_step = Step { shade: ShadeSettings::default(), lights: false, ..Step::viewer() };
@@ -1093,7 +1126,7 @@ fn diagnostic_g4_filter_energy() {
             let m: Vec<bool> = guides.iter().map(|g| g[0] & 7 != FACE_NONE).collect();
             eprintln!("G4 diagnostic {cname} {time}: {} surface px", m.iter().filter(|&&b| b).count());
             for (name, dn) in &arms {
-                if time != "night" && !(dn == &d || name.starts_with("levels 0")) {
+                if time != "night" && !(dn == &d || name.starts_with("levels 0") || dn.weights == Weights::Conservative) {
                     continue;
                 }
                 let filt = run_still_step(&mut rig, &cam, light, Step { dn: *dn, ..base }, &ages);
@@ -1101,6 +1134,13 @@ fn diagnostic_g4_filter_energy() {
                 eprintln!("  {name:24} energy change at ages 1 / 16 / 64: {:+.4} / {:+.4} / {:+.4}", ch[0], ch[1], ch[2]);
                 if name.starts_with("levels 0") && ch.iter().any(|c| c.abs() > 1e-4) {
                     failed.push(format!("control levels 0 {cname} {time}: {ch:?}"));
+                }
+                // F2: the conservative weights keep energy (f32 rounding only); the default is unchanged.
+                if dn.weights == Weights::Conservative && ch.iter().any(|c| c.abs() > 1e-3) {
+                    failed.push(format!("F2 {name} {cname} {time}: {ch:?}"));
+                }
+                if dn == &d && ch.iter().zip(before(cname, time)).any(|(c, b)| (c - b).abs() > 1e-4) {
+                    failed.push(format!("F2 default changed {cname} {time}: {ch:?} against {:?}", before(cname, time)));
                 }
                 if *dn != d || time != "night" {
                     continue;

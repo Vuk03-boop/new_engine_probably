@@ -4,7 +4,7 @@
 //!
 //! usage: viewer [--merge greedy|none] [--region brick|2x2x2_bricks|chunk|2x2x2_chunks]
 //!               [--present mailbox|fifo|immediate] [--view 0-12] [--hour H] [--run-day] [--max-age N] [--no-denoise] [--no-bounce] [--no-sky-correction] [--source raster|ray]
-//!               [--camera street|low] [--prefilter-age N] [--scene street|night [--dressing lamps|windows|full|dense]]
+//!               [--camera street|low] [--prefilter-age N] [--filter svgf|symmetric|conservative[:SIGMA]] [--scene street|night [--dressing lamps|windows|full|dense]]
 //!               [--lights auto|on|off] [--exposure auto|sky] [--emitter-samples K]
 //!               [--size WxH] [--frames N [--walk] [--cycle-views] [--edit-script [--edit-size N]] [--resize-at FRAME WxH]] [--log PATH]
 //!               [--trace CSV] [--present-wait N]
@@ -32,6 +32,10 @@
 //!   the default) and `DenoiseSettings::prefilter_age` = `--prefilter-age N` (default 8: pixels at
 //!   least that old compare their own values); the title shows which. `--camera low` starts flying
 //!   at the 3A low camera, where the Q2 miss is (the far shadow edge across the road at midday).
+//! - Filter weights (the G4 filter record, `docs/changes/2026-09-26-4b-filter-energy.md`): `--filter`
+//!   starts with `DenoiseSettings::parse`'s weights and edge-stopping strength (default `svgf`, the 3E
+//!   filter); K switches between it and the record's candidate (or `svgf` when `--filter` names
+//!   another), so the two can be compared on the same view. The title and F3 show which.
 //! - Scenes (4A): `--scene street` (the default) is the M3 street block; `--scene night` is
 //!   `world::scene::street_night` with `--dressing` (default `full`). The night scene's `GpuScene`
 //!   publishes the emitter table with its meshes, and every edit rebuilds it inside the update
@@ -127,6 +131,14 @@ const SHADE_SEED: u32 = 0x3B;
 const REACH: f64 = 1024.0;
 /// `--edit-script` period in frames.
 const EDIT_PERIOD: u64 = 40;
+/// The G4 filter record's candidate, which K switches to from the default filter (the record freezes it).
+const FILTER_CANDIDATE: &str = "conservative:4";
+
+/// The filter as the title and F3 show it: the 3G prefilter mode and the weights (K).
+fn filter_name(prefilter_age: u32, filter: &DenoiseSettings) -> String {
+    let mode = if prefilter_age == u32::MAX { "3E".to_string() } else { format!("prefilter_age {prefilter_age}") };
+    format!("{mode} {} (K)", filter.tag())
+}
 
 #[derive(Clone, Debug)]
 struct Args {
@@ -163,6 +175,8 @@ struct Args {
     camera_low: bool,
     /// 3G: the `prefilter_age` P switches to (the 3E filter is `u32::MAX`).
     prefilter_age: u32,
+    /// The G4 filter record: the filter's starting weights and sigma_l (`--filter`).
+    filter: DenoiseSettings,
     /// 4A: `--scene night` with its dressing; `None` is the M3 street block.
     night: Option<Dressing>,
     /// 4B: the lights' starting rule (`auto`: on while the sun is below the horizon).
@@ -192,7 +206,7 @@ impl LightsMode {
 }
 
 fn parse_args() -> Result<Args, String> {
-    let mut a = Args { merge: Merge::Greedy, region: RegionSize::Chunk, present: vk::PresentModeKHR::MAILBOX, view: View::Light, size: (1280, 720), frames: None, walk_script: false, cycle_views: false, resize_at: None, log: None, trace: None, present_wait: None, edit_script: false, edit_size: 1, source: Source::Raster, hour: 9.0, run_day: false, max_age: 64, no_denoise: false, no_bounce: false, no_sky_correction: false, camera_low: false, prefilter_age: 8, night: None, lights: LightsMode::Auto, exposure_auto: None, emitter_samples: 1 };
+    let mut a = Args { merge: Merge::Greedy, region: RegionSize::Chunk, present: vk::PresentModeKHR::MAILBOX, view: View::Light, size: (1280, 720), frames: None, walk_script: false, cycle_views: false, resize_at: None, log: None, trace: None, present_wait: None, edit_script: false, edit_size: 1, source: Source::Raster, hour: 9.0, run_day: false, max_age: 64, no_denoise: false, no_bounce: false, no_sky_correction: false, camera_low: false, prefilter_age: 8, filter: DenoiseSettings::default(), night: None, lights: LightsMode::Auto, exposure_auto: None, emitter_samples: 1 };
     let mut dressing = None;
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
@@ -268,6 +282,7 @@ fn parse_args() -> Result<Args, String> {
                 let v = val()?;
                 dressing = Some(*Dressing::ALL.iter().find(|d| d.name() == v).ok_or(format!("unknown dressing {v}"))?);
             }
+            "--filter" => a.filter = DenoiseSettings::parse(&val()?).map_err(|e| format!("--filter: {e}"))?,
             "--prefilter-age" => {
                 a.prefilter_age = val()?.parse().map_err(|e| format!("--prefilter-age: {e}"))?;
                 if a.prefilter_age == 0 {
@@ -585,6 +600,8 @@ struct App {
     /// 3G: the filter's `prefilter_age` (P switches between `u32::MAX`, the 3E filter, and
     /// `--prefilter-age`).
     prefilter_age: u32,
+    /// The G4 filter record: the filter's weights and sigma_l (K switches, see [`FILTER_CANDIDATE`]).
+    filter: DenoiseSettings,
     /// 3F: one bounce of sun and sky light (B).
     bounce: bool,
     walker: walk::Walker,
@@ -1088,7 +1105,7 @@ impl App {
                 stamped[1] = true;
                 // 3E: the filter shows the accumulated lighting reconstructed; the history stays raw.
                 if let (true, Some(d), Some(db), Some(dt)) = (self.denoise, &s.denoise, &s.denoise_bindings, &s.denoise_targets) {
-                    let ds = DenoiseSettings { prefilter_age: self.prefilter_age, ..DenoiseSettings::default() };
+                    let ds = DenoiseSettings { prefilter_age: self.prefilter_age, ..self.filter };
                     s.timer.begin_pass(&s.gpu, scene.cmd, slot, 7);
                     d.record(&s.gpu, scene.cmd, db, h, dt, ds, DenoiseFaults::default());
                     s.timer.end_pass(&s.gpu, scene.cmd, slot, 7);
@@ -1203,7 +1220,7 @@ impl App {
                 },
                 self.view.name(),
                 if source == Source::Ray { "ray query" } else { "raster" },
-                if !self.denoise { "off".to_string() } else if self.prefilter_age == u32::MAX { "3E".to_string() } else { format!("prefilter_age {}", self.prefilter_age) },
+                if !self.denoise { "off".to_string() } else { filter_name(self.prefilter_age, &self.filter) },
                 self.hour,
                 light::sun::elevation_deg(self.sun.sun_dir),
                 if self.args.night.is_some() { format!(" | lights {} ({}{}, L)", if lights { "on" } else { "off" }, self.args.lights.name(), if self.lights_flip { ", flipped" } else { "" }) } else { String::new() },
@@ -1233,7 +1250,7 @@ impl App {
                     "F3 details | view {} | [B] bounce {} | [N] filter {} | [H] accumulate {} | [L] lights {}{} | emitter samples {} | exposure {} {:.3e} ([-/=] {:+.2} stops) | [T] day {} at {:.2} h, sun {:.1} deg | history max age {}, cap now {} | {:.0} fps, 1% low {:.0}, frame p50 {:.2} p99 {:.2} ms | GPU p50 ms: gbuffer {:.2}, shade {:.2} = shade pass {:.2} + temporal {:.2} + filter {:.2}, exposure {:.3}, view {:.2}",
                     self.view.name(),
                     on(self.bounce),
-                    if !self.denoise || !self.accumulate { "off".to_string() } else if self.prefilter_age == u32::MAX { "3E".to_string() } else { format!("prefilter_age {}", self.prefilter_age) },
+                    if !self.denoise || !self.accumulate { "off".to_string() } else { filter_name(self.prefilter_age, &self.filter) },
                     on(self.accumulate),
                     if self.args.night.is_none() { "n/a (street)" } else { on(lights) },
                     if self.args.night.is_some() { format!(" ({}{})", self.args.lights.name(), if self.lights_flip { ", flipped" } else { "" }) } else { String::new() },
@@ -1561,7 +1578,7 @@ impl App {
         let (errors, warnings) = s.gpu.validation_counts();
         let passes: Vec<String> = PASSES.iter().zip(&self.all.passes).map(|(n, v)| format!("\"{n}\":{}", Series::summary(v))).collect();
         format!(
-            "{{\"run\":\"viewer\",\"device\":{:?},\"validation\":{},\"scene\":\"{}\",\"dressing\":{},\"emitters\":{},\"merge\":\"{}\",\"region\":\"{}\",\"source\":\"{}\",\"edits\":{},\"present\":\"{:?}\",\"extent\":[{},{}],\"frames\":{},\"frames_in_flight\":{},\"swapchain_recreates\":{},\"scripted\":{},\"cycle_views\":{},\"triangles\":{},\"snapshot\":{},\"frame_ms\":{},\"fps\":{},\"gpu_ms\":{{{}}},\"mode\":\"{}\",\"view\":\"{}\",\"hour\":{:.3},\"accumulate\":{},\"denoise\":{},\"prefilter_age\":{},\"bounce\":{},\"sky_correction\":{},\"max_age\":{},\"present_wait\":{},\"present_wait_supported\":{},\"present_wait_timeouts\":{},\"start_unix_ms\":{},\"refresh_mhz\":{},\"focus_lost\":{},\"occluded\":{},\"input_events\":{},\"phases_ms\":{},\"walk\":{},\"lights\":{},\"emitter_samples\":{},\"exposure\":{},\"validation_errors\":{errors},\"validation_warnings\":{warnings},\"readers_held_at_exit\":{}}}",
+            "{{\"run\":\"viewer\",\"device\":{:?},\"validation\":{},\"scene\":\"{}\",\"dressing\":{},\"emitters\":{},\"merge\":\"{}\",\"region\":\"{}\",\"source\":\"{}\",\"edits\":{},\"present\":\"{:?}\",\"extent\":[{},{}],\"frames\":{},\"frames_in_flight\":{},\"swapchain_recreates\":{},\"scripted\":{},\"cycle_views\":{},\"triangles\":{},\"snapshot\":{},\"frame_ms\":{},\"fps\":{},\"gpu_ms\":{{{}}},\"mode\":\"{}\",\"view\":\"{}\",\"hour\":{:.3},\"accumulate\":{},\"denoise\":{},\"prefilter_age\":{},\"filter\":\"{}\",\"bounce\":{},\"sky_correction\":{},\"max_age\":{},\"present_wait\":{},\"present_wait_supported\":{},\"present_wait_timeouts\":{},\"start_unix_ms\":{},\"refresh_mhz\":{},\"focus_lost\":{},\"occluded\":{},\"input_events\":{},\"phases_ms\":{},\"walk\":{},\"lights\":{},\"emitter_samples\":{},\"exposure\":{},\"validation_errors\":{errors},\"validation_warnings\":{warnings},\"readers_held_at_exit\":{}}}",
             s.gpu.info.name,
             s.gpu.validation_enabled(),
             if self.args.night.is_some() { "night" } else { "street" },
@@ -1594,6 +1611,7 @@ impl App {
             self.accumulate,
             self.accumulate && self.denoise,
             self.prefilter_age,
+            self.filter.tag(),
             self.bounce,
             self.luts.corrected,
             self.args.max_age,
@@ -1776,6 +1794,10 @@ impl ApplicationHandler for App {
                         if code == KeyCode::KeyP {
                             self.prefilter_age = if self.prefilter_age == u32::MAX { self.args.prefilter_age } else { u32::MAX };
                         }
+                        if code == KeyCode::KeyK {
+                            let alt = if self.args.filter == DenoiseSettings::default() { DenoiseSettings::parse(FILTER_CANDIDATE).unwrap() } else { DenoiseSettings::default() };
+                            self.filter = if self.filter == self.args.filter { alt } else { self.args.filter };
+                        }
                         if code == KeyCode::KeyB {
                             self.bounce = !self.bounce;
                             self.last_shaded = None;
@@ -1860,11 +1882,12 @@ fn main() {
     let args = match parse_args() {
         Ok(a) => a,
         Err(e) => {
-            eprintln!("{e}\nusage: viewer [--merge greedy|none] [--region brick|2x2x2_bricks|chunk|2x2x2_chunks] [--present mailbox|fifo|immediate] [--view 0-12] [--hour H] [--run-day] [--max-age N] [--no-denoise] [--no-bounce] [--no-sky-correction] [--source raster|ray] [--camera street|low] [--prefilter-age N] [--scene street|night [--dressing lamps|windows|full|dense]] [--lights auto|on|off] [--exposure auto|sky] [--emitter-samples K] [--size WxH] [--frames N [--walk] [--cycle-views] [--edit-script [--edit-size N]] [--resize-at FRAME WxH]] [--log PATH] [--trace CSV] [--present-wait N]");
+            eprintln!("{e}\nusage: viewer [--merge greedy|none] [--region brick|2x2x2_bricks|chunk|2x2x2_chunks] [--present mailbox|fifo|immediate] [--view 0-12] [--hour H] [--run-day] [--max-age N] [--no-denoise] [--no-bounce] [--no-sky-correction] [--source raster|ray] [--camera street|low] [--prefilter-age N] [--filter svgf|symmetric|conservative[:SIGMA]] [--scene street|night [--dressing lamps|windows|full|dense]] [--lights auto|on|off] [--exposure auto|sky] [--emitter-samples K] [--size WxH] [--frames N [--walk] [--cycle-views] [--edit-script [--edit-size N]] [--resize-at FRAME WxH]] [--log PATH] [--trace CSV] [--present-wait N]");
             std::process::exit(2);
         }
     };
     let exposure_auto = args.exposure_auto.unwrap_or(args.night.is_some());
+    let filter_at_start = args.filter;
     let (world, view) = match args.night {
         Some(d) => scene::street_night(d),
         None => scene::street_block(),
@@ -1912,6 +1935,7 @@ fn main() {
         accumulate: true,
         denoise: denoise_at_start,
         prefilter_age: u32::MAX,
+        filter: filter_at_start,
         bounce: bounce_at_start,
         last_shaded: None,
         walker: walk::Walker::new(params, spawn),

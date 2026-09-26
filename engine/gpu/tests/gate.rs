@@ -218,7 +218,7 @@ impl Rig {
             reference,
             sub: Some(sub),
             sky_sun: None,
-            dn_settings: DenoiseSettings::default(),
+            dn_settings: filter_under_test(),
             w,
             h,
         };
@@ -364,6 +364,22 @@ impl Rig {
         self.tl.destroy(g);
         assert_eq!(self.alloc.destroy(g), 0, "leaked buffers");
     }
+}
+
+/// The filter under test: `NE_FILTER` (`DenoiseSettings::parse`, e.g. `conservative:4`), else the
+/// default. The G4 filter record (`docs/changes/2026-09-26-4b-filter-energy.md`) runs the criteria
+/// with both; the first use prints which.
+fn filter_under_test() -> DenoiseSettings {
+    let d = std::env::var("NE_FILTER").map_or_else(|_| DenoiseSettings::default(), |s| DenoiseSettings::parse(&s).expect("NE_FILTER"));
+    static SAID: std::sync::Once = std::sync::Once::new();
+    SAID.call_once(|| eprintln!("filter under test: {}{}", d.tag(), if std::env::var_os("NE_FILTER").is_some() { " (NE_FILTER)" } else { " (default)" }));
+    d
+}
+
+/// Display-image name prefix: "" for the default filter, else the filter's tag (`conservative-4_`), so
+/// a candidate's images sit beside the default's (FLIP scripts take it as their third argument).
+fn image_prefix() -> String {
+    std::env::var("NE_FILTER").map_or_else(|_| String::new(), |_| format!("{}_", filter_under_test().tag().replace(':', "-")))
 }
 
 fn gate_dir() -> Option<PathBuf> {
@@ -519,10 +535,10 @@ fn stills_against_the_reference() {
                 }
             }
             for age in [1u32, 16, 64] {
-                write_display(&format!("still_{key}_raw_{age}"), W, H, &shown(&raw[&age]), exposure);
-                write_display(&format!("still_{key}_filt_{age}"), W, H, &shown(&filt[&age]), exposure);
+                write_display(&format!("{}still_{key}_raw_{age}", image_prefix()), W, H, &shown(&raw[&age]), exposure);
+                write_display(&format!("{}still_{key}_filt_{age}", image_prefix()), W, H, &shown(&filt[&age]), exposure);
             }
-            write_display(&format!("still_{key}_ref"), W, H, &|i| r.mean[i], exposure);
+            write_display(&format!("{}still_{key}_ref", image_prefix()), W, H, &|i| r.mean[i], exposure);
         }
     }
     rig.finish();
@@ -569,9 +585,9 @@ fn motion_against_the_reference() {
                 failed.push(format!("Q3 {time} frame {k}"));
             }
             let key = format!("motion_{time}_{k}");
-            write_display(&format!("{key}_raw"), W, H, &shown(x), exposure);
-            write_display(&format!("{key}_filt"), W, H, &shown(f), exposure);
-            write_display(&format!("{key}_ref"), W, H, &|j| r.mean[j], exposure);
+            write_display(&format!("{}{key}_raw", image_prefix()), W, H, &shown(x), exposure);
+            write_display(&format!("{}{key}_filt", image_prefix()), W, H, &shown(f), exposure);
+            write_display(&format!("{}{key}_ref", image_prefix()), W, H, &|j| r.mean[j], exposure);
         }
     }
     rig.finish();

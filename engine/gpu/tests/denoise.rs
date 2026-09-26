@@ -115,6 +115,16 @@ impl Step {
     }
 }
 
+/// The filter under test: `NE_FILTER` (`DenoiseSettings::parse`, e.g. `conservative:4`), else the
+/// default. The G4 filter record (`docs/changes/2026-09-26-4b-filter-energy.md`) runs the criteria
+/// with both; the first use prints which.
+fn filter_under_test() -> DenoiseSettings {
+    let d = std::env::var("NE_FILTER").map_or_else(|_| DenoiseSettings::default(), |s| DenoiseSettings::parse(&s).expect("NE_FILTER"));
+    static SAID: std::sync::Once = std::sync::Once::new();
+    SAID.call_once(|| eprintln!("filter under test: {}{}", d.tag(), if std::env::var_os("NE_FILTER").is_some() { " (NE_FILTER)" } else { " (default)" }));
+    d
+}
+
 struct Bound {
     rb: RasterBindings,
     sb: ShadeBindings,
@@ -550,7 +560,7 @@ fn stills_meet_the_budget() {
     }
     let luts = SkyLuts::new(Atmosphere::default());
     let cam = street_camera(W, H);
-    let d = DenoiseSettings::default();
+    let d = filter_under_test();
     let mut failed = Vec::new();
     for hour in HOURS {
         let light = lighting(hour);
@@ -614,7 +624,7 @@ fn motion_path_meets_the_budget() {
     let mut shown: BTreeMap<(bool, u32), Shown> = BTreeMap::new();
     for filtered in [false, true] {
         rig.new_history();
-        let step = if filtered { Step::filtered(64, DenoiseSettings::default()) } else { Step::raw(64) };
+        let step = if filtered { Step::filtered(64, filter_under_test()) } else { Step::raw(64) };
         for k in 1..=32u32 {
             if let Some(x) = rig.frame(&cam_at(k), &light, step, &[], k, checks.contains(&k)) {
                 let g = rig.guides();
@@ -959,7 +969,7 @@ fn relight_check(shade: ShadeSettings) {
         .collect();
     rig.edit(&saved);
 
-    let d = DenoiseSettings::default();
+    let d = filter_under_test();
     let mut arms = BTreeMap::new();
     for (name, bx, reset) in [("relight", &boxes[..], false), ("none", &[][..], false), ("reset", &[][..], true)] {
         rig.new_history();
@@ -1034,7 +1044,7 @@ fn a_moving_sun_does_not_lag() {
     let last = 128u32;
     let end = lighting(hour_at(last));
     let t = rig.target(&cam, &end);
-    let d = DenoiseSettings::default();
+    let d = filter_under_test();
     let mut e = BTreeMap::new();
     for (name, tol) in [("cap", TemporalSettings::default().sun_tolerance_deg), ("no cap", f64::INFINITY)] {
         rig.new_history();
@@ -1062,13 +1072,40 @@ fn a_moving_sun_does_not_lag() {
 #[test]
 fn denoise_cost_at_1080p() {
     let mut rig = Rig::for_timing(COST_W, COST_H);
-    let d = DenoiseSettings::default();
+    let d = filter_under_test();
     let (tp, dn) = time_filter(&mut rig, d);
     let p = |v: &[f64], q| percentile(v, q).unwrap();
     eprintln!("cost 1080p (validation {}): temporal median {:.3} p90 {:.3} ms | denoise ({} levels) median {:.3} p90 {:.3} ms ({} reps)", rig.g.validation_enabled(), p(&tp, 50.0), p(&tp, 90.0), d.levels, p(&dn, 50.0), p(&dn, 90.0), dn.len());
     let median = p(&dn, 50.0);
     rig.finish();
     assert!(median <= 3.0, "C1: denoise median {median:.3} ms over 3.0 ms");
+}
+
+/// The G4 filter record's F5 (`docs/changes/2026-09-26-4b-filter-energy.md`): the filter under test
+/// (`NE_FILTER`) against the default at 1080p, interleaved: 7 repetitions of `time_filter` per arm in
+/// alternating order (the first pair is warm-up and dropped). Pass: the median of the candidate's
+/// per-repetition medians is at most the default's plus 0.05 ms. Run with validation off.
+#[test]
+#[ignore]
+fn filter_cost_against_the_default() {
+    const REPS: usize = 7;
+    let mut rig = Rig::for_timing(COST_W, COST_H);
+    let (d, c) = (DenoiseSettings::default(), filter_under_test());
+    let (mut md, mut mc) = (Vec::new(), Vec::new());
+    for rep in 0..REPS {
+        let order = if rep % 2 == 0 { [(d, true), (c, false)] } else { [(c, false), (d, true)] };
+        for (s, is_default) in order {
+            let (_, dn) = time_filter(&mut rig, s);
+            let m = percentile(&dn, 50.0).unwrap();
+            if rep > 0 {
+                if is_default { md.push(m) } else { mc.push(m) }
+            }
+        }
+    }
+    let (pd, pc) = (percentile(&md, 50.0).unwrap(), percentile(&mc, 50.0).unwrap());
+    eprintln!("F5 (validation {}): default {} per-repetition medians {md:.3?} -> {pd:.3} ms | {} {mc:.3?} -> {pc:.3} ms | difference {:+.3} ms", rig.g.validation_enabled(), d.tag(), c.tag(), pc - pd);
+    rig.finish();
+    assert!(pc <= pd + 0.05, "F5: {} median {pc:.3} ms over the default's {pd:.3} + 0.05 ms", c.tag());
 }
 
 const COST_W: u32 = 1920;

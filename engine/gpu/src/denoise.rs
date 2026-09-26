@@ -42,12 +42,61 @@ pub struct DenoiseSettings {
     /// filter (prefilter at every age).
     pub prefilter_age: u32,
     /// The edge-stopping variance is pre-blurred 3x3 on the same surface (SVGF); off saves 9 taps a level.
+    /// Only [`Weights::Svgf`] uses it (a blurred variance is not known for the taps).
     pub variance_blur: bool,
+    /// How a level weighs its taps (the G4 filter record); `Svgf` is the 3E / 3G filter bit for bit.
+    pub weights: Weights,
+}
+
+/// How an a-trous level weighs a tap and normalises (`docs/changes/2026-09-26-4b-filter-energy.md`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Weights {
+    /// 3E: exp(-|dl| / (sigma_l sqrt(v))), v the output pixel's 3x3-blurred variance, and the sum
+    /// divided by the weights' sum. A dark pixel with a small variance rejects a bright tap that
+    /// accepts it, so rare bright samples lose energy (4B's G4).
+    Svgf,
+    /// v = the output pixel's plus the tap's variance (each unblurred, in its guide's units), so a pair
+    /// weighs the same both ways; still divided by the weights' sum.
+    Symmetric,
+    /// Symmetric weights, and the weight a pixel's taps do not take stays with the pixel instead of
+    /// being normalised away (the kernel sums to 1): out = x + sum w (x_q - x). Every exchange
+    /// between two pixels is then equal and opposite, so each surface keeps its energy exactly.
+    Conservative,
 }
 
 impl Default for DenoiseSettings {
     fn default() -> DenoiseSettings {
-        DenoiseSettings { levels: 2, sigma_l: 4.0, prefilter_levels: 1, moments_age: 8, variance_blur: true, prefilter_age: u32::MAX }
+        DenoiseSettings { levels: 2, sigma_l: 4.0, prefilter_levels: 1, moments_age: 8, variance_blur: true, prefilter_age: u32::MAX, weights: Weights::Svgf }
+    }
+}
+
+impl DenoiseSettings {
+    /// The defaults with `weights[:sigma_l]` (`svgf`, `symmetric`, `conservative`; e.g. `conservative:4`):
+    /// the viewer's `--filter` and the tests' `NE_FILTER` (the G4 filter record).
+    pub fn parse(s: &str) -> std::result::Result<DenoiseSettings, String> {
+        let (w, sigma) = s.split_once(':').map_or((s, None), |(w, x)| (w, Some(x)));
+        let weights = match w {
+            "svgf" => Weights::Svgf,
+            "symmetric" => Weights::Symmetric,
+            "conservative" => Weights::Conservative,
+            _ => return Err(format!("filter weights {w:?}: svgf, symmetric or conservative")),
+        };
+        let d = DenoiseSettings::default();
+        let sigma_l = match sigma {
+            None => d.sigma_l,
+            Some(x) => x.parse::<f32>().ok().filter(|v| v.is_finite() && *v > 0.0).ok_or_else(|| format!("filter sigma_l {x:?}: a positive number"))?,
+        };
+        Ok(DenoiseSettings { weights, sigma_l, ..d })
+    }
+
+    /// `weights:sigma_l`, the form [`DenoiseSettings::parse`] reads (for logs; other fields not shown).
+    pub fn tag(&self) -> String {
+        let w = match self.weights {
+            Weights::Svgf => "svgf",
+            Weights::Symmetric => "symmetric",
+            Weights::Conservative => "conservative",
+        };
+        format!("{w}:{}", self.sigma_l)
     }
 }
 
@@ -63,6 +112,8 @@ mod flags {
     pub const INIT_GUIDE: u32 = 2;
     pub const REMODULATE: u32 = 4;
     pub const NO_VARIANCE_BLUR: u32 = 8;
+    pub const SYMMETRIC: u32 = 16;
+    pub const CONSERVATIVE: u32 = 32;
     pub const FAULT_IGNORE_GUIDES: u32 = 256;
 }
 
@@ -250,7 +301,13 @@ impl Denoise {
             width: targets.width,
             height: targets.height,
             guide: history.parity() as u32,
-            flags: if faults.ignore_guides { flags::FAULT_IGNORE_GUIDES } else { 0 } | if s.variance_blur { 0 } else { flags::NO_VARIANCE_BLUR },
+            flags: if faults.ignore_guides { flags::FAULT_IGNORE_GUIDES } else { 0 }
+                | if s.variance_blur { 0 } else { flags::NO_VARIANCE_BLUR }
+                | match s.weights {
+                    Weights::Svgf => 0,
+                    Weights::Symmetric => flags::SYMMETRIC,
+                    Weights::Conservative => flags::CONSERVATIVE,
+                },
             sigma_l: s.sigma_l,
             moments_age: s.moments_age,
             prefilter_age: s.prefilter_age,
@@ -292,6 +349,23 @@ impl Denoise {
             gpu.device.destroy_pipeline(self.pipeline, None);
             gpu.device.destroy_pipeline_layout(self.layout, None);
             gpu.device.destroy_descriptor_set_layout(self.set_layout, None);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn filter_settings_parse() {
+        assert_eq!(DenoiseSettings::parse("svgf").unwrap(), DenoiseSettings::default());
+        let c = DenoiseSettings::parse("conservative:2.5").unwrap();
+        assert_eq!(c, DenoiseSettings { weights: Weights::Conservative, sigma_l: 2.5, ..DenoiseSettings::default() });
+        assert_eq!(DenoiseSettings::parse(&c.tag()).unwrap(), c);
+        assert_eq!(DenoiseSettings::parse("symmetric").unwrap().weights, Weights::Symmetric);
+        for bad in ["", "svgf:", "svgf:0", "svgf:-1", "svgf:nan", "box", "conservative:4:1"] {
+            assert!(DenoiseSettings::parse(bad).is_err(), "{bad:?} accepted");
         }
     }
 }

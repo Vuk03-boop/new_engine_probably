@@ -1,7 +1,10 @@
 """4B G4 Q4: LDR-FLIP (flip-evaluator 1.7, A-008) of the night display images written by
 `gpu/tests/lights.rs` (`night_against_the_reference`).
 
-usage: python flip.py <NE_GATE_DIR> <out dir>
+usage: python flip.py <NE_GATE_DIR> <out dir> [image prefix]
+
+The optional prefix selects a candidate filter's images (`NE_FILTER`, e.g. `conservative-4_`; the
+G4 filter record, docs/changes/2026-09-26-4b-filter-energy.md); without it, the default filter's.
 
 For every arm (camera x time) it compares the raw and the filtered image at ages 1, 16, 64 with the
 reference (all with emission added and the reference's metric exposure). Writes `flip.jsonl` (one line
@@ -34,11 +37,12 @@ def score(ref, test):
 
 def main():
     src, out = Path(sys.argv[1]), Path(sys.argv[2])
+    pre = sys.argv[3] if len(sys.argv) > 3 else ""
     out.mkdir(parents=True, exist_ok=True)
     lines, failed, sheet_rows, maps = [], [], [], []
     for time, judged in TIMES:
         for cam in CAMERAS:
-            key = f"still4b_{cam}_{time}"
+            key = f"{pre}still4b_{cam}_{time}"
             ref = load(src / f"{key}_ref.ppm")
             rec = {"arm": key, "judged": judged}
             row = [ref]
