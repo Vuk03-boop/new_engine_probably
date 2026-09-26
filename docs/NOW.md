@@ -1,6 +1,6 @@
-# NOW — Phase 4 (M4): 4A done; 4B is next
+# NOW — Phase 4 (M4): 4A done; 4B planned, criteria frozen
 
-**Updated 2026-09-25.** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
+**Updated 2026-09-26.** This file is the plan to start from. A new session reads `CLAUDE.md`, then this file, then only the files it links for the task at hand.
 
 ## State
 
@@ -27,6 +27,11 @@
   - **part 2 cloud checks pass:** C6, C7; the magnitudes M1–M2 are measured (below);
   - **part 2 passed on the RTX 3050:** G6–G9 (`run-local.cmd`, 2026-09-25 20:29; analysed in a cloud session from the pushed logs);
   - **L moved to 4B** with the rendering it switches (in 4A it would switch nothing on screen).
+- **4B planned, no code yet** ([record](changes/2026-09-26-phase4b-many-lights.md)). Criteria were frozen 2026-09-26, before any code or run, at the user's request ("You are at max greenlight").
+  - **Part 1:** the lit shade pass (emitter samples at the primary and bounce hits); emission and the exposure meter after reconstruction (`gpu::compose`); the lights switch (a light jump); the metered exposure while the lights are on; the equal-time curve; quality at blue hour and night.
+  - **Part 2:** relight for lights (ADR-0006 Amendment 2).
+  - **Design rule:** lights off runs main's shade module byte for byte. This was checked feasible in the cloud with the pinned slangc's Linux release.
+  - **Choices in the plan, yours to override** (listed in the record): the exposure follows the lights; L holds until the next horizon crossing; the default samples per pixel come from the curve; 1080p with 8 seeds; blue hour is compared per pixel with the converged real-time image.
 - **Not authorized:**
   - 4C–4G: reservoir reuse, P05, P08, the M4 gate;
   - glass and water;
@@ -40,7 +45,7 @@
   - the proposal (original, kept as written) and `CLAUDE.md`;
   - [DECISIONS.md](DECISIONS.md): ADR-0001 to ADR-0006 (ADR-0003 and ADR-0005 each gained Amendment 3 in 4A), A-006, A-008, S-001 to S-024;
   - [CLOUD.md](CLOUD.md): rules for cloud sessions only (read when `CLAUDE_CODE_REMOTE=true`), and the one-click `run-local.cmd` handoff;
-  - the change records in `docs/changes/`;
+  - the change records in `docs/changes/`, including the 4B plan (`2026-09-26-phase4b-many-lights.md`);
   - [BUILD-ROADMAP](../BUILD-ROADMAP.md) and [TECHNIQUE-MAP](../TECHNIQUE-MAP.md).
 - **`engine/`** ([README](../engine/README.md): crates, verified commands, notes):
   - pure crates `memory`, `world`, `derived`, `walk`, `light` (153 tests);
@@ -62,6 +67,7 @@
 - **Repository** (since 2026-09-25):
   - Git, branch `main`, pushed to https://github.com/Vuk03-boop/new_engine_probably (public; first commit `eac532c`).
   - **4A is merged into `main`** (PR https://github.com/Vuk03-boop/new_engine_probably/pull/1, merge commit `16edb67`, 2026-09-25, at the user's request; a merge commit, so the hashes cited in the 4A record stay valid). New work starts from `main`; the 4A branches `claude/tender-keller-9u9d6t` and `claude/nice-dijkstra-xpg7tr` are finished.
+  - The 4B plan is on branch `claude/what-is-next-jcbt1f` (from `main` at `eb17538`), not merged.
   - `run-local.cmd` (repository root, CRLF by `.gitattributes`): the one-click local run, still holding the 4A part 2 checks (it ran once, all 15 steps exit 0). 4B will replace its steps. Logs go to `engine/results/local-run/<date>-<tag>/`; the user pushes `engine/results` back.
   - Not committed, kept locally (`.gitignore`): build output (`target/`), the Phase 0 third-party assets and tools (Bistro, RenderDoc), and GPU captures (`*.rdc`, `*.ngfx-gputrace`).
   - Binary data is protected from line-ending conversion by `.gitattributes`.
@@ -73,8 +79,12 @@
   - `engine/results/phase4a_ref/`: the night references (2 cameras × dusk, blue hour, night; 16,384 spp);
   - `engine/results/local-run/`: the laptop runs of `run-local.cmd`.
 
-## Last checks (2026-09-25, RTX 3050)
+## Last checks (2026-09-25, RTX 3050; 2026-09-26, cloud)
 
+- **4B planning check (2026-09-26, cloud, no GPU):** with the pinned slangc 2026.13.1 (its Linux release, in the session's scratch space; supplemental, not the laptop's SDK):
+  - `shade.slang` with a stub `#ifdef EMITTERS` block and a changed comment, compiled without the define, gives SPIR-V and reflection byte-identical to main's;
+  - an unused helper added to `emitters_common.slang` leaves `reference.spv` byte-identical.
+  - No engine code changed; no test was run.
 - **4A part 2 on the RTX 3050** (`run-local.cmd` at `7810f7d`, `engine/results/local-run/2026-09-25_2029-4a2/`, 15 of 15 steps exit 0; analysed in a cloud session, no GPU):
   - G6 pass: the table follows 5 edits, a refusal and a retry through `GpuScene::update`, device bytes equal every time; retirement and ledger asserts hold; the stale table is refused; 0 validation errors, no leaks;
   - G7 pass: night Full p95 27.9 / 32.5 / 34.2 ms (N = 1, 8, 32), Dense N = 1 33.3 ms; every edit shown, 0 deferred; table median 0.63 ms (Full), 4.40 ms (Dense); validation on: exit 0, 0 errors, 0 warnings;
@@ -119,13 +129,19 @@
 
 ## Exact next action
 
-1. **4B** (authorized):
-   - one emitter sample per pixel at the primary and bounce hits, then the temporal pass and the filter;
-   - L, the automatic switch and the night exposure (moved from 4A);
-   - relight rules for emitters;
-   - the equal-time curve over samples per pixel and light counts.
-   - Criteria frozen in a 4B record before the first run; `run-local.cmd` rewritten for 4B's GPU checks.
-   - From 4A (recommendations): an energy criterion on reflected light, not on the whole image mean (emission dominates it at night); the night per-frame noise (2–3× dusk's median, 5–8× its 90th percentile, a tail that grows with the light count) is what 4B's filtered error must show, and that decides 4C; comparisons against the blue-hour references need the |z|-rate metric or a check of their heavy tail first.
+1. **4B part 1, on the user's go.** The plan and frozen criteria are in the [4B record](changes/2026-09-26-phase4b-many-lights.md).
+   - First, code in a cloud session, then the cloud checks C8–C10.
+   - Then rewrite `run-local.cmd` for G10–G14, Q1–Q4, M1–M4 and V (about 1.5 h on the laptop).
+   - `run-local.cmd` still holds 4A part 2's steps until then.
+   - The scope of 4B, as authorized (the record details it):
+     - one emitter sample per pixel at the primary and bounce hits, then the temporal pass and the filter;
+     - L, the automatic switch and the night exposure (moved from 4A);
+     - relight rules for emitters (part 2);
+     - the equal-time curve over samples per pixel and light counts.
+   - 4A's recommendations are built into the frozen criteria:
+     - energy on reflected light (emission excluded);
+     - 8 seed sequences for the night's heavy tail;
+     - blue hour compared per pixel with the converged real-time image.
 2. **Before 4C** (not authorized):
    - the user points to the P05 / P08 reviews and PDFs;
    - the ReSTIR direct-light sources need the user's copies or a download request.
