@@ -1,6 +1,6 @@
 # Change: 4B filter fix — the filter keeps night energy (G4)
 
-Status: **in progress**: criteria frozen, built, cloud checks run; **GPU checks NOT RUN** (`run-local.cmd`).
+Status: **in progress**: the laptop run is analysed. Energy is fixed; F4 fails by 0.2% at one point and F5 (cost) fails by +0.68 ms; the default stays `Svgf`.
 Date and baseline: 2026-09-26, branch `claude/sharp-faraday-o4fy96` from `df39b9a` (4B's G5 settled, G4 diagnosed).
 Authorization: S-026 (the user, 2026-09-26: "accept g5 and dont fix the filter yet will boot you up in the cloud to fix the filter"); in this cloud session: "fix the filter then". The current filter default stays until the user judges the results (NOW: "the user decides the default change").
 
@@ -120,9 +120,34 @@ The model is a model, and the GPU criteria below judge.
   - clippy exit 0, only the 6 old `world` lints (`results/clippy_4b_filter_cloud.log`; the first run also flagged one lint in the model, fixed before this rerun).
 - C2: `conservative_weights_keep_energy` passes (Conservative ≤ 2.4 × 10⁻⁸; Svgf −30 to −43%, Symmetric +45 to +64%).
 
-## Laptop results
+## Laptop results (RTX 3050, 2026-09-26 11:25, commit `bdd4bd2`; analysed in a cloud session)
 
-NOT RUN.
+Logs: `engine/results/local-run/2026-09-26_1125-4b-filter/` (`summary.txt`); FLIP: `engine/results/phase4b_filter/`. Validation on: 0 errors, 0 warnings wherever it was on.
+
+| # | Result |
+|---|---|
+| F2 | **pass.** Conservative σ_l 2 / 4 / 8: energy change 0.0000 at ages 1 / 16 / 64, both cameras, night and dusk. The default arm reproduces 4B's printed changes at every digit (street night −0.1003 / −0.2492 / −0.1634, low night −0.0750 / −0.1935 / −0.1283, dusk equal), so the default filter is unchanged. `levels 0` stays exact. Symmetric σ_l 4 (data): −4.8 / +60.4 / +51.7% (street), confirming the normalisation gain. |
+| F1 | **Q1a pass at all 8 night points** (filter energy 0.0000; the old filter lost 5–25%). Q1b pass. Q4 FLIP pass (`g4_candidate/flip.jsonl`). **Q2 fails at one point: low night age 1**, filtered 81.2 against raw-at-8 49.1. The old filter also failed there (73.1), after removing 8.6% of the energy. **Street age 1 passes** (15.3 against 55.8), which the 960×540 model had predicted would fail. The plateau arms (data) fail the same point: σ_l 2 122.3, σ_l 8 63.7. The error falls with σ_l at every night point (street age 1: 26.3 / 15.3 / 11.2 at σ_l 2 / 4 / 8). |
+| F3 | **pass, and better than 3G.** Stills: Q1 40 of 40 (bias −0.87% to +0.03%); **Q2 40 of 40**. The arm that failed at 3G (low camera, midday, ages 16 / 64) now passes: 0.0068 / 0.0058 against raw-at-64 0.0077, where 3G had 0.0098 / 0.0090. Motion Q3 all 6 pass. Q4 FLIP all pass (`gate/flip.jsonl`). |
+| F4 | **FAIL by 0.2% at one point:** D1 hour 12 age 1, filtered rel_mse 0.1644 against raw-at-8 0.1641 (equivalent-sample gain 7.98 against 8). Every other D1–D3 point, R1 / R2 (both relight tests) and `a_moving_sun_does_not_lag` pass. Data: D4 frame 8 is missed as with the default (S-018). C1 is 4.41 ms with validation on (limit 3.0; the default is about 3.1–3.5 ms, S-019). |
+| F5 | **FAIL:** the candidate's filter costs **3.747 ms against 3.065 ms (+0.68 ms)**, validation off, 6 repetitions each, spread ≤ 0.005 ms. The stable repetitions make this a real cost, not noise. |
+| F6 | **pass:** night `--run-day` from 17.5 h and the street, validation on: exit 0, 0 errors, 0 warnings. Data, the night walk (one run each, validation off): default p50 8.20 / p99 13.31 ms (filter p50 3.20); candidate p50 9.12 / p99 21.09 ms (filter p50 3.91, p99 12.71). The candidate's p99 exceeds 16.67 ms in this single run; filter-pass spikes to 12.7 ms are not explained yet (one run: thermal state and order not controlled). |
+
+**Diagnosis (hypotheses, not yet tested):**
+
+- **Cost (+0.68 ms):**
+  - the likely main part is init's border sums: 49 extra reads of the 16-byte full guide per pixel, in a pass that is memory-bound;
+  - then the exchange arithmetic per tap.
+  - The first check is a cost breakdown (`denoise_cost_breakdown` with the candidate: W computed but not used; W constant).
+  - Candidate cheaper forms:
+    - build W from the 8-byte keys in a small pass after init;
+    - or compute only the level's own W in the level pass (it already reads every tap's key) and write it for the next pass.
+- **D1 at noon age 1 (gain 7.98 against 8):** at σ_l 4 the filter smooths bright samples less than the old one; the model and F1 both show the error falling with σ_l. A larger σ_l (8, the F1 plateau arm) is the obvious candidate, but judging it means a new run.
+
+**Decision (proposed; the user decides):** do not change the default yet. The energy defect is fixed exactly, and the day image is as good or better (F3), but the filter is 0.68 ms slower and misses D1 by 0.2% at σ_l 4. Next, in one short record amendment:
+
+1. find and cut the cost (breakdown first);
+2. rerun F1, F4 and F5 (and F3 if the filter's arithmetic changes) at σ_l 8.
 
 ### The 960×540 model (data, finished after σ* was fixed; `results/model_4b_filter_960_cloud.log`)
 
